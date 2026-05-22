@@ -1,0 +1,14 @@
+JF-Dot Series — Public Domain Software (PDS)
+
+The JF-Dot family of pixel fonts is created and released by 自由工房
+(Jiyukoubou, https://jikasei.me/).
+
+JF-Dot is declared Public Domain. There are no restrictions on use,
+modification, or redistribution. Attribution is appreciated as a courtesy
+but not legally required.
+
+The fonts are derived from various bitmap font sources including
+Shinonome (東雲フォント) which is itself Public Domain.
+
+Reference:
+  https://jikasei.me/font/jf-dotfont/
