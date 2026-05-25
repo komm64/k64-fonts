@@ -2,6 +2,15 @@
 
 komm64 pixel font ecosystem — source TTFs + web-baked WOFF2s for CDN distribution.
 
+## Preview
+
+![K64 font browser sample](docs/sample-page.png)
+
+Open the live browser sample:
+https://cdn.jsdelivr.net/gh/komm64/k64-fonts@main/web/sample.html
+
+The sample compares K64 Fantasy, JP/CJK fallback, Thai pixel fonts, smooth Thai fallback, and scanline variants at the intended `font-size: 32px` display size.
+
 ## Quick start (web)
 
 Reference fonts from this repo via jsDelivr CDN. Example CSS:
