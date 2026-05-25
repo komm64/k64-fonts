@@ -21,7 +21,7 @@ Reference fonts from this repo via jsDelivr CDN. Example CSS:
 }
 @font-face {
   font-family: 'K64 Thai';
-  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-NotoSansThai-Regular-x2w.woff2') format('woff2');
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-thai-pixel-16w-y2x.woff2') format('woff2');
 }
 
 body { font-size: 32px; }
@@ -37,6 +37,7 @@ Pin a specific release tag for stability: `cdn.jsdelivr.net/gh/komm64/k64-fonts@
 
 - `-or12` — OR-merged (Reecho 4→3 row collapse, 16px → 12px height, `--or-pair 1`)
 - `-y2x` — Y axis 2× stretched (each source pixel = 1 disp px wide × 2 disp px tall)
+- `-scan-erase-upper` / `-scan-erase-lower` — scanline variant; each 1×2 `y2x` dot keeps only the lower/upper 1px half
 - `-x2w` — X axis 2× stretched (each source pixel = 2 disp px wide × 1 disp px tall)
 - `-2x` — both axes 2× (each source pixel = 2 disp × 2 disp, square dots)
 - (no suffix) — source-as-woff2 only (no glyph modifications)
@@ -68,7 +69,18 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `k64-fantasy-2x.woff2` | `komm64Fantasy.ttf` | all glyph contours + metrics scaled 2× both axes | `font-size: 32px` → 32×32 px, 2×2 square dots |
 | `k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2` | `JF-Dot-ShinonomeMin16.ttf` | OR-merge to 12 rows + Y axis 2× + Name table rewrite (RFN compliance) | `font-size: 32px` → 16×24 px, 1×2 tall rect dots |
 | `k64-unifont-16px-or12-y2x.woff2` | `unifont-16px.ttf` | same as above. Reserved Font Name "Unifont" removed from Name table per OFL §3. | same |
-| `k64-NotoSansThai-Regular-x2w.woff2` | `NotoSansThai-Regular.ttf` | Horizontal 2× (via Reecho's `stretch_ttf_x2w.py`) preserving GPOS anchors for tone marks. Smooth vector, not pixelated (= known limitation, see issues). RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → ~16-20 wide × 25 tall, smooth |
+| `k64-thai-pixel-16w-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Rasterized at 16px, fitted so `ก` advances 16px, emitted as 1×2 tall pixel rectangles, preserving GSUB/GPOS mark positioning. RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → pixel-art Thai with stacked tone marks |
+| `k64-thai-pixel-12w-16h-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Same pipeline as 16w, fitted so `ก` advances 12px while keeping the full 16px source height. Intended as the tall source for later OR-merge compression. | `font-size: 32px` → narrow, tall pixel-art Thai |
+| `k64-thai-pixel-12w-or12-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Starts from the 12w/16h raster and compresses rows with 4→3 OR merge, preserving horizontal strokes better than nearest-neighbor scaling. | `font-size: 32px` → compact 12w Thai |
+| `k64-thai-pixel-native12px-y2x-prop.woff2` | `NotoSansThai-Regular_x2w.ttf` | Rasterized directly at 12px with no width fit and no OR merge, then emitted as 1×2 tall pixel rectangles with Noto proportional advances. | `font-size: 32px` → closest match to a 12px Thai TTF rendered through the same 1×2 dot pipeline |
+| `k64-NotoSansThai-Regular-x2w.woff2` | `NotoSansThai-Regular.ttf` | Legacy smooth-vector fallback: Horizontal 2× (via Reecho's `stretch_ttf_x2w.py`) preserving GPOS anchors for tone marks. RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → ~16-20 wide × 25 tall, smooth |
+
+## Game fonts (game/) — TTF outputs
+
+| File | Notes |
+|------|-------|
+| `k64-thai-pixel-native12px-y2x-prop.ttf` | Recommended natural Thai 12px source: rasterized directly at 12px, emitted as 1×2 rectangular dots, proportional advances preserved. |
+| `k64-thai-pixel-12w-or12-y2x-prop.ttf` | More stylized compact Thai: 16px source fitted to 12w, 4→3 OR merge, proportional advances preserved. |
 
 ## Attribution / Copyright
 
@@ -84,7 +96,7 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 | Script | Purpose |
 |--------|---------|
 | `bake_web_fonts.py` | Main bake: source TTFs → web/*.woff2. Uses Reecho's `gen_font.py`-produced or12 intermediates as input |
-| `bake_thai_pixel.py` | Thai pixelization (WIP, see Issues) — rasterize NotoSansThai → pixel-rect contours, preserve GPOS |
+| `bake_thai_pixel.py` | Thai pixelization — rasterize NotoSansThai → pixel-rect contours, preserve GPOS |
 | `gen_font.py` | Reecho's OR-merge bake (16px TTF → 12px pixel-outline TTF or BMFont) |
 | `stretch_ttf_x2w.py` | Reecho's horizontal 2× scaler (preserves GPOS anchors) |
 | `inspect_font.py` | Probe glyph coverage, metrics, OFL compliance |
@@ -102,6 +114,41 @@ python tools/stretch_ttf_x2w.py src/NotoSansThai-Regular.ttf
 
 # Step 2: bake web woff2
 python tools/bake_web_fonts.py
+
+# Optional: also regenerate the large Unifont fallback (slow; ~57k glyphs)
+python tools/bake_web_fonts.py --include-unifont
+
+# Optional: generate scanline variants for y2x fonts
+python tools/bake_web_fonts.py --scanline erase-upper
+python tools/bake_web_fonts.py --scanline erase-lower
+
+# Unifont scanline WOFF2s are large; scanline builds use no glyf transform
+# to avoid multi-hour WOFF2 compression.
+```
+
+Generate game TTFs:
+
+```bash
+python tools/bake_thai_pixel.py --fit-mode native --raster-size 12 --height-mode full --advance-mode noto-proportional --min-right-bearing-px 1 --output game/k64-thai-pixel-native12px-y2x-prop.ttf
+python tools/bake_thai_pixel.py --target-width 12 --height-mode or12 --advance-mode noto-proportional --min-right-bearing-px 1 --output game/k64-thai-pixel-12w-or12-y2x-prop.ttf
+```
+
+Local browser sample:
+
+```bash
+python -m http.server 8765 --directory web
+# then open http://127.0.0.1:8765/sample.html
+```
+
+Thai proportional advance experiment:
+
+```bash
+# Keep pixel-snapped outlines, but preserve Noto hmtx advance proportions.
+# Default is --advance-mode pixel-snap for backward-compatible web outputs.
+python tools/bake_thai_pixel.py --target-width 12 --height-mode or12 --advance-mode noto-proportional
+
+# Middle ground: preserve Noto proportions but snap advances to 0.5 display px.
+python tools/bake_thai_pixel.py --target-width 12 --height-mode or12 --advance-mode noto-proportional-half-px
 ```
 
 ## Repo structure
@@ -120,7 +167,7 @@ k64-fonts/
 
 ## Known issues
 
-- Thai pixel font: rasterizing NotoSansThai → pixel rects while preserving GPOS tone-mark stacking is not fully working yet. Current `web/k64-NotoSansThai-Regular-x2w.woff2` is the smooth-vector x2w fallback. See [Issue #1](https://github.com/komm64/k64-fonts/issues/1) for tracking.
+- Thai pixel font is generated from NotoSansThai at 16px, so a few complex mark variants may still need visual QA in browser text shaping. The previous smooth fallback remains available as `web/k64-NotoSansThai-Regular-x2w.woff2`.
 
 ## Versioning
 

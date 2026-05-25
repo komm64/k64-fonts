@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """bake_web_fonts.py — produce woff2 fonts for komm64/k64-fonts CDN distribution.
 
-Outputs (to tmp/k64-fonts-staging/):
+Outputs (to web/):
   k64-fantasy.woff2                          # K64F v1.37 source (8w x 16h monospace), woff2 only
   k64-fantasy-2x.woff2                       # K64F 2x bake (16w x 32h display, 2x2 square dots)
   k64-JF-Dot-ShinonomeMin16-y2x.woff2        # JF-Dot or-merge + y2x (16w x 24h display, 1x2 tall rect)
   k64-unifont-16px-y2x.woff2                 # unifont or-merge + y2x
-  k64-NotoSansThai-Regular-y2x.woff2         # NotoSansThai or-merge + y2x
+  k64-thai-pixel-16w-y2x.woff2               # NotoSansThai fitted to 16px width, 1x2 dots
+  k64-thai-pixel-12w-16h-y2x.woff2           # NotoSansThai fitted to 12px width, full 16px height
+  k64-thai-pixel-12w-or12-y2x.woff2          # 12w tall source compressed by 4->3 OR merge
 
 All baked fonts target font-size: 32px on the web, with em = 32 display px.
   - K64F 2x: 16w x 32h glyph fills the em (square dots 2x2 px)
@@ -15,36 +17,43 @@ All baked fonts target font-size: 32px on the web, with em = 32 display px.
 Name table for OFL-derived fonts is rewritten to OFL-safe names (no 'Unifont'/'Noto' brand).
 """
 from __future__ import annotations
+import argparse
 import io
 import os
 import sys
 from pathlib import Path
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 import numpy as np
-from fontTools.ttLib import TTFont
+from fontTools.ttLib import TTFont, woff2
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib.tables._g_l_y_f import Glyph as TtGlyph
 from PIL import Image, ImageDraw, ImageFont
 
 # ---------- paths ----------
-ROOT = Path(r"C:\Users\komm64\Projects\chicken-climber-godot")
-SRC_K64F   = Path(r"K:\fonts\komm64Fantasy_v1.37.ttf")
-# Reecho's already-OR-merged outputs (= tested, baseline-aware, correct glyphs).
+ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT / "src"
+OUT_DIR = ROOT / "web"
+
+SRC_K64F = SRC_DIR / "komm64Fantasy.ttf"
+# Already-OR-merged outputs from tools/gen_font.py.
 # Using these as starting point means we ONLY need to apply Y-2x scale.
-REECHO_FONTS_GEN = Path(r"C:\Users\komm64\Projects\reecho\game\assets\fonts\gen")
-SRC_JFDOT_OR12 = REECHO_FONTS_GEN / "JF-Dot-ShinonomeMin16_12px_or1.ttf"
-SRC_UNI_OR12   = REECHO_FONTS_GEN / "unifont-16px_12px_or1.ttf"
-# Thai: Reecho uses x2w (horizontal stretch), NOT or-merge. Need separate treatment.
-SRC_THAI_RAW   = Path(r"C:\Users\komm64\Projects\reecho\game\assets\fonts\NotoSansThai-Regular.ttf")
-SRC_THAI_X2W   = Path(r"C:\Users\komm64\Projects\reecho\game\assets\fonts\NotoSansThai-Regular_x2w.ttf")
-OUT_DIR    = ROOT / "tmp" / "k64-fonts-staging"
+SRC_JFDOT_OR12 = SRC_DIR / "JF-Dot-ShinonomeMin16_12px_or1.ttf"
+SRC_UNI_OR12 = SRC_DIR / "unifont-16px_12px_or1.ttf"
+# Thai: x2w preserves tone mark positioning for the smooth fallback.
+SRC_THAI_X2W = SRC_DIR / "NotoSansThai-Regular_x2w.ttf"
 
 # ---------- constants ----------
 SRC_H = 16          # source font px size for rasterization
 DST_H_MERGE = 12    # OR-merge target height (rows)
 OR_PAIR = 1         # which row pair to OR-merge (Reecho default)
+SCANLINE_SUFFIX = {
+    "none": "",
+    "erase-upper": "scan-erase-upper",
+    "erase-lower": "scan-erase-lower",
+}
 
 # Output metrics for "32px line" web display:
 # - 1 display pixel = 64 font units (so UPM aligns with K64F's 1024 scale)
@@ -132,8 +141,104 @@ def emit_pixels_as_contours(bitmap: np.ndarray, cell_w: int, glyph_h: int,
     return pen if has_ink else None
 
 
+def scanline_y_bounds(y_min: int, y_max: int, dot_units: int, scanline: str):
+    if scanline == "erase-upper":
+        return y_min * 2, y_min * 2 + dot_units
+    if scanline == "erase-lower":
+        return y_max * 2 - dot_units, y_max * 2
+    return y_min * 2, y_max * 2
+
+
+def apply_y2x_or_scanline_to_glyph(glyph, dot_units: int, scanline: str):
+    coords = getattr(glyph, "coordinates", None)
+    if not coords:
+        return
+    if scanline == "none":
+        for i, (x, y) in enumerate(coords):
+            coords[i] = (x, y * 2)
+        return
+
+    ends = list(glyph.endPtsOfContours)
+    start = 0
+    for end in ends:
+        contour = list(range(start, end + 1))
+        ys = [coords[i][1] for i in contour]
+        y_min, y_max = min(ys), max(ys)
+        if y_min == y_max:
+            for i in contour:
+                x, y = coords[i]
+                coords[i] = (x, y * 2)
+        else:
+            new_min, new_max = scanline_y_bounds(y_min, y_max, dot_units, scanline)
+            midpoint = (y_min + y_max) / 2
+            for i in contour:
+                x, y = coords[i]
+                coords[i] = (x, new_min if y <= midpoint else new_max)
+        start = end + 1
+
+
+def apply_k64f_2x_or_scanline_to_glyph(glyph, scale: float, dot_units: int,
+                                       scanline: str):
+    coords = getattr(glyph, "coordinates", None)
+    if not coords:
+        return
+    if scanline == "none":
+        for i, (x, y) in enumerate(coords):
+            coords[i] = (int(x * scale), int(y * scale))
+        return
+
+    contours = []
+    start = 0
+    for end in glyph.endPtsOfContours:
+        contours.append(list(coords[start:end + 1]))
+        start = end + 1
+
+    def inside_polygon(px, py, contour):
+        inside = False
+        prev_x, prev_y = contour[-1]
+        for cur_x, cur_y in contour:
+            if (cur_y > py) != (prev_y > py):
+                cross_x = (prev_x - cur_x) * (py - cur_y) / (prev_y - cur_y) + cur_x
+                if px < cross_x:
+                    inside = not inside
+            prev_x, prev_y = cur_x, cur_y
+        return inside
+
+    def inside_glyph(px, py):
+        # K64F source outlines are orthogonal bitmap paths. Even-odd fill gives
+        # the intended source-pixel occupancy including counters/holes.
+        return sum(1 for contour in contours if inside_polygon(px, py, contour)) % 2 == 1
+
+    x_min = (glyph.xMin // dot_units) * dot_units
+    x_max = ((glyph.xMax + dot_units - 1) // dot_units) * dot_units
+    y_min = (glyph.yMin // dot_units) * dot_units
+    y_max = ((glyph.yMax + dot_units - 1) // dot_units) * dot_units
+
+    pen = TTGlyphPen(None)
+    has_ink = False
+    for y in range(y_min, y_max, dot_units):
+        for x in range(x_min, x_max, dot_units):
+            if not inside_glyph(x + dot_units / 2, y + dot_units / 2):
+                continue
+            has_ink = True
+            x0 = int(x * scale)
+            x1 = int((x + dot_units) * scale)
+            out_y0, out_y1 = scanline_y_bounds(y, y + dot_units, dot_units, scanline)
+            pen.moveTo((x0, out_y0))
+            pen.lineTo((x0, out_y1))
+            pen.lineTo((x1, out_y1))
+            pen.lineTo((x1, out_y0))
+            pen.closePath()
+
+    new_glyph = pen.glyph() if has_ink else TtGlyph()
+    if not has_ink:
+        new_glyph.numberOfContours = 0
+    glyph.__dict__.clear()
+    glyph.__dict__.update(new_glyph.__dict__)
+
+
 # ---------- bake: K64F 2x ----------
-def bake_k64f_2x(src_path: Path, out_path: Path):
+def bake_k64f_2x(src_path: Path, out_path: Path, scanline: str = "none"):
     """K64F source (UPM=1024, 8w x 16h) → 2x bake (UPM=2048, 16w x 32h display).
     Each source pixel becomes 2x2 square dots when displayed at font-size 32px."""
     print(f"[k64f-2x] reading {src_path.name}")
@@ -142,6 +247,7 @@ def bake_k64f_2x(src_path: Path, out_path: Path):
     src_asc = src_tt['hhea'].ascent     # in source units
     src_desc = src_tt['hhea'].descent
     print(f"  source: UPM={src_upm}  asc={src_asc}  desc={src_desc}")
+    print(f"  scanline: {scanline}")
 
     # K64F: each source design pixel = src_upm/16 units in source.
     # We want each source design pixel → 2 display pixels in output.
@@ -149,6 +255,7 @@ def bake_k64f_2x(src_path: Path, out_path: Path):
     # So each source design pixel = 2*PX_X = 128 units in output.
     SRC_PX_TO_OUT = (2 * PX_X) // (src_upm // 16)   # 128/64 = 2 (scale factor)
     scale = (2 * PX_X) * 16 / src_upm   # = 2.0 (multiplier from source units → output units)
+    dot_units = src_upm // 16
 
     # Clone via serialize
     buf = io.BytesIO()
@@ -171,26 +278,32 @@ def bake_k64f_2x(src_path: Path, out_path: Path):
         os2.usWinDescent   = max(0, int(-src_desc * scale))
 
     for gname in glyf.keys():
-        g = glyf[gname]
-        if hasattr(g, 'coordinates') and g.coordinates:
-            for i, (x, y) in enumerate(g.coordinates):
-                g.coordinates[i] = (int(x * scale), int(y * scale))
+        apply_k64f_2x_or_scanline_to_glyph(glyf[gname], scale, dot_units, scanline)
         # advance also scales
         adv, lsb = hmtx[gname]
         hmtx[gname] = (int(adv * scale), int(lsb * scale))
 
     # Rename: optional but consistent — use "K64 Fantasy 2X" as family
-    rewrite_name(new_tt, family="K64 Fantasy 2X", style="Regular",
-                 full="K64 Fantasy 2X Regular", postscript="K64Fantasy2X-Regular",
-                 unique=f"K64Fantasy2X-{src_upm}")
+    scan_suffix = SCANLINE_SUFFIX[scanline]
+    family = "K64 Fantasy 2X" if scanline == "none" else f"K64 Fantasy 2X {scan_suffix}"
+    ps_suffix = "" if scanline == "none" else scan_suffix.replace("-", "").title()
+    rewrite_name(new_tt, family=family, style="Regular",
+                 full=f"{family} Regular", postscript=f"K64Fantasy2X{ps_suffix}-Regular",
+                 unique=f"K64Fantasy2X{ps_suffix}-{src_upm}")
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     # Save TTF → reload → save woff2 to avoid woff2 glyf corruption after mutation
     tmp_ttf = out_path.with_suffix(".ttf")
     new_tt.save(str(tmp_ttf))
-    tt2 = TTFont(str(tmp_ttf))
-    tt2.flavor = "woff2"
-    tt2.save(str(out_path))
+    if scanline == "none":
+        tt2 = TTFont(str(tmp_ttf))
+        tt2.flavor = "woff2"
+        tt2.save(str(out_path))
+    else:
+        # The glyf transform is very slow for large bitmap-outline fonts
+        # such as Unifont. WOFF2 without table transforms is still valid and
+        # keeps scanline variants practical to generate.
+        woff2.compress(str(tmp_ttf), str(out_path), transform_tables=set())
     tmp_ttf.unlink()
     print(f"  → {out_path.name}")
 
@@ -226,7 +339,8 @@ def bake_k64f_1x(src_path: Path, out_path: Path):
 
 # ---------- bake: y2x from Reecho-pre-merged TTF ----------
 def bake_y2x_from_reecho_merged(src_path: Path, out_path: Path,
-                                family: str, postscript: str):
+                                family: str, postscript: str,
+                                scanline: str = "none"):
     """Take Reecho's already-OR-merged TTF (UPM=1600, 12 tall glyph, 100 units/design-px)
     and apply Y-2x scaling. Result: 1 source design pixel becomes 1 disp px wide × 2 disp px tall.
 
@@ -243,17 +357,17 @@ def bake_y2x_from_reecho_merged(src_path: Path, out_path: Path,
     tt = TTFont(str(src_path))
     src_upm = tt['head'].unitsPerEm
     print(f"  source: UPM={src_upm}  asc={tt['hhea'].ascent}  desc={tt['hhea'].descent}  lineGap={tt['hhea'].lineGap}")
+    print(f"  scanline: {scanline}")
 
     # Scale Y only. UPM doubles to preserve X-per-disp-px at font-size 32.
     new_upm = src_upm * 2   # 1600 → 3200
 
-    # Scale all glyph contour Y coords by 2 (X unchanged)
+    # Scale all glyph contour Y coords by 2 (X unchanged). In scanline mode,
+    # each 1x2 output dot keeps only one 1px half.
     glyf = tt['glyf']
+    dot_units = src_upm // 16
     for gname in glyf.keys():
-        g = glyf[gname]
-        if hasattr(g, 'coordinates') and g.coordinates:
-            for i, (x, y) in enumerate(g.coordinates):
-                g.coordinates[i] = (x, y * 2)
+        apply_y2x_or_scanline_to_glyph(glyf[gname], dot_units, scanline)
 
     # Update metrics: add 2-disp-px margin between glyph edges and asc/desc.
     # Without margin (asc == glyph yMax), FreeType anti-aliases the top edge,
@@ -446,30 +560,68 @@ def rewrite_name(tt: TTFont, family: str, style: str, full: str,
 
 
 # ---------- main ----------
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Bake k64 web fonts into web/.")
+    parser.add_argument(
+        "--include-unifont",
+        action="store_true",
+        help="also regenerate the large Unifont WOFF2; slow because it has ~57k glyphs",
+    )
+    parser.add_argument(
+        "--scanline",
+        choices=list(SCANLINE_SUFFIX),
+        default="none",
+        help="erase one half of each 1x2 y2x dot for generated y2x fonts",
+    )
+    args = parser.parse_args(argv)
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     # K64F: 1x source + 2x bake
     bake_k64f_1x(SRC_K64F, OUT_DIR / "k64-fantasy.woff2")
-    bake_k64f_2x(SRC_K64F, OUT_DIR / "k64-fantasy-2x.woff2")
+    scan_suffix = SCANLINE_SUFFIX[args.scanline]
+    k64f_2x_name = "k64-fantasy-2x.woff2" if not scan_suffix else f"k64-fantasy-2x-{scan_suffix}.woff2"
+    bake_k64f_2x(SRC_K64F, OUT_DIR / k64f_2x_name, scanline=args.scanline)
 
     # JF-Dot: Reecho's pre-merged TTF + Y2X scale only (= or-merged 12 rows + Y 2x)
+    cjk_suffix = f"-{scan_suffix}" if scan_suffix else ""
     bake_y2x_from_reecho_merged(SRC_JFDOT_OR12,
-        OUT_DIR / "k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2",
-        family="K64 CJK JP", postscript="K64CJKJP-OR12-Y2X")
+        OUT_DIR / f"k64-JF-Dot-ShinonomeMin16-or12-y2x{cjk_suffix}.woff2",
+        family="K64 CJK JP", postscript=f"K64CJKJP-OR12-Y2X{scan_suffix}",
+        scanline=args.scanline)
 
-    # unifont: Reecho's pre-merged TTF + Y2X scale only (= or-merged 12 rows + Y 2x)
-    bake_y2x_from_reecho_merged(SRC_UNI_OR12,
-        OUT_DIR / "k64-unifont-16px-or12-y2x.woff2",
-        family="K64 CJK Fallback", postscript="K64CJKFallback-OR12-Y2X")
+    # unifont: Reecho's pre-merged TTF + Y2X scale only (= or-merged 12 rows + Y 2x).
+    # This font has ~57k glyphs and fontTools WOFF2 compression is very slow, so
+    # the normal bake keeps the checked-in web file unless explicitly requested.
+    if args.include_unifont:
+        bake_y2x_from_reecho_merged(SRC_UNI_OR12,
+            OUT_DIR / f"k64-unifont-16px-or12-y2x{cjk_suffix}.woff2",
+            family="K64 CJK Fallback", postscript=f"K64CJKFallback-OR12-Y2X{scan_suffix}",
+            scanline=args.scanline)
+    else:
+        print("[unifont] skipped; pass --include-unifont to regenerate the large fallback")
 
-    # Thai: Reecho's _x2w version (horizontal 2x, preserves GPOS shaping).
-    # NOTE: Reecho does NOT or-merge Thai. We pass through as-is + rename + woff2 compress.
-    # This gives Thai a different aesthetic than CJK (2×1 wide vs 1×2 tall rect dots)
-    # but preserves the tone mark positioning Reecho went to trouble to maintain.
-    bake_thai_from_reecho_x2w(SRC_THAI_X2W,
-        OUT_DIR / "k64-NotoSansThai-Regular-x2w.woff2",
-        family="K64 Thai", postscript="K64Thai-X2W")
+    # Thai: rasterize the x2w source into 1x2 pixel outlines while preserving
+    # GSUB/GPOS so tone marks still stack above base consonants.
+    from bake_thai_pixel import main as bake_thai_pixel_main
+    scan_args = [] if args.scanline == "none" else ["--scanline", args.scanline]
+    bake_thai_pixel_main(["--target-width", "16", *scan_args])
+    bake_thai_pixel_main(["--target-width", "12", "--height-mode", "full", *scan_args])
+    bake_thai_pixel_main(["--target-width", "12", "--height-mode", "or12", *scan_args])
+    if args.scanline == "none":
+        bake_thai_pixel_main([
+            "--target-width", "12",
+            "--height-mode", "or12",
+            "--advance-mode", "noto-proportional",
+            "--min-right-bearing-px", "1",
+        ])
+        bake_thai_pixel_main([
+            "--fit-mode", "native",
+            "--raster-size", "12",
+            "--height-mode", "full",
+            "--advance-mode", "noto-proportional",
+            "--min-right-bearing-px", "1",
+        ])
 
     print(f"\n[done] all files written to {OUT_DIR}")
 

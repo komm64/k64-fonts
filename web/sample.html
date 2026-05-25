@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>k64-fonts sample</title>
+  <style>
+    @font-face {
+      font-family: "K64 Fantasy";
+      src: url("./k64-fantasy.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 Fantasy 2X";
+      src: url("./k64-fantasy-2x.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 Fantasy 2X Scan Upper";
+      src: url("./k64-fantasy-2x-scan-erase-upper.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 Fantasy 2X Scan Lower";
+      src: url("./k64-fantasy-2x-scan-erase-lower.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 CJK JP";
+      src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 CJK Fallback";
+      src: url("./k64-unifont-16px-or12-y2x.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 CJK Fallback Scan Upper";
+      src: url("./k64-unifont-16px-or12-y2x-scan-erase-upper.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 CJK Fallback Scan Lower";
+      src: url("./k64-unifont-16px-or12-y2x-scan-erase-lower.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 CJK JP Scan Upper";
+      src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x-scan-erase-upper.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 CJK JP Scan Lower";
+      src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x-scan-erase-lower.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 Thai 16W";
+      src: url("./k64-thai-pixel-16w-y2x.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 Thai 12W";
+      src: url("./k64-thai-pixel-12w-or12-y2x.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 Thai 12W Prop";
+      src: url("./k64-thai-pixel-12w-or12-y2x-prop.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 Thai Native 12";
+      src: url("./k64-thai-pixel-native12px-y2x-prop.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 Thai 12W Prop Scan Upper";
+      src: url("./k64-thai-pixel-12w-or12-y2x-prop-scan-erase-upper.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 Thai 12W Prop Scan Lower";
+      src: url("./k64-thai-pixel-12w-or12-y2x-prop-scan-erase-lower.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 Thai Smooth";
+      src: url("./k64-NotoSansThai-Regular-x2w.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    :root {
+      color-scheme: light;
+      --ink: #151719;
+      --muted: #5e666f;
+      --line: #d7dde2;
+      --panel: #f7f8f9;
+      --paper: #ffffff;
+      --accent: #0e6f68;
+      --accent-2: #b44820;
+      --shadow: 0 14px 40px rgba(31, 41, 55, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .shell {
+      width: min(1420px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 24px 0 44px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 20px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 760;
+    }
+
+    .lede {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(170px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      text-transform: uppercase;
+    }
+
+    select,
+    input {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 10px;
+      font: inherit;
+    }
+
+    main {
+      display: grid;
+      gap: 26px;
+      padding-top: 24px;
+    }
+
+    section {
+      display: grid;
+      gap: 14px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .preview {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 180px repeat(5, minmax(180px, 1fr));
+      min-width: 1120px;
+    }
+
+    .row,
+    .head-row {
+      display: contents;
+    }
+
+    .cell {
+      min-height: 86px;
+      padding: 12px 14px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .cell:last-child {
+      border-right: 0;
+    }
+
+    .head-cell {
+      min-height: 48px;
+      background: #eef2f4;
+      color: #263039;
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.2;
+    }
+
+    .label-cell {
+      background: #f2f5f4;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 720;
+      line-height: 1.25;
+    }
+
+    .sample {
+      font-size: var(--sample-size, 32px);
+      line-height: 1.25;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      text-rendering: geometricPrecision;
+      -webkit-font-smoothing: none;
+      font-smooth: never;
+    }
+
+    .k64f {
+      font-family: "K64 Fantasy 2X", "K64 Fantasy", monospace;
+    }
+
+    .k64f-scan-upper {
+      font-family: "K64 Fantasy 2X Scan Upper", "K64 Fantasy", monospace;
+    }
+
+    .k64f-scan-lower {
+      font-family: "K64 Fantasy 2X Scan Lower", "K64 Fantasy", monospace;
+    }
+
+    .jp {
+      font-family: "K64 Fantasy 2X", "K64 CJK JP", "K64 CJK Fallback", monospace;
+    }
+
+    .jp-scan-upper {
+      font-family: "K64 Fantasy 2X", "K64 CJK JP Scan Upper", "K64 CJK Fallback", monospace;
+    }
+
+    .jp-scan-lower {
+      font-family: "K64 Fantasy 2X", "K64 CJK JP Scan Lower", "K64 CJK Fallback", monospace;
+    }
+
+    .unifont {
+      font-family: "K64 Fantasy 2X", "K64 CJK Fallback", monospace;
+    }
+
+    .unifont-scan-upper {
+      font-family: "K64 Fantasy 2X Scan Upper", "K64 CJK Fallback Scan Upper", monospace;
+    }
+
+    .unifont-scan-lower {
+      font-family: "K64 Fantasy 2X Scan Lower", "K64 CJK Fallback Scan Lower", monospace;
+    }
+
+    .thai16 {
+      font-family: "K64 Fantasy 2X", "K64 Thai 16W", monospace;
+    }
+
+    .thai12 {
+      font-family: "K64 Fantasy 2X", "K64 Thai 12W", monospace;
+    }
+
+    .thai12prop {
+      font-family: "K64 Fantasy 2X", "K64 Thai 12W Prop", monospace;
+    }
+
+    .thai-native12 {
+      font-family: "K64 Fantasy 2X", "K64 Thai Native 12", monospace;
+    }
+
+    .thai12prop-scan-upper {
+      font-family: "K64 Fantasy 2X", "K64 Thai 12W Prop Scan Upper", monospace;
+    }
+
+    .thai12prop-scan-lower {
+      font-family: "K64 Fantasy 2X", "K64 Thai 12W Prop Scan Lower", monospace;
+    }
+
+    .thai-smooth {
+      font-family: "K64 Fantasy 2X", "K64 Thai Smooth", monospace;
+    }
+
+    .font-card-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .font-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 14px;
+      min-height: 170px;
+      overflow: hidden;
+    }
+
+    .font-card strong {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--accent);
+      font-size: 13px;
+      font-family: Inter, "Segoe UI", sans-serif;
+    }
+
+    .font-card:nth-child(2n) strong {
+      color: var(--accent-2);
+    }
+
+    .card-sample {
+      font-size: var(--sample-size, 32px);
+      line-height: 1.25;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .editable {
+      width: 100%;
+      min-height: 128px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 14px;
+      font-size: var(--sample-size, 32px);
+      line-height: 1.28;
+      resize: vertical;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .stack-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .stack-list li {
+      border-left: 3px solid var(--accent);
+      padding: 8px 10px;
+      background: #f6f8f7;
+      color: #30363d;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 8px;
+    }
+
+    @media (max-width: 980px) {
+      .shell {
+        width: min(100vw - 20px, 760px);
+        padding-top: 16px;
+      }
+
+      header,
+      .split {
+        grid-template-columns: 1fr;
+      }
+
+      .controls,
+      .font-card-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-grid {
+        grid-template-columns: 140px repeat(5, 190px);
+      }
+
+      .sample,
+      .card-sample,
+      .editable {
+        font-size: min(var(--sample-size, 32px), 30px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>k64-fonts sample</h1>
+        <p class="lede">K64F, JP-Dot, Unifont, and Thai pixel variants rendered from local WOFF2 files.</p>
+      </div>
+      <div class="controls">
+        <label>
+          Size
+          <input id="sizeInput" type="number" min="16" max="64" step="1" value="32">
+        </label>
+        <label>
+          Editor font
+          <select id="fontSelect">
+            <option value="jp">K64F + JP-Dot + Unifont</option>
+            <option value="unifont">K64F + Unifont</option>
+            <option value="thai12prop">Thai 12w proportional</option>
+            <option value="thai-native12">Thai native 12px</option>
+            <option value="thai12prop-scan-upper">Thai 12w scan erase upper</option>
+            <option value="thai12prop-scan-lower">Thai 12w scan erase lower</option>
+            <option value="thai16">Thai 16w pixel</option>
+            <option value="thai-smooth">Thai smooth fallback</option>
+            <option value="jp-scan-upper">JP-Dot scan erase upper</option>
+            <option value="jp-scan-lower">JP-Dot scan erase lower</option>
+            <option value="unifont-scan-upper">Unifont scan erase upper</option>
+            <option value="unifont-scan-lower">Unifont scan erase lower</option>
+            <option value="k64f-scan-upper">K64F scan erase upper</option>
+            <option value="k64f-scan-lower">K64F scan erase lower</option>
+            <option value="k64f">K64F only</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <div class="section-head">
+          <h2>Side-by-side</h2>
+          <p class="note">Same strings, different font stacks.</p>
+        </div>
+        <div class="table-wrap">
+          <div class="preview">
+            <div class="preview-grid">
+              <div class="head-row">
+                <div class="cell head-cell">Sample</div>
+                <div class="cell head-cell">K64F</div>
+                <div class="cell head-cell">JP-Dot stack</div>
+                <div class="cell head-cell">Unifont stack</div>
+                <div class="cell head-cell">Thai 16w</div>
+                <div class="cell head-cell">Thai 12w prop</div>
+              </div>
+
+              <div class="row">
+                <div class="cell label-cell">Latin UI</div>
+                <div class="cell sample k64f">HP 0123 / MENU / SCORE</div>
+                <div class="cell sample jp">HP 0123 / MENU / SCORE</div>
+                <div class="cell sample unifont">HP 0123 / MENU / SCORE</div>
+                <div class="cell sample thai16">HP 0123 / MENU / SCORE</div>
+                <div class="cell sample thai12prop">HP 0123 / MENU / SCORE</div>
+              </div>
+
+              <div class="row">
+                <div class="cell label-cell">Japanese</div>
+                <div class="cell sample k64f">こんにちは世界 0123</div>
+                <div class="cell sample jp">こんにちは世界 0123</div>
+                <div class="cell sample unifont">こんにちは世界 0123</div>
+                <div class="cell sample thai16">こんにちは世界 0123</div>
+                <div class="cell sample thai12prop">こんにちは世界 0123</div>
+              </div>
+
+              <div class="row">
+                <div class="cell label-cell">CJK fallback</div>
+                <div class="cell sample k64f">漢字 龍龜 你好 안녕</div>
+                <div class="cell sample jp">漢字 龍龜 你好 안녕</div>
+                <div class="cell sample unifont">漢字 龍龜 你好 안녕</div>
+                <div class="cell sample thai16">漢字 龍龜 你好 안녕</div>
+                <div class="cell sample thai12prop">漢字 龍龜 你好 안녕</div>
+              </div>
+
+              <div class="row">
+                <div class="cell label-cell">Thai marks</div>
+                <div class="cell sample k64f" lang="th">กี้ กํ่า เก้า น้ำ</div>
+                <div class="cell sample jp" lang="th">กี้ กํ่า เก้า น้ำ</div>
+                <div class="cell sample unifont" lang="th">กี้ กํ่า เก้า น้ำ</div>
+                <div class="cell sample thai16" lang="th">กี้ กํ่า เก้า น้ำ</div>
+                <div class="cell sample thai12prop" lang="th">กี้ กํ่า เก้า น้ำ</div>
+              </div>
+
+              <div class="row">
+                <div class="cell label-cell">Thai spacing</div>
+                <div class="cell sample k64f" lang="th">กขฉญฑ ทดสอบ</div>
+                <div class="cell sample jp" lang="th">กขฉญฑ ทดสอบ</div>
+                <div class="cell sample unifont" lang="th">กขฉญฑ ทดสอบ</div>
+                <div class="cell sample thai16" lang="th">กขฉญฑ ทดสอบ</div>
+                <div class="cell sample thai12prop" lang="th">กขฉญฑ ทดสอบ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="split">
+        <div>
+          <h2>Stacks</h2>
+          <ul class="stack-list">
+            <li><strong>K64F</strong>: Latin and numbers from the project font.</li>
+            <li><strong>JP-Dot stack</strong>: K64F first, JP glyphs next, Unifont fallback last.</li>
+            <li><strong>Thai prop</strong>: pixel Thai outlines with Noto-derived proportional advance.</li>
+          </ul>
+        </div>
+        <textarea id="editor" class="editable jp" spellcheck="false">K64 FONT SAMPLE
+HP 0123 / MENU / SCORE
+こんにちは世界、ドットフォント。
+漢字 龍龜 你好 안녕
+กี้ กํ่า เก้า ก๋วยเตี๋ยว น้ำ</textarea>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Thai variants</h2>
+          <p class="note">Pixel-snap, proportional advance, and smooth fallback.</p>
+        </div>
+        <div class="font-card-grid">
+          <div class="font-card">
+            <strong>Thai 16w pixel</strong>
+            <div class="card-sample thai16" lang="th">กี้ กํ่า เก้า ก๋า น้ำ
+กขฉญฑ</div>
+          </div>
+          <div class="font-card">
+            <strong>Thai 12w pixel</strong>
+            <div class="card-sample thai12" lang="th">กี้ กํ่า เก้า ก๋า น้ำ
+กขฉญฑ</div>
+          </div>
+          <div class="font-card">
+            <strong>Thai 12w proportional</strong>
+            <div class="card-sample thai12prop" lang="th">กี้ กํ่า เก้า ก๋า น้ำ
+กขฉญฑ</div>
+          </div>
+          <div class="font-card">
+            <strong>Thai native 12px</strong>
+            <div class="card-sample thai-native12" lang="th">กี้ กํ่า เก้า ก๋า น้ำ
+กขฉญฑ</div>
+          </div>
+          <div class="font-card">
+            <strong>Thai smooth fallback</strong>
+            <div class="card-sample thai-smooth" lang="th">กี้ กํ่า เก้า ก๋า น้ำ
+กขฉญฑ</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Scanline variants</h2>
+          <p class="note">Each 1x2 y2x dot keeps only one 1px half.</p>
+        </div>
+        <div class="font-card-grid">
+          <div class="font-card">
+            <strong>K64F erase upper</strong>
+            <div class="card-sample k64f-scan-upper">HP 0123
+MENU SCORE</div>
+          </div>
+          <div class="font-card">
+            <strong>JP-Dot erase upper</strong>
+            <div class="card-sample jp-scan-upper">こんにちは世界
+漢字 龍龜</div>
+          </div>
+          <div class="font-card">
+            <strong>Unifont erase upper</strong>
+            <div class="card-sample unifont-scan-upper">你好 안녕
+龍龜 ☺★</div>
+          </div>
+          <div class="font-card">
+            <strong>Thai prop erase upper</strong>
+            <div class="card-sample thai12prop-scan-upper" lang="th">กี้ กํ่า เก้า
+กขฉญฑ</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const root = document.documentElement;
+    const sizeInput = document.getElementById("sizeInput");
+    const fontSelect = document.getElementById("fontSelect");
+    const editor = document.getElementById("editor");
+
+    function updateSize() {
+      const value = Math.max(16, Math.min(64, Number(sizeInput.value) || 32));
+      root.style.setProperty("--sample-size", `${value}px`);
+    }
+
+    function updateEditorFont() {
+      editor.className = `editable ${fontSelect.value}`;
+    }
+
+    sizeInput.addEventListener("input", updateSize);
+    fontSelect.addEventListener("change", updateEditorFont);
+    updateSize();
+    updateEditorFont();
+  </script>
+</body>
+</html>

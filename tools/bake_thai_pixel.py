@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-"""Bake NotoSansThai as pixel font, 縦横2倍 (square 2×2 dots like K64F).
+"""Bake NotoSansThai as pixel font with 1x2 tall rectangular dots.
 
 Process:
-  1. Rasterize NotoSansThai at 8px (so original metrics → small bitmap)
-  2. Each source pixel → 2×2 design grid (= square dots when displayed at font-size 32px)
-  3. UPM=1024 (matches K64F convention)
-  4. Preserve GPOS anchors (rescaled) so HarfBuzz stacks tone marks correctly
+  1. Rasterize NotoSansThai_x2w at 16px
+  2. Horizontally fit the typical Thai base advance to 16px
+  3. Each fitted source pixel → 1×2 display pixels, matching CJK y2x dots
+  4. UPM=3200 (matches CJK y2x line metrics at font-size 32px)
+  5. Preserve GPOS anchors (rescaled) so HarfBuzz stacks tone marks correctly
 """
 from __future__ import annotations
-import io, sys
+import argparse
+import sys
 from pathlib import Path
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 import numpy as np
 from fontTools.ttLib import TTFont
@@ -20,24 +23,255 @@ from fontTools.ttLib.tables._g_l_y_f import Glyph as TtGlyph
 from fontTools.varLib.instancer import instantiateVariableFont
 from PIL import Image, ImageDraw, ImageFont
 
-SRC = Path(r"C:\Users\komm64\Projects\reecho\game\assets\fonts\NotoSansThai-Regular_x2w.ttf")
-OUT = Path(r"C:\Users\komm64\Projects\chicken-climber-godot\tmp\k64-fonts-staging\k64-thai-pixel-y2x.woff2")
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src" / "NotoSansThai-Regular_x2w.ttf"
 
-SRC_SIZE = 16       # rasterize at 16px (= ~20 wide × 25 tall cells with _x2w)
-PX_X = 100          # font units per source pixel in X (1 disp px at font-size 32, UPM=3200)
-PX_Y = 200          # font units per source pixel in Y (2 disp px at font-size 32, UPM=3200; = Y2X effect)
+SRC_SIZE = 16       # rasterize at 16px
+PX_X = 100          # font units per fitted source pixel in X (1 disp px at font-size 32)
+PX_Y = 200          # font units per source pixel in Y (2 disp px at font-size 32)
 UPM_OUT = 3200      # matches CJK y2x bake UPM
 SRC_UPM_ASSUMED = 1000  # NotoSansThai source UPM
+MARK_LEFT_SHIFT_PX = 0
+MARK_RAISE_ROWS = 0
+MARK_WIDTH_FOR_SMALL_FONTS = 16
+ADVANCE_MODE_SUFFIX = {
+    "pixel-snap": "",
+    "noto-proportional": "prop",
+    "noto-proportional-half-px": "prop-half",
+}
+SCANLINE_SUFFIX = {
+    "none": "",
+    "erase-upper": "scan-erase-upper",
+    "erase-lower": "scan-erase-lower",
+}
 
 
-def rasterize(pil_font, char, cell_w, cell_h):
+def source_units_per_raster_pixel(source_upm, raster_size):
+    return source_upm / raster_size
+
+
+def glyph_bbox(font, glyph_name):
+    glyph = font["glyf"][glyph_name]
+    if not hasattr(glyph, "xMin"):
+        return None
+    return glyph.xMin, glyph.yMin, glyph.xMax, glyph.yMax
+
+
+def coords_bbox(coords):
+    if not coords:
+        return None
+    xs = [p[0] for p in coords]
+    ys = [p[1] for p in coords]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def glyph_coord_bbox(glyph):
+    coords = getattr(glyph, "coordinates", None)
+    if coords is None:
+        return None
+    return coords_bbox(list(coords))
+
+
+def fit_width(n, width_scale):
+    return max(1, int(round(n * width_scale)))
+
+
+def fitted_advance(source_adv, fitted_w, source_to_out_x, advance_mode):
+    if source_adv == 0:
+        return 0
+    if advance_mode == "pixel-snap":
+        return fitted_w * PX_X
+
+    adv = source_adv * source_to_out_x
+    if advance_mode == "noto-proportional-half-px":
+        quantum = PX_X / 2
+        adv = round(adv / quantum) * quantum
+    return max(1, int(round(adv)))
+
+
+def scale_bitmap_x(bitmap, out_w):
+    """Nearest-neighbor horizontal fit, preserving hard pixel edges."""
+    in_w = bitmap.shape[1]
+    if in_w == out_w:
+        return bitmap
+    xs = np.floor(np.arange(out_w) * in_w / out_w).astype(np.int32)
+    return bitmap[:, xs]
+
+
+def scale_bitmap_y(bitmap, out_h):
+    """Nearest-neighbor vertical fit, preserving hard pixel edges."""
+    in_h = bitmap.shape[0]
+    if in_h == out_h:
+        return bitmap
+    ys = np.floor(np.arange(out_h) * in_h / out_h).astype(np.int32)
+    return bitmap[ys, :]
+
+
+def or_merge_4to3(bitmap, or_pair=1):
+    """Compress rows by 4->3 OR merge, preserving thin horizontal strokes."""
+    rows = []
+    full_groups = bitmap.shape[0] // 4
+    for g in range(full_groups):
+        r = bitmap[g * 4:g * 4 + 4]
+        if or_pair == 0:
+            rows.extend([r[0] | r[1], r[2], r[3]])
+        elif or_pair == 1:
+            rows.extend([r[0], r[1] | r[2], r[3]])
+        else:
+            rows.extend([r[0], r[1], r[2] | r[3]])
+    rem = bitmap[full_groups * 4:]
+    if rem.size:
+        rows.append(np.bitwise_or.reduce(rem, axis=0))
+    return np.stack(rows, axis=0).astype(np.uint8)
+
+
+def shift_bitmap_y(bitmap, rows_up):
+    if rows_up <= 0:
+        return bitmap
+    out = np.zeros_like(bitmap)
+    if rows_up < bitmap.shape[0]:
+        out[:-rows_up, :] = bitmap[rows_up:, :]
+    return out
+
+
+def shift_bitmap_y_down(bitmap, rows_down):
+    if rows_down <= 0:
+        return bitmap
+    out = np.zeros_like(bitmap)
+    if rows_down < bitmap.shape[0]:
+        out[rows_down:, :] = bitmap[:-rows_down, :]
+    return out
+
+
+def clear_top_ink_rows(bitmap, rows):
+    """Remove the highest occupied raster rows while preserving glyph placement."""
+    if rows <= 0:
+        return bitmap
+    out = bitmap.copy()
+    occupied = np.where(out.any(axis=1))[0]
+    if occupied.size:
+        out[occupied[:rows], :] = 0
+    return out
+
+
+def center_mark_shift(target_width, mark_width):
+    return int(round((target_width - mark_width) / 2)) - target_width
+
+
+def is_centered_top_mark(cp):
+    return 0x0E48 <= cp <= 0x0E4D
+
+
+def is_above_mark(cp):
+    return cp == 0x0E31 or 0x0E34 <= cp <= 0x0E37 or 0x0E47 <= cp <= 0x0E4E
+
+
+def snap_to_grid(value, grid):
+    return int(round(value / grid)) * grid
+
+
+def scanline_bounds(row, y_end, asc_design, scanline):
+    y_top = (asc_design - row) * PX_Y
+    y_bot = (asc_design - y_end - 1) * PX_Y
+    if scanline == "erase-upper":
+        return y_bot, y_bot + PX_X
+    if scanline == "erase-lower":
+        return y_top - PX_X, y_top
+    return y_bot, y_top
+
+
+def thin_bitmap(bitmap):
+    """Zhang-Suen thinning. Turns variable-width raster strokes into 1px skeletons."""
+    img = (bitmap > 0).astype(np.uint8).copy()
+    if img.shape[0] < 3 or img.shape[1] < 3:
+        return img
+
+    changed = True
+    while changed:
+        changed = False
+        for step in (0, 1):
+            remove = []
+            for y in range(1, img.shape[0] - 1):
+                for x in range(1, img.shape[1] - 1):
+                    if img[y, x] == 0:
+                        continue
+                    p2 = img[y - 1, x]
+                    p3 = img[y - 1, x + 1]
+                    p4 = img[y, x + 1]
+                    p5 = img[y + 1, x + 1]
+                    p6 = img[y + 1, x]
+                    p7 = img[y + 1, x - 1]
+                    p8 = img[y, x - 1]
+                    p9 = img[y - 1, x - 1]
+                    neighbors = [p2, p3, p4, p5, p6, p7, p8, p9]
+                    count = sum(neighbors)
+                    if count < 2 or count > 6:
+                        continue
+                    transitions = sum(
+                        1 for a, b in zip(neighbors, neighbors[1:] + neighbors[:1])
+                        if a == 0 and b == 1
+                    )
+                    if transitions != 1:
+                        continue
+                    if step == 0:
+                        if p2 * p4 * p6 != 0 or p4 * p6 * p8 != 0:
+                            continue
+                    else:
+                        if p2 * p4 * p8 != 0 or p2 * p6 * p8 != 0:
+                            continue
+                    remove.append((y, x))
+            if remove:
+                changed = True
+                for y, x in remove:
+                    img[y, x] = 0
+    return img
+
+
+def normalize_vertical_stems(bitmap):
+    """Trim duplicated adjacent columns only when they form a vertical stem."""
+    img = (bitmap > 0).astype(np.uint8).copy()
+    if img.shape[1] < 2:
+        return img
+
+    remove = np.zeros_like(img)
+    protected = set()
+    src = img.copy()
+    for x in range(src.shape[1] - 1):
+        left = src[:, x]
+        right = src[:, x + 1]
+        left_count = int(left.sum())
+        right_count = int(right.sum())
+        if left_count < 4 or right_count < 4:
+            continue
+        overlap = (left & right).astype(np.uint8)
+        overlap_count = int(overlap.sum())
+        if overlap_count < 5:
+            continue
+        if overlap_count / min(left_count, right_count) < 0.80:
+            continue
+
+        left_extra = left_count - overlap_count
+        right_extra = right_count - overlap_count
+        if right_extra > left_extra:
+            keep_x, drop_x = x + 1, x
+        else:
+            keep_x, drop_x = x, x + 1
+        if drop_x in protected:
+            continue
+        protected.add(keep_x)
+        remove[:, drop_x] |= overlap
+    img[remove == 1] = 0
+    return img
+
+
+def rasterize(pil_font, char, cell_w, cell_h, force_combining=False):
     """Render char into binary bitmap. For combining marks (where PIL would
     add a U+25CC dotted-circle base), render 'NBSP + mark' instead and take
     the mark portion only (= image minus what NBSP alone produces)."""
     cell = np.zeros((cell_h, cell_w), dtype=np.uint8)
     try:
         # Detect combining mark: bbox negative-left or no advance
-        is_combining = False
+        is_combining = force_combining
         try:
             adv = pil_font.getlength(char)
             if adv == 0:
@@ -96,9 +330,10 @@ def rasterize(pil_font, char, cell_w, cell_h):
 
 
 def emit_pixels_as_contours(bitmap, cell_h, cell_w, asc_design):
-    return emit_pixels_as_contours_shifted(bitmap, cell_h, cell_w, asc_design, 0)
+    return emit_pixels_as_contours_shifted(bitmap, cell_h, cell_w, asc_design, 0, "none")
 
-def emit_pixels_as_contours_shifted(bitmap, cell_h, cell_w, asc_design, x_shift_pixels):
+def emit_pixels_as_contours_shifted(bitmap, cell_h, cell_w, asc_design, x_shift_pixels,
+                                    scanline):
     """Emit per Reecho convention. x_shift_pixels shifts the entire contour
     horizontally by N source pixels (negative = left, for marks)."""
     pen = TTGlyphPen(None)
@@ -110,13 +345,12 @@ def emit_pixels_as_contours_shifted(bitmap, cell_h, cell_w, asc_design, x_shift_
                 y += 1
                 continue
             y_end = y
-            while y_end + 1 < cell_h and bitmap[y_end + 1, x]:
+            while scanline == "none" and y_end + 1 < cell_h and bitmap[y_end + 1, x]:
                 y_end += 1
             has_ink = True
             x_off = x_shift_pixels
             x0, x1 = (x + x_off) * PX_X, (x + 1 + x_off) * PX_X
-            y_top = (asc_design - y) * PX_Y
-            y_bot = (asc_design - y_end - 1) * PX_Y
+            y_bot, y_top = scanline_bounds(y, y_end, asc_design, scanline)
             pen.moveTo((x0, y_bot))
             pen.lineTo((x0, y_top))
             pen.lineTo((x1, y_top))
@@ -162,7 +396,111 @@ def scale_gpos_anchors(gpos_table, scale):
     walk(gpos_table)
 
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Bake pixel Thai WOFF2.")
+    parser.add_argument(
+        "--target-width",
+        type=int,
+        default=16,
+        help="fit U+0E01 ก advance to this many display pixels (default: 16)",
+    )
+    parser.add_argument(
+        "--raster-size",
+        type=int,
+        default=SRC_SIZE,
+        help="FreeType/Pillow raster size used as the source bitmap (default: 16)",
+    )
+    parser.add_argument(
+        "--fit-mode",
+        choices=["fit-base", "native"],
+        default="fit-base",
+        help="fit-base scales widths to --target-width; native preserves the rasterized pixel width",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="output path. .ttf writes a game-ready TTF; other suffixes write WOFF2",
+    )
+    parser.add_argument(
+        "--height-mode",
+        choices=["full", "scaled", "or12"],
+        default="full",
+        help="full keeps source height; scaled shrinks by scale; or12 uses 4->3 OR row merge",
+    )
+    parser.add_argument(
+        "--advance-mode",
+        choices=list(ADVANCE_MODE_SUFFIX),
+        default="pixel-snap",
+        help="pixel-snap keeps current integer-pixel advances; noto-proportional preserves source hmtx proportions",
+    )
+    parser.add_argument(
+        "--scanline",
+        choices=list(SCANLINE_SUFFIX),
+        default="none",
+        help="erase one half of each 1x2 dot: erase-upper keeps the lower pixel, erase-lower keeps the upper pixel",
+    )
+    parser.add_argument(
+        "--min-right-bearing-px",
+        type=int,
+        default=0,
+        help="ensure non-combining glyph advances leave at least this many fitted pixels after xMax",
+    )
+    parser.add_argument(
+        "--normalize-vertical-stems",
+        action="store_true",
+        help="try to trim duplicated adjacent vertical stem columns",
+    )
+    parser.add_argument(
+        "--skeleton-strokes",
+        action="store_true",
+        help="use full 1px skeleton thinning after raster fit",
+    )
+    parser.add_argument(
+        "--mark-left-shift",
+        type=int,
+        default=MARK_LEFT_SHIFT_PX,
+        help="extra left shift in fitted pixels for zero-width Thai marks",
+    )
+    parser.add_argument(
+        "--mark-raise-rows",
+        type=int,
+        default=MARK_RAISE_ROWS,
+        help="extra upward shift in source rows for zero-width Thai marks",
+    )
+    args = parser.parse_args(argv)
+    mark_left_shift = args.mark_left_shift
+    if args.output:
+        out_path = args.output
+    elif args.fit_mode == "native":
+        suffix = f"native{args.raster_size}px-y2x"
+        if ADVANCE_MODE_SUFFIX[args.advance_mode]:
+            suffix = f"{suffix}-{ADVANCE_MODE_SUFFIX[args.advance_mode]}"
+        if SCANLINE_SUFFIX[args.scanline]:
+            suffix = f"{suffix}-{SCANLINE_SUFFIX[args.scanline]}"
+        out_path = ROOT / "web" / f"k64-thai-pixel-{suffix}.woff2"
+    elif args.height_mode == "full":
+        suffix = f"{args.target_width}w-y2x" if args.target_width == 16 else f"{args.target_width}w-16h-y2x"
+        if ADVANCE_MODE_SUFFIX[args.advance_mode]:
+            suffix = f"{suffix}-{ADVANCE_MODE_SUFFIX[args.advance_mode]}"
+        if SCANLINE_SUFFIX[args.scanline]:
+            suffix = f"{suffix}-{SCANLINE_SUFFIX[args.scanline]}"
+        out_path = ROOT / "web" / f"k64-thai-pixel-{suffix}.woff2"
+    elif args.height_mode == "or12":
+        suffix = f"{args.target_width}w-or12-y2x"
+        if ADVANCE_MODE_SUFFIX[args.advance_mode]:
+            suffix = f"{suffix}-{ADVANCE_MODE_SUFFIX[args.advance_mode]}"
+        if SCANLINE_SUFFIX[args.scanline]:
+            suffix = f"{suffix}-{SCANLINE_SUFFIX[args.scanline]}"
+        out_path = ROOT / "web" / f"k64-thai-pixel-{suffix}.woff2"
+    else:
+        suffix = f"{args.target_width}w-scaled-y2x"
+        if ADVANCE_MODE_SUFFIX[args.advance_mode]:
+            suffix = f"{suffix}-{ADVANCE_MODE_SUFFIX[args.advance_mode]}"
+        if SCANLINE_SUFFIX[args.scanline]:
+            suffix = f"{suffix}-{SCANLINE_SUFFIX[args.scanline]}"
+        out_path = ROOT / "web" / f"k64-thai-pixel-{suffix}.woff2"
+
     print(f"reading {SRC.name}")
     tt = TTFont(str(SRC))
     src_upm = tt['head'].unitsPerEm
@@ -180,18 +518,39 @@ def main():
             del tt[tbl]
             print(f"  removed {tbl} table")
 
-    pil_font = ImageFont.truetype(str(SRC), SRC_SIZE)
+    pil_font = ImageFont.truetype(str(SRC), args.raster_size)
     pil_asc, pil_desc = pil_font.getmetrics()
     src_h = pil_asc + pil_desc   # raster canvas height
-    print(f"  PIL @ {SRC_SIZE}px: asc={pil_asc} desc={pil_desc} (cell h={src_h})")
+    print(f"  PIL @ {args.raster_size}px: asc={pil_asc} desc={pil_desc} (cell h={src_h})")
 
-    asc_design = pil_asc  # rows above baseline in raster
-    # Output metrics: Y2X with PX_Y units per source pixel
-    # add 1 src-px margin top/bot to avoid FreeType edge clipping
-    new_asc = pil_asc * PX_Y + PX_Y
-    new_desc = -pil_desc * PX_Y - PX_Y
-    line_total = new_asc - new_desc
-    new_lineGap = max(0, UPM_OUT - line_total)
+    if args.fit_mode == "native":
+        vertical_scale = 1.0
+        fitted_h = src_h
+        asc_design = pil_asc
+    elif args.height_mode == "full":
+        vertical_scale = 1.0
+        fitted_h = src_h
+        asc_design = pil_asc
+    elif args.height_mode == "or12":
+        vertical_scale = 0.75
+        fitted_h = (src_h // 4) * 3 + (1 if src_h % 4 else 0)
+        asc_design = (pil_asc // 4) * 3 + (1 if pil_asc % 4 else 0)
+    else:
+        vertical_scale = args.target_width / 16
+        fitted_h = max(1, int(round(src_h * vertical_scale)))
+        asc_design = max(1, int(round(pil_asc * vertical_scale)))
+    if args.height_mode in ("full", "or12"):
+        # Thai stacked marks need the top of the em. Descender margin remains
+        # below the baseline; lineGap stays zero to keep browser layout simple.
+        new_asc = 3200
+        new_desc = -400
+        new_lineGap = 0
+    else:
+        # Narrow variants scale height with width. 12w lands on the same
+        # 24px ink height / 32px line rhythm as CJK or12+y2x.
+        new_asc = 2400
+        new_desc = -400
+        new_lineGap = UPM_OUT - (new_asc - new_desc)
 
     tt['head'].unitsPerEm = UPM_OUT
     tt['hhea'].ascent  = new_asc
@@ -212,7 +571,25 @@ def main():
     glyf = tt['glyf']
     hmtx = tt['hmtx'].metrics
     glyph_order = tt.getGlyphOrder()
+    source_hmtx = dict(hmtx)
+    source_bboxes = {gname: glyph_bbox(tt, gname) for gname in glyph_order}
+    units_per_px = source_units_per_raster_pixel(src_upm, args.raster_size)
     cmap_glyphs = set(cmap.values())
+    base_adv_px = pil_font.getlength("ก")
+    width_scale = 1.0 if args.fit_mode == "native" else args.target_width / base_adv_px
+    source_to_out_x = PX_X / units_per_px * width_scale
+    source_to_out_y = PX_Y / units_per_px * vertical_scale
+    source_to_out_mark_y = PX_Y / units_per_px
+    mark_target_width = base_adv_px if args.fit_mode == "native" else max(args.target_width, MARK_WIDTH_FOR_SMALL_FONTS)
+    mark_width_scale = 1.0 if args.fit_mode == "native" else mark_target_width / base_adv_px
+    source_to_out_mark_x = PX_X / units_per_px * mark_width_scale
+    if args.fit_mode == "native":
+        print(f"  horizontal fit: native raster advance ก={base_adv_px:.2f}px (x*1.000)")
+    else:
+        print(f"  horizontal fit: ก advance {base_adv_px:.2f}px -> {args.target_width}px (x*{width_scale:.3f})")
+    print(f"  vertical fit: {src_h}px canvas -> {fitted_h}px canvas ({args.height_mode}, y*{vertical_scale:.3f})")
+    print(f"  advance mode: {args.advance_mode}")
+    print(f"  scanline: {args.scanline}")
 
     # Process cmap-mapped glyphs first (have a codepoint to render via PIL)
     processed = 0
@@ -223,33 +600,82 @@ def main():
             bbox = pil_font.getbbox(char)
             if bbox is None:
                 continue
-            is_combining = (advance == 0)
+            source_adv = source_hmtx.get(gname, (0, 0))[0]
+            is_combining = (source_adv == 0)
             if is_combining:
-                cell_w = max(bbox[2] - min(0, bbox[0]), 1)
+                source_box = source_bboxes.get(gname)
+                if source_box:
+                    x_min, _y_min, x_max, _y_max = source_box
+                    cell_w = max(int(round((x_max - x_min) / units_per_px)), 1)
+                else:
+                    cell_w = max(bbox[2] - min(0, bbox[0]), 1)
             else:
                 if advance <= 0:
                     continue
                 cell_w = max(advance, 1)
 
-            bitmap = rasterize(pil_font, char, cell_w, src_h)
-            # For combining marks: shift X so mark visually centers over previous base.
-            # Cursor sits at right edge of base after base advances. We shift the
-            # mark glyph left by ~half the typical base width so mark overlays base.
+            bitmap = rasterize(pil_font, char, cell_w, src_h, force_combining=is_combining)
+            glyph_width_scale = mark_width_scale if is_combining else width_scale
+            fitted_w = fit_width(cell_w, glyph_width_scale)
+            bitmap = scale_bitmap_x(bitmap, fitted_w)
+            if args.height_mode == "or12":
+                # OR merge is good for base glyphs because it preserves thin
+                # horizontal strokes. Thai tone/mark glyphs lose distinctions
+                # under OR merge, so keep them at the original 16px-tall raster.
+                if is_combining:
+                    emit_h = src_h
+                    emit_asc = pil_asc
+                else:
+                    bitmap = or_merge_4to3(bitmap)
+                    emit_h = fitted_h
+                    emit_asc = asc_design
+            else:
+                bitmap = scale_bitmap_y(bitmap, fitted_h)
+                emit_h = fitted_h
+                emit_asc = asc_design
+            if args.skeleton_strokes:
+                bitmap = thin_bitmap(bitmap)
+            elif args.normalize_vertical_stems:
+                bitmap = normalize_vertical_stems(bitmap)
             x_shift = 0
             if is_combining:
-                # Heuristic: shift left by half of source raster width (~ base width)
-                # so the mark's center sits roughly over the base's center.
-                # In PX_X units: -bbox-width/2 → snap to integer pixel
-                if bbox[2] - bbox[0] > 0:
-                    x_shift = -((bbox[2] - bbox[0]) // 2)
-            pen = emit_pixels_as_contours_shifted(bitmap, src_h, cell_w, asc_design, x_shift)
+                # Preserve the original zero-width glyph origin. Thai mark glyphs
+                # in Noto sit at negative X relative to the current cursor; forcing
+                # leftmost ink to x=0 turns them into inline spacing glyphs.
+                source_box = source_bboxes.get(gname)
+                if source_box:
+                    x_shift = int(round((source_box[0] / units_per_px) * glyph_width_scale))
+                if args.fit_mode != "native" and is_centered_top_mark(cp):
+                    x_shift = center_mark_shift(args.target_width, fitted_w)
+                x_shift -= mark_left_shift
+                mark_raise_rows = args.mark_raise_rows
+                if (args.fit_mode != "native" and args.height_mode == "or12"
+                        and is_above_mark(cp)):
+                    mark_raise_rows -= 2
+                if mark_raise_rows > 0:
+                    bitmap = shift_bitmap_y(bitmap, mark_raise_rows)
+                elif mark_raise_rows < 0:
+                    bitmap = shift_bitmap_y_down(bitmap, -mark_raise_rows)
+                if args.fit_mode != "native" and cp == 0x0E4D:
+                    # Nikhahit is the lower part of a two-storey mark stack.
+                    # Clearing its top row prevents it from merging with the
+                    # upper *.small tone mark while keeping a gap from the base.
+                    bitmap = clear_top_ink_rows(bitmap, 1)
+            pen = emit_pixels_as_contours_shifted(bitmap, emit_h, fitted_w, emit_asc,
+                                                  x_shift, args.scanline)
             if pen:
-                glyf[gname] = pen.glyph()
+                new_glyph = pen.glyph()
+                glyf[gname] = new_glyph
             else:
                 empty = TtGlyph(); empty.numberOfContours = 0
-                glyf[gname] = empty
-            new_adv = 0 if is_combining else cell_w * PX_X
-            hmtx[gname] = (new_adv, 0)
+                new_glyph = empty
+                glyf[gname] = new_glyph
+            new_adv = fitted_advance(source_adv, fitted_w, source_to_out_x, args.advance_mode)
+            new_box = glyph_coord_bbox(new_glyph)
+            if not is_combining and new_box and args.min_right_bearing_px > 0:
+                new_adv = max(new_adv, new_box[2] + args.min_right_bearing_px * PX_X)
+            new_lsb = new_box[0] if is_combining and new_box else 0
+            hmtx[gname] = (new_adv, new_lsb)
             processed += 1
         except Exception:
             pass
@@ -285,20 +711,60 @@ def main():
         base_g = glyf[base_gname]
         if not hasattr(base_g, 'coordinates') or not base_g.coordinates:
             continue
-        pen = TTGlyphPen(None)
         coords = list(base_g.coordinates)
+        base_out_box = coords_bbox(coords)
+        base_box = source_bboxes.get(base_gname)
+        variant_box = source_bboxes.get(gname)
+        is_mark_variant = source_hmtx.get(base_gname, (1, 0))[0] == 0
+        dx = dy = 0
+        sx = sy = 1.0
+        if base_box and variant_box:
+            dx = int(round((variant_box[0] - base_box[0]) * source_to_out_x))
+            y_scale = source_to_out_mark_y if is_mark_variant else source_to_out_y
+            dy = int(round((variant_box[1] - base_box[1]) * y_scale))
+            if is_mark_variant:
+                base_w = max(1, base_box[2] - base_box[0])
+                base_h = max(1, base_box[3] - base_box[1])
+                sx = max(0.5, min(1.0, (variant_box[2] - variant_box[0]) / base_w))
+                sy = max(0.5, min(1.0, (variant_box[3] - variant_box[1]) / base_h))
+                if args.target_width < MARK_WIDTH_FOR_SMALL_FONTS:
+                    sx = min(1.0, sx * (MARK_WIDTH_FOR_SMALL_FONTS / args.target_width))
+                dx = int(round((variant_box[0] - base_box[0]) * source_to_out_mark_x))
+                # Keep upper stacked variants high enough to avoid merging
+                # into the lower mark. Base/cmap marks are shifted above.
+                # Mark variants such as *.small are raised/nudged in the source
+                # font. Preserve that relation, but keep the copied pixel glyph
+                # inside the current zero-advance mark slot and inside the line.
+                if base_out_box:
+                    dx = min(dx, -base_out_box[2])
+                    scaled_h = int(round((base_out_box[3] - base_out_box[1]) * sy))
+                    dy = min(dy, new_asc - base_out_box[1] - scaled_h)
+        pen = TTGlyphPen(None)
         ends = list(base_g.endPtsOfContours)
         start = 0
+        y_snap_grid = PX_X if args.scanline != "none" else PX_Y
         for end in ends:
             pts = coords[start:end+1]
             if len(pts) >= 3:
-                pen.moveTo(pts[0])
+                def transform(p):
+                    if is_mark_variant and base_out_box:
+                        x_anchor = base_out_box[2]
+                        y_anchor = base_out_box[1]
+                        x = x_anchor + dx + int(round((p[0] - x_anchor) * sx))
+                        y = y_anchor + dy + int(round((p[1] - y_anchor) * sy))
+                        return snap_to_grid(x, PX_X), snap_to_grid(y, y_snap_grid)
+                    return snap_to_grid(p[0] + dx, PX_X), snap_to_grid(p[1] + dy, y_snap_grid)
+
+                pen.moveTo(transform(pts[0]))
                 for p in pts[1:]:
-                    pen.lineTo(p)
+                    pen.lineTo(transform(p))
                 pen.closePath()
             start = end + 1
-        glyf[gname] = pen.glyph()
-        hmtx[gname] = (hmtx[base_gname][0], 0)
+        new_glyph = pen.glyph()
+        glyf[gname] = new_glyph
+        new_box = glyph_coord_bbox(new_glyph)
+        new_lsb = new_box[0] if is_mark_variant and new_box else 0
+        hmtx[gname] = (hmtx[base_gname][0], new_lsb)
         non_cmap_count += 1
     print(f"  copied {non_cmap_count} non-cmap variants from base glyphs")
 
@@ -322,10 +788,14 @@ def main():
     # In our bake: 1 source pixel = PX = 64 font units.
     # So GPOS anchor scale = 64/125 = 0.512.
     if 'GPOS' in tt:
-        anchor_scale_x = PX_X / (SRC_UPM_ASSUMED / SRC_SIZE)
-        anchor_scale_y = PX_Y / (SRC_UPM_ASSUMED / SRC_SIZE)
-        def snap_x(v): return int(round(v / PX_X)) * PX_X
-        def snap_y(v): return int(round(v / PX_Y)) * PX_Y
+        anchor_scale_x = (PX_X / (SRC_UPM_ASSUMED / args.raster_size)) * width_scale
+        anchor_scale_y = (PX_Y / (SRC_UPM_ASSUMED / args.raster_size)) * vertical_scale
+        if args.fit_mode == "native":
+            def snap_x(v): return int(round(v))
+            def snap_y(v): return int(round(v))
+        else:
+            def snap_x(v): return int(round(v / PX_X)) * PX_X
+            def snap_y(v): return int(round(v / PX_Y)) * PX_Y
         anchor_count = [0]
 
         def scale_anchor(anchor):
@@ -394,24 +864,30 @@ def main():
         for lookup in tt['GPOS'].table.LookupList.Lookup:
             for sub in lookup.SubTable:
                 visit_subtable(sub)
-        print(f"  GPOS: scaled {anchor_count[0]} anchors x*{anchor_scale_x:.3f} y*{anchor_scale_y:.3f} (snapped to grid {PX_X}/{PX_Y})")
+        snap_note = "unsnapped" if args.fit_mode == "native" else f"snapped to grid {PX_X}/{PX_Y}"
+        print(f"  GPOS: scaled {anchor_count[0]} anchors x*{anchor_scale_x:.3f} y*{anchor_scale_y:.3f} ({snap_note})")
 
     # Rewrite name
     name = tt['name']
     name.names = [r for r in name.names if r.nameID not in (1, 2, 3, 4, 6, 16, 17)]
-    for nid, txt in [(1, "K64 Thai Pixel 2x2"), (2, "Regular"),
-                     (3, "K64ThaiPixel2x2-Regular"), (4, "K64 Thai Pixel 2x2 Regular"),
-                     (6, "K64ThaiPixel2x2-Regular")]:
+    ps_suffix = ADVANCE_MODE_SUFFIX[args.advance_mode].replace("-", "").title()
+    ps_name = f"K64ThaiPixel{args.target_width}W{ps_suffix}-Y2X-Regular"
+    for nid, txt in [(1, "K64 Thai"), (2, "Regular"),
+                     (3, ps_name), (4, "K64 Thai Regular"),
+                     (6, ps_name)]:
         name.setName(txt, nid, 3, 1, 0x409)
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    tmp = OUT.with_suffix('.ttf')
-    tt.save(str(tmp))
-    tt2 = TTFont(str(tmp))
-    tt2.flavor = "woff2"
-    tt2.save(str(OUT))
-    tmp.unlink()
-    print(f"  → {OUT.name}")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    if out_path.suffix.lower() == ".ttf":
+        tt.save(str(out_path))
+    else:
+        tmp = out_path.with_suffix('.ttf')
+        tt.save(str(tmp))
+        tt2 = TTFont(str(tmp))
+        tt2.flavor = "woff2"
+        tt2.save(str(out_path))
+        tmp.unlink()
+    print(f"  → {out_path.name}")
 
 
 if __name__ == "__main__":
