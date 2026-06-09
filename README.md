@@ -88,6 +88,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 
 | File | Notes |
 |------|-------|
+| `komm64Fantasy_v1.37_16px_bitmap_x2w.fnt` + `_0.png` | Reecho-compatible K64F primary face. Generated as BMFont to avoid FreeType outline rasterization drift at 16ppem; horizontally 2x-wide for the 640x240 CRT signal path. |
 | `k64-thai-pixel-native12px-y2x-prop.ttf` | Recommended natural Thai 12px source: rasterized directly at 12px, emitted as 1×2 rectangular dots, proportional advances preserved. |
 | `k64-thai-pixel-12w-or12-y2x-prop.ttf` | More stylized compact Thai: 16px source fitted to 12w, 4→3 OR merge, proportional advances preserved. |
 
