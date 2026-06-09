@@ -51,13 +51,13 @@ Pin a specific release tag for stability: `cdn.jsdelivr.net/gh/komm64/k64-fonts@
 - `-2x` — both axes 2× (each source pixel = 2 disp × 2 disp, square dots)
 - (no suffix) — source-as-woff2 only (no glyph modifications)
 
-Target display: `font-size: 32px` with K64F 2x and CJK or12+y2x giving matched 32px-tall line; CJK glyph ink at 24px tall, Latin at 32px tall.
+Target display: `font-size: 32px` with K64F 2x and CJK or12+y2x sharing a 32px-tall line. K64F 2x advances 16px per monospace glyph on that 32px line, with source design pixels rendered as 2×2 square dots. CJK or12+y2x also advances 16px, with 24px-tall OR-merged ink on the same line.
 
 ## Source fonts (src/) — unmodified originals
 
 | File | Source / Author | License | Notes |
 |------|----------------|---------|-------|
-| `komm64Fantasy.ttf` | komm64 (this repo) | CC-BY-NC 4.0 | latest version, history via git tags |
+| `komm64Fantasy.ttf` | komm64 (this repo) | CC-BY-NC 4.0 | latest version, history via git tags. Metrics are 8px advance on a 16px em at `font-size: 16px`. |
 | `JF-Dot-ShinonomeMin16.ttf` | 自由工房 (Jiyukoubou) | Public Domain | unmodified |
 | `unifont-16px.ttf` | Roman Czyborra, Paul Hardy et al. (unifoundry.com) | SIL OFL 1.1 | unmodified |
 | `NotoSansThai-Regular.ttf` | Google LLC | SIL OFL 1.1 | unmodified |
@@ -74,8 +74,8 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 
 | File | Source | Modifications applied | Display target |
 |------|--------|----------------------|-----------------|
-| `k64-fantasy.woff2` | `komm64Fantasy.ttf` | woff2 format conversion only | `font-size: 16px` → 16×16 px square dots |
-| `k64-fantasy-2x.woff2` | `komm64Fantasy.ttf` | all glyph contours + metrics scaled 2× both axes | `font-size: 32px` → 32×32 px, 2×2 square dots |
+| `k64-fantasy.woff2` | `komm64Fantasy.ttf` | woff2 format conversion only | `font-size: 16px` → 8px advance on a 16px line, 1×1 square dots |
+| `k64-fantasy-2x.woff2` | `komm64Fantasy.ttf` | all glyph contours + metrics scaled 2× both axes | `font-size: 32px` → 16px advance on a 32px line, 2×2 square dots |
 | `k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2` | `JF-Dot-ShinonomeMin16.ttf` | OR-merge to 12 rows + Y axis 2× + Name table rewrite (RFN compliance) | `font-size: 32px` → 16×24 px, 1×2 tall rect dots |
 | `k64-unifont-16px-or12-y2x.woff2` | `unifont-16px.ttf` | same as above. Reserved Font Name "Unifont" removed from Name table per OFL §3. | same |
 | `k64-thai-pixel-16w-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Rasterized at 16px, fitted so `ก` advances 16px, emitted as 1×2 tall pixel rectangles, preserving GSUB/GPOS mark positioning. RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → pixel-art Thai with stacked tone marks |
