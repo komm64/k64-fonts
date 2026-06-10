@@ -34,7 +34,6 @@ PREVIEW_OUT = ROOT / "game" / "k64-arabic-sans-medium-pixel-y1.preview.png"
 SRC_ROWS = 16
 PX_X = 100
 PX_Y_WEB = 200
-UPM_WEB = 3200
 THRESHOLD = 80
 DEFAULT_TOP_UNITS = 1100
 DEFAULT_BOTTOM_UNITS = -500
@@ -88,14 +87,14 @@ def emit_pixels(bitmap, asc_rows, x_shift_px=0, scanline="none", px_y=PX_Y_WEB):
 
 def render_glyph(glyph_set, glyph_name, cell_w, top_units, units_per_px_x,
                  units_per_px_y,
-                 x_shift_px, threshold):
+                 x_shift_px, threshold, src_rows=SRC_ROWS):
     pen = FreeTypePen(glyph_set)
     glyph_set[glyph_name].draw(pen)
     scale_x = 1.0 / units_per_px_x
     scale_y = 1.0 / units_per_px_y
     transform = Transform(scale_x, 0, 0, -scale_y, -x_shift_px,
                           top_units * scale_y)
-    arr = pen.array(width=cell_w, height=SRC_ROWS, transform=transform)
+    arr = pen.array(width=cell_w, height=src_rows, transform=transform)
     # FreeTypePen returns rows in the opposite vertical order from the
     # top-to-bottom bitmap convention used by emit_pixels().
     arr = np.flipud(arr)
@@ -212,13 +211,15 @@ def rewrite_name(tt, family, style, full, postscript, unique):
 
 def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
          top_units=DEFAULT_TOP_UNITS, bottom_units=DEFAULT_BOTTOM_UNITS,
-         px_y=PX_Y_WEB, upm_out=UPM_WEB):
+         src_rows=SRC_ROWS, px_y=PX_Y_WEB, upm_out=None):
     tt = TTFont(str(source))
     src_upm = tt["head"].unitsPerEm
-    units_per_px_x = src_upm / SRC_ROWS
-    units_per_px_y = (top_units - bottom_units) / SRC_ROWS
+    units_per_px_x = src_upm / src_rows
+    units_per_px_y = (top_units - bottom_units) / src_rows
     asc_rows = int(round(top_units / units_per_px_y))
-    desc_rows = SRC_ROWS - asc_rows
+    desc_rows = src_rows - asc_rows
+    if upm_out is None:
+        upm_out = src_rows * px_y
 
     for table in ("prep", "fpgm", "cvt ", "gasp", "hdmx", "LTSH", "VDMX"):
         if table in tt:
@@ -268,7 +269,7 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         cell_w = max(1, x_end_px - x_start_px)
         bitmap = render_glyph(glyph_set, glyph_name, cell_w, top_units,
                               units_per_px_x, units_per_px_y, x_start_px,
-                              threshold)
+                              threshold, src_rows)
         pixel_pen = emit_pixels(bitmap, asc_rows, x_start_px, scanline, px_y)
         if pixel_pen:
             glyf[glyph_name] = pixel_pen.glyph()
@@ -286,13 +287,16 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         processed += 1
 
     scale_gpos(tt, units_per_px_x, units_per_px_y, px_y)
+    size_suffix = "" if src_rows == SRC_ROWS else f" {src_rows}px"
+    postscript_size_suffix = "" if src_rows == SRC_ROWS else f"{src_rows}px"
+    family = f"K64 Arabic Sans Medium Pixel{size_suffix}"
     rewrite_name(
         tt,
-        "K64 Arabic Sans Medium Pixel",
+        family,
         "Regular",
-        "K64 Arabic Sans Medium Pixel Regular",
-        "K64ArabicSansMediumPixel-Regular",
-        "K64 Arabic Sans Medium Pixel Regular 1.0",
+        f"{family} Regular",
+        f"K64ArabicSansMediumPixel{postscript_size_suffix}-Regular",
+        f"{family} Regular 1.0",
     )
     tt["head"].xMin = min((coords_bbox(glyf[g]) or (0, 0, 0, 0))[0] for g in glyph_order)
     tt["head"].yMin = new_desc
@@ -304,7 +308,7 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
     print(f"wrote {output} ({processed} glyphs pixelated, {emptied} empty)")
 
 
-def make_preview(font_path, out_path):
+def make_preview(font_path, out_path, font_size=16):
     sample_ar = (
         "\u0627\u0644\u0633\u064e\u0651\u0644\u064e\u0627\u0645\u064f "
         "\u0639\u064e\u0644\u064e\u064a\u0652\u0643\u064f\u0645\u0652   "
@@ -316,13 +320,13 @@ def make_preview(font_path, out_path):
     ]
     label = ImageFont.truetype("arial.ttf", 14)
     title = ImageFont.truetype("arial.ttf", 20)
-    fonts = [ImageFont.truetype(str(path), 16, layout_engine=ImageFont.Layout.RAQM)
+    fonts = [ImageFont.truetype(str(path), font_size, layout_engine=ImageFont.Layout.RAQM)
              for _name, path, _text, _dir, _lang in lines]
     width, row_h = 1220, 84
     img = Image.new("RGB", (width, 78 + row_h * len(lines)), "white")
     draw = ImageDraw.Draw(img)
     draw.text((24, 18), "K64 Arabic pixel preview", font=title, fill=(20, 20, 20))
-    draw.text((24, 45), "Top is the generated game y1 font at 16px. Bottom is the source at the same size.", font=label, fill=(90, 90, 90))
+    draw.text((24, 45), f"Top is the generated game y1 font at {font_size}px. Bottom is the source at the same size.", font=label, fill=(90, 90, 90))
     y = 78
     for idx, ((name, _path, text, direction, lang), font) in enumerate(zip(lines, fonts)):
         if idx % 2:
@@ -344,6 +348,8 @@ def main(argv=None):
     parser.add_argument("--threshold", type=int, default=THRESHOLD)
     parser.add_argument("--top-units", type=int, default=DEFAULT_TOP_UNITS)
     parser.add_argument("--bottom-units", type=int, default=DEFAULT_BOTTOM_UNITS)
+    parser.add_argument("--rows", type=int, default=SRC_ROWS,
+                        help="source raster rows; 16 for the default game 16px font, 24 for a larger trial")
     parser.add_argument("--scanline", choices=["none", "erase-upper", "erase-lower"],
                         default="none")
     args = parser.parse_args(argv)
@@ -354,15 +360,15 @@ def main(argv=None):
 
     bake(args.source, args.web_output, flavor="woff2", threshold=args.threshold,
          scanline=args.scanline, top_units=args.top_units,
-         bottom_units=args.bottom_units, px_y=PX_Y_WEB, upm_out=UPM_WEB)
+         bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB)
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_y2x = Path(tmp_dir) / "k64-arabic-sans-medium-pixel-y2x.ttf"
         bake(args.source, tmp_y2x, flavor=None, threshold=args.threshold,
              scanline=args.scanline, top_units=args.top_units,
-             bottom_units=args.bottom_units, px_y=PX_Y_WEB, upm_out=UPM_WEB)
+             bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB)
         compress_y2x_to_y1(tmp_y2x, args.game_output)
         print(f"wrote {args.game_output} (compressed y2x -> game y1)")
-    make_preview(args.game_output, args.preview_output)
+    make_preview(args.game_output, args.preview_output, args.rows)
     return 0
 
 
