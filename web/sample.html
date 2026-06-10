@@ -233,8 +233,8 @@
 
     .preview-grid {
       display: grid;
-      grid-template-columns: 180px repeat(5, minmax(180px, 1fr));
-      min-width: 1120px;
+      grid-template-columns: 180px repeat(6, minmax(180px, 1fr));
+      min-width: 1320px;
     }
 
     .row,
@@ -346,9 +346,19 @@
       font-family: "K64 Fantasy 2X", "K64 Thai Smooth", monospace;
     }
 
+    .arabic-stack {
+      font-family: "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", "K64 CJK JP", "K64 CJK Fallback", "K64 Thai 16W", monospace;
+    }
+
+    .rtl {
+      direction: rtl;
+      text-align: right;
+      unicode-bidi: plaintext;
+    }
+
     .arabic {
       direction: rtl;
-      font-family: "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", monospace;
+      font-family: "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", "K64 CJK JP", "K64 CJK Fallback", monospace;
       text-align: right;
       unicode-bidi: plaintext;
     }
@@ -445,7 +455,7 @@
       }
 
       .preview-grid {
-        grid-template-columns: 140px repeat(5, 190px);
+        grid-template-columns: 140px repeat(6, 190px);
       }
 
       .sample,
@@ -508,6 +518,7 @@
                 <div class="cell head-cell">Unifont stack</div>
                 <div class="cell head-cell">Thai 16w</div>
                 <div class="cell head-cell">Thai 12w prop</div>
+                <div class="cell head-cell">Arabic pixel</div>
               </div>
 
               <div class="row">
@@ -517,6 +528,7 @@
                 <div class="cell sample unifont">HP 0123 / MENU / SCORE</div>
                 <div class="cell sample thai16">HP 0123 / MENU / SCORE</div>
                 <div class="cell sample thai12prop">HP 0123 / MENU / SCORE</div>
+                <div class="cell sample arabic-stack">HP 0123 / MENU / SCORE</div>
               </div>
 
               <div class="row">
@@ -526,6 +538,7 @@
                 <div class="cell sample unifont">こんにちは世界 0123</div>
                 <div class="cell sample thai16">こんにちは世界 0123</div>
                 <div class="cell sample thai12prop">こんにちは世界 0123</div>
+                <div class="cell sample arabic-stack">こんにちは世界 0123</div>
               </div>
 
               <div class="row">
@@ -535,6 +548,7 @@
                 <div class="cell sample unifont">漢字 龍龜 你好 안녕</div>
                 <div class="cell sample thai16">漢字 龍龜 你好 안녕</div>
                 <div class="cell sample thai12prop">漢字 龍龜 你好 안녕</div>
+                <div class="cell sample arabic-stack">漢字 龍龜 你好 안녕</div>
               </div>
 
               <div class="row">
@@ -544,6 +558,7 @@
                 <div class="cell sample unifont" lang="th">กี้ กํ่า เก้า น้ำ</div>
                 <div class="cell sample thai16" lang="th">กี้ กํ่า เก้า น้ำ</div>
                 <div class="cell sample thai12prop" lang="th">กี้ กํ่า เก้า น้ำ</div>
+                <div class="cell sample arabic-stack" lang="th">กี้ กํ่า เก้า น้ำ</div>
               </div>
 
               <div class="row">
@@ -553,6 +568,23 @@
                 <div class="cell sample unifont" lang="th">กขฉญฑ ทดสอบ</div>
                 <div class="cell sample thai16" lang="th">กขฉญฑ ทดสอบ</div>
                 <div class="cell sample thai12prop" lang="th">กขฉญฑ ทดสอบ</div>
+                <div class="cell sample arabic-stack" lang="th">กขฉญฑ ทดสอบ</div>
+              </div>
+
+              <div class="row">
+                <div class="cell label-cell">Arabic</div>
+                <div class="cell sample k64f rtl" lang="ar" dir="rtl">السلام عليكم
+مرحبا بالعالم 123</div>
+                <div class="cell sample jp rtl" lang="ar" dir="rtl">السلام عليكم
+مرحبا بالعالم 123</div>
+                <div class="cell sample unifont rtl" lang="ar" dir="rtl">السلام عليكم
+مرحبا بالعالم 123</div>
+                <div class="cell sample thai16 rtl" lang="ar" dir="rtl">السلام عليكم
+مرحبا بالعالم 123</div>
+                <div class="cell sample thai12prop rtl" lang="ar" dir="rtl">السلام عليكم
+مرحبا بالعالم 123</div>
+                <div class="cell sample arabic" lang="ar" dir="rtl">السلام عليكم
+مرحبا بالعالم 123</div>
               </div>
             </div>
           </div>
