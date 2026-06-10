@@ -51,12 +51,15 @@ Pin a specific release tag for stability: `cdn.jsdelivr.net/gh/komm64/k64-fonts@
 
 - `-or12` — OR-merged (Reecho 4→3 row collapse, 16px → 12px height, `--or-pair 1`)
 - `-y2x` — Y axis 2× stretched (each source pixel = 1 disp px wide × 2 disp px tall)
+- `-y1` — Reecho game/internal 640x240 target: same X as y2x, but Y is halved so the final display path supplies the tall pixels
 - `-scan-erase-upper` / `-scan-erase-lower` — scanline variant; each 1×2 `y2x` dot keeps only the lower/upper 1px half
 - `-x2w` — X axis 2× stretched (each source pixel = 2 disp px wide × 1 disp px tall)
 - `-2x` — both axes 2× (each source pixel = 2 disp × 2 disp, square dots)
 - (no suffix) — source-as-woff2 only (no glyph modifications)
 
-Target display: `font-size: 32px` with K64F 2x and CJK or12+y2x sharing a 32px-tall line. K64F 2x advances 16px per monospace glyph on that 32px line, with source design pixels rendered as 2×2 square dots. CJK or12+y2x also advances 16px, with 24px-tall OR-merged ink on the same line.
+Web target display: `font-size: 32px` with K64F 2x and CJK or12+y2x sharing a 32px-tall line. K64F 2x advances 16px per monospace glyph on that 32px line, with source design pixels rendered as 2×2 square dots. CJK or12+y2x also advances 16px, with 24px-tall OR-merged ink on the same line.
+
+Reecho game target: text is rendered into the internal 640x240 surface at `font-size: 16px`, then the final display path makes those pixels vertically tall. Game TTFs therefore use `y1` outlines, not baked-in `y2x` outlines.
 
 ## Source fonts (src/) — unmodified originals
 
@@ -96,9 +99,9 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | File | Notes |
 |------|-------|
 | `komm64Fantasy_v1.37_16px_bitmap_x2w.fnt` + `_0.png` | Reecho-compatible K64F primary face. Generated as BMFont to avoid FreeType outline rasterization drift at 16ppem; horizontally 2x-wide for the 640x240 CRT signal path. |
-| `k64-thai-pixel-native12px-y2x-prop.ttf` | Recommended natural Thai 12px source: rasterized directly at 12px, emitted as 1×2 rectangular dots, proportional advances preserved. |
-| `k64-thai-pixel-12w-or12-y2x-prop.ttf` | More stylized compact Thai: 16px source fitted to 12w, 4→3 OR merge, proportional advances preserved. |
-| `k64-arabic-sans-medium-pixel-y2x.ttf` | Arabic pixel font: Noto Sans Arabic Medium rasterized to pixel outlines, y2x rectangular dots, GSUB/GPOS preserved for shaping. |
+| `k64-thai-pixel-native12px-y1-prop.ttf` | Recommended natural Thai 12px source for Reecho's 640x240 internal surface: y2x web-style output compressed to y1, proportional advances preserved. |
+| `k64-thai-pixel-12w-or12-y1-prop.ttf` | More stylized compact Thai: 16px source fitted to 12w, 4→3 OR merge, then compressed to y1 for Reecho game rendering. |
+| `k64-arabic-sans-medium-pixel-y1.ttf` | Arabic pixel font: Noto Sans Arabic Medium rasterized with GSUB/GPOS preserved, then compressed from y2x to y1 for Reecho's internal surface. |
 
 ## Attribution / Copyright
 
@@ -116,7 +119,8 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 |--------|---------|
 | `bake_web_fonts.py` | Main bake: source TTFs → web/*.woff2. Uses Reecho's `gen_font.py`-produced or12 intermediates as input |
 | `bake_thai_pixel.py` | Thai pixelization — rasterize NotoSansThai → pixel-rect contours, preserve GPOS |
-| `bake_arabic_pixel.py` | Arabic pixelization — rasterize Noto Sans Arabic by glyph name, preserve GSUB/GPOS shaping, emit game TTF + web WOFF2 |
+| `bake_arabic_pixel.py` | Arabic pixelization — rasterize Noto Sans Arabic by glyph name, preserve GSUB/GPOS shaping, emit web y2x WOFF2 + game y1 TTF |
+| `compress_y2x_to_y1.py` | Reecho game conversion — halve Y coordinates/metrics/GPOS Y values so y2x TTFs render correctly into the internal 640x240 surface |
 | `gen_font.py` | Reecho's OR-merge bake (16px TTF → 12px pixel-outline TTF or BMFont) |
 | `stretch_ttf_x2w.py` | Reecho's horizontal 2× scaler (preserves GPOS anchors) |
 | `inspect_font.py` | Probe glyph coverage, metrics, OFL compliance |
@@ -145,15 +149,20 @@ python tools/bake_web_fonts.py --scanline erase-lower
 # Unifont scanline WOFF2s are large; scanline builds use no glyf transform
 # to avoid multi-hour WOFF2 compression.
 
-# Arabic pixel font outputs: web WOFF2 + game TTF + preview PNG
+# Arabic pixel font outputs: web y2x WOFF2 + game y1 TTF + preview PNG
 python tools/bake_arabic_pixel.py
 ```
 
 Generate game TTFs:
 
 ```bash
-python tools/bake_thai_pixel.py --fit-mode native --raster-size 12 --height-mode full --advance-mode noto-proportional --min-right-bearing-px 1 --output game/k64-thai-pixel-native12px-y2x-prop.ttf
-python tools/bake_thai_pixel.py --target-width 12 --height-mode or12 --advance-mode noto-proportional --min-right-bearing-px 1 --output game/k64-thai-pixel-12w-or12-y2x-prop.ttf
+# Bake Thai y2x intermediates, then compress to Reecho's 640x240 y1 game TTFs.
+python tools/bake_thai_pixel.py --fit-mode native --raster-size 12 --height-mode full --advance-mode noto-proportional --min-right-bearing-px 1 --output tmp-thai-native12px-y2x-prop.ttf
+python tools/compress_y2x_to_y1.py tmp-thai-native12px-y2x-prop.ttf game/k64-thai-pixel-native12px-y1-prop.ttf
+python tools/bake_thai_pixel.py --target-width 12 --height-mode or12 --advance-mode noto-proportional --min-right-bearing-px 1 --output tmp-thai-12w-or12-y2x-prop.ttf
+python tools/compress_y2x_to_y1.py tmp-thai-12w-or12-y2x-prop.ttf game/k64-thai-pixel-12w-or12-y1-prop.ttf
+
+# Arabic emits web y2x WOFF2 and game y1 TTF in one step.
 python tools/bake_arabic_pixel.py
 ```
 

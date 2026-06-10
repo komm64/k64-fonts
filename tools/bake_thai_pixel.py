@@ -420,7 +420,7 @@ def main(argv=None):
         "--output",
         type=Path,
         default=None,
-        help="output path. .ttf writes a game-ready TTF; other suffixes write WOFF2",
+        help="output path. TTF/WOFF2 outputs are y2x; run compress_y2x_to_y1.py for Reecho game TTFs",
     )
     parser.add_argument(
         "--height-mode",

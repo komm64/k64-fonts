@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import tempfile
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -22,16 +23,18 @@ from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables._g_l_y_f import Glyph as TtGlyph
 from PIL import Image, ImageDraw, ImageFont
 
+from compress_y2x_to_y1 import compress as compress_y2x_to_y1
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "NotoSansArabic-Medium.ttf"
 WEB_OUT = ROOT / "web" / "k64-arabic-sans-medium-pixel-y2x.woff2"
-GAME_OUT = ROOT / "game" / "k64-arabic-sans-medium-pixel-y2x.ttf"
-PREVIEW_OUT = ROOT / "game" / "k64-arabic-sans-medium-pixel-y2x.preview.png"
+GAME_OUT = ROOT / "game" / "k64-arabic-sans-medium-pixel-y1.ttf"
+PREVIEW_OUT = ROOT / "game" / "k64-arabic-sans-medium-pixel-y1.preview.png"
 
 SRC_ROWS = 16
 PX_X = 100
-PX_Y = 200
-UPM_OUT = 3200
+PX_Y_WEB = 200
+UPM_WEB = 3200
 THRESHOLD = 80
 DEFAULT_TOP_UNITS = 1100
 DEFAULT_BOTTOM_UNITS = -500
@@ -52,7 +55,7 @@ def coords_bbox(glyph):
     return min(xs), min(ys), max(xs), max(ys)
 
 
-def emit_pixels(bitmap, asc_rows, x_shift_px=0, scanline="none"):
+def emit_pixels(bitmap, asc_rows, x_shift_px=0, scanline="none", px_y=PX_Y_WEB):
     pen = TTGlyphPen(None)
     has_ink = False
     h, w = bitmap.shape
@@ -68,8 +71,8 @@ def emit_pixels(bitmap, asc_rows, x_shift_px=0, scanline="none"):
             has_ink = True
             x0 = (x + x_shift_px) * PX_X
             x1 = (x + 1 + x_shift_px) * PX_X
-            y_top = (asc_rows - y) * PX_Y
-            y_bot = (asc_rows - y_end - 1) * PX_Y
+            y_top = (asc_rows - y) * px_y
+            y_bot = (asc_rows - y_end - 1) * px_y
             if scanline == "erase-upper":
                 y_top = y_bot + PX_X
             elif scanline == "erase-lower":
@@ -109,11 +112,11 @@ def snap_x(value, units_per_px_x):
     return int(round(value * (PX_X / units_per_px_x) / PX_X)) * PX_X
 
 
-def snap_y(value, units_per_px_y):
-    return int(round(value * (PX_Y / units_per_px_y) / PX_Y)) * PX_Y
+def snap_y(value, units_per_px_y, px_y=PX_Y_WEB):
+    return int(round(value * (px_y / units_per_px_y) / px_y)) * px_y
 
 
-def scale_gpos(tt, units_per_px_x, units_per_px_y):
+def scale_gpos(tt, units_per_px_x, units_per_px_y, px_y=PX_Y_WEB):
     if "GPOS" not in tt:
         return
 
@@ -123,7 +126,7 @@ def scale_gpos(tt, units_per_px_x, units_per_px_y):
         if hasattr(anchor, "XCoordinate") and anchor.XCoordinate is not None:
             anchor.XCoordinate = snap_x(anchor.XCoordinate, units_per_px_x)
         if hasattr(anchor, "YCoordinate") and anchor.YCoordinate is not None:
-            anchor.YCoordinate = snap_y(anchor.YCoordinate, units_per_px_y)
+            anchor.YCoordinate = snap_y(anchor.YCoordinate, units_per_px_y, px_y)
 
     def scale_value_record(vr):
         if vr is None:
@@ -137,7 +140,7 @@ def scale_gpos(tt, units_per_px_x, units_per_px_y):
             if hasattr(vr, attr):
                 value = getattr(vr, attr)
                 if value is not None:
-                    setattr(vr, attr, snap_y(value, units_per_px_y))
+                    setattr(vr, attr, snap_y(value, units_per_px_y, px_y))
 
     def visit(subtable):
         name = subtable.__class__.__name__
@@ -208,7 +211,8 @@ def rewrite_name(tt, family, style, full, postscript, unique):
 
 
 def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
-         top_units=DEFAULT_TOP_UNITS, bottom_units=DEFAULT_BOTTOM_UNITS):
+         top_units=DEFAULT_TOP_UNITS, bottom_units=DEFAULT_BOTTOM_UNITS,
+         px_y=PX_Y_WEB, upm_out=UPM_WEB):
     tt = TTFont(str(source))
     src_upm = tt["head"].unitsPerEm
     units_per_px_x = src_upm / SRC_ROWS
@@ -220,9 +224,9 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         if table in tt:
             del tt[table]
 
-    new_asc = asc_rows * PX_Y
-    new_desc = -desc_rows * PX_Y
-    tt["head"].unitsPerEm = UPM_OUT
+    new_asc = asc_rows * px_y
+    new_desc = -desc_rows * px_y
+    tt["head"].unitsPerEm = upm_out
     tt["hhea"].ascent = new_asc
     tt["hhea"].descent = new_desc
     tt["hhea"].lineGap = 0
@@ -231,10 +235,10 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         os2.sTypoAscender = new_asc
         os2.sTypoDescender = new_desc
         os2.sTypoLineGap = 0
-        os2.usWinAscent = max(os2.usWinAscent, new_asc)
-        os2.usWinDescent = max(os2.usWinDescent, -new_desc)
-        os2.sxHeight = snap_y(getattr(os2, "sxHeight", 0), units_per_px_y)
-        os2.sCapHeight = snap_y(getattr(os2, "sCapHeight", 0), units_per_px_y)
+        os2.usWinAscent = new_asc
+        os2.usWinDescent = -new_desc
+        os2.sxHeight = snap_y(getattr(os2, "sxHeight", 0), units_per_px_y, px_y)
+        os2.sCapHeight = snap_y(getattr(os2, "sCapHeight", 0), units_per_px_y, px_y)
 
     glyf = tt["glyf"]
     hmtx = tt["hmtx"].metrics
@@ -265,7 +269,7 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         bitmap = render_glyph(glyph_set, glyph_name, cell_w, top_units,
                               units_per_px_x, units_per_px_y, x_start_px,
                               threshold)
-        pixel_pen = emit_pixels(bitmap, asc_rows, x_start_px, scanline)
+        pixel_pen = emit_pixels(bitmap, asc_rows, x_start_px, scanline, px_y)
         if pixel_pen:
             glyf[glyph_name] = pixel_pen.glyph()
         else:
@@ -281,7 +285,7 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         hmtx[glyph_name] = (new_adv, new_lsb)
         processed += 1
 
-    scale_gpos(tt, units_per_px_x, units_per_px_y)
+    scale_gpos(tt, units_per_px_x, units_per_px_y, px_y)
     rewrite_name(
         tt,
         "K64 Arabic Sans Medium Pixel",
@@ -312,13 +316,13 @@ def make_preview(font_path, out_path):
     ]
     label = ImageFont.truetype("arial.ttf", 14)
     title = ImageFont.truetype("arial.ttf", 20)
-    fonts = [ImageFont.truetype(str(path), 32, layout_engine=ImageFont.Layout.RAQM)
+    fonts = [ImageFont.truetype(str(path), 16, layout_engine=ImageFont.Layout.RAQM)
              for _name, path, _text, _dir, _lang in lines]
     width, row_h = 1220, 84
     img = Image.new("RGB", (width, 78 + row_h * len(lines)), "white")
     draw = ImageDraw.Draw(img)
     draw.text((24, 18), "K64 Arabic pixel preview", font=title, fill=(20, 20, 20))
-    draw.text((24, 45), "Top is the generated pixel font. Bottom is the source at the same size.", font=label, fill=(90, 90, 90))
+    draw.text((24, 45), "Top is the generated game y1 font at 16px. Bottom is the source at the same size.", font=label, fill=(90, 90, 90))
     y = 78
     for idx, ((name, _path, text, direction, lang), font) in enumerate(zip(lines, fonts)):
         if idx % 2:
@@ -350,10 +354,14 @@ def main(argv=None):
 
     bake(args.source, args.web_output, flavor="woff2", threshold=args.threshold,
          scanline=args.scanline, top_units=args.top_units,
-         bottom_units=args.bottom_units)
-    bake(args.source, args.game_output, flavor=None, threshold=args.threshold,
-         scanline=args.scanline, top_units=args.top_units,
-         bottom_units=args.bottom_units)
+         bottom_units=args.bottom_units, px_y=PX_Y_WEB, upm_out=UPM_WEB)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_y2x = Path(tmp_dir) / "k64-arabic-sans-medium-pixel-y2x.ttf"
+        bake(args.source, tmp_y2x, flavor=None, threshold=args.threshold,
+             scanline=args.scanline, top_units=args.top_units,
+             bottom_units=args.bottom_units, px_y=PX_Y_WEB, upm_out=UPM_WEB)
+        compress_y2x_to_y1(tmp_y2x, args.game_output)
+        print(f"wrote {args.game_output} (compressed y2x -> game y1)")
     make_preview(args.game_output, args.preview_output)
     return 0
 
