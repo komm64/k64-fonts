@@ -34,7 +34,7 @@ Reference fonts from this repo via jsDelivr CDN. Example CSS:
 }
 @font-face {
   font-family: 'K64 Arabic';
-  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-arabic-sans-medium-pixel-y2x.woff2') format('woff2');
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2') format('woff2');
 }
 
 body { font-size: 32px; }
@@ -92,7 +92,10 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `k64-thai-pixel-12w-or12-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Starts from the 12w/16h raster and compresses rows with 4→3 OR merge, preserving horizontal strokes better than nearest-neighbor scaling. | `font-size: 32px` → compact 12w Thai |
 | `k64-thai-pixel-native12px-y2x-prop.woff2` | `NotoSansThai-Regular_x2w.ttf` | Rasterized directly at 12px with no width fit and no OR merge, then emitted as 1×2 tall pixel rectangles with Noto proportional advances. | `font-size: 32px` → closest match to a 12px Thai TTF rendered through the same 1×2 dot pipeline |
 | `k64-NotoSansThai-Regular-x2w.woff2` | `NotoSansThai-Regular.ttf` | Legacy smooth-vector fallback: Horizontal 2× (via Reecho's `stretch_ttf_x2w.py`) preserving GPOS anchors for tone marks. RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → ~16-20 wide × 25 tall, smooth |
-| `k64-arabic-sans-medium-pixel-y2x.woff2` | `NotoSansArabic-Medium.ttf` | Rasterized glyph-by-glyph into a 16-row pixel source, emitted as 1×2 tall pixel rectangles. GSUB/GPOS are preserved and rescaled for Arabic contextual forms and marks. RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → Arabic pixel font for RTL shaped text |
+| `k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2` | `NotoSansArabic-Medium.ttf` | Current web-default Arabic face: rasterized glyph-by-glyph into a 20-row pixel source with a thinner threshold, emitted as y2x outlines. GSUB/GPOS are preserved and rescaled for Arabic contextual forms and marks. RFN "Noto" removed from Name table per OFL §3. | Use at `font-size: 32px` to keep Arabic on the same x2 web line height as the other fonts |
+| `k64-arabic-sans-medium-pixel-y2x.woff2` | `NotoSansArabic-Medium.ttf` | Original 16-row Arabic pixel face, emitted as 1×2 tall pixel rectangles with GSUB/GPOS preserved. RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → baseline Arabic pixel font for RTL shaped text |
+| `k64-arabic-sans-medium-pixel-20px-y2x.woff2` | `NotoSansArabic-Medium.ttf` | 20-row Arabic size trial, normal threshold. | `font-size: 32px` → same line height as x2 web fonts; `font-size: 40px` → natural 20px source scale |
+| `k64-arabic-sans-medium-pixel-24px-y2x.woff2` | `NotoSansArabic-Medium.ttf` | 24-row Arabic size trial, normal threshold. | `font-size: 32px` → same line height as x2 web fonts; `font-size: 48px` → natural 24px source scale |
 
 ## Game fonts (game/) — TTF outputs
 
@@ -102,6 +105,9 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `k64-thai-pixel-native12px-y1-prop.ttf` | Recommended natural Thai 12px source for Reecho's 640x240 internal surface: y2x web-style output compressed to y1, proportional advances preserved. |
 | `k64-thai-pixel-12w-or12-y1-prop.ttf` | More stylized compact Thai: 16px source fitted to 12w, 4→3 OR merge, then compressed to y1 for Reecho game rendering. |
 | `k64-arabic-sans-medium-pixel-y1.ttf` | Arabic pixel font: Noto Sans Arabic Medium rasterized with GSUB/GPOS preserved, then compressed from y2x to y1 for Reecho's internal surface. |
+| `k64-arabic-sans-medium-pixel-20px-y1.ttf` | 20px Arabic size trial for Reecho game rendering. |
+| `k64-arabic-sans-medium-pixel-20px-thin-y1.ttf` | 20px thinner Arabic trial for Reecho game rendering. |
+| `k64-arabic-sans-medium-pixel-24px-y1.ttf` | 24px Arabic size trial for Reecho game rendering. |
 
 ## Attribution / Copyright
 
@@ -149,8 +155,11 @@ python tools/bake_web_fonts.py --scanline erase-lower
 # Unifont scanline WOFF2s are large; scanline builds use no glyf transform
 # to avoid multi-hour WOFF2 compression.
 
-# Arabic pixel font outputs: web y2x WOFF2 + game y1 TTF + preview PNG
+# Arabic baseline 16px outputs: web y2x WOFF2 + game y1 TTF + preview PNG
 python tools/bake_arabic_pixel.py
+
+# Arabic current web default: 20px thin outlines, displayed at font-size 32px
+python tools/bake_arabic_pixel.py --rows 20 --threshold 144 --name-suffix Thin --web-output web/k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2 --game-output game/k64-arabic-sans-medium-pixel-20px-thin-y1.ttf --preview-output game/k64-arabic-sans-medium-pixel-20px-thin-y1.preview.png
 ```
 
 Generate game TTFs:
@@ -162,8 +171,13 @@ python tools/compress_y2x_to_y1.py tmp-thai-native12px-y2x-prop.ttf game/k64-tha
 python tools/bake_thai_pixel.py --target-width 12 --height-mode or12 --advance-mode noto-proportional --min-right-bearing-px 1 --output tmp-thai-12w-or12-y2x-prop.ttf
 python tools/compress_y2x_to_y1.py tmp-thai-12w-or12-y2x-prop.ttf game/k64-thai-pixel-12w-or12-y1-prop.ttf
 
-# Arabic emits web y2x WOFF2 and game y1 TTF in one step.
+# Arabic baseline 16px emits web y2x WOFF2 and game y1 TTF in one step.
 python tools/bake_arabic_pixel.py
+
+# Arabic size/thin trials use explicit rows/output names.
+python tools/bake_arabic_pixel.py --rows 20 --web-output web/k64-arabic-sans-medium-pixel-20px-y2x.woff2 --game-output game/k64-arabic-sans-medium-pixel-20px-y1.ttf --preview-output game/k64-arabic-sans-medium-pixel-20px-y1.preview.png
+python tools/bake_arabic_pixel.py --rows 20 --threshold 144 --name-suffix Thin --web-output web/k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2 --game-output game/k64-arabic-sans-medium-pixel-20px-thin-y1.ttf --preview-output game/k64-arabic-sans-medium-pixel-20px-thin-y1.preview.png
+python tools/bake_arabic_pixel.py --rows 24 --web-output web/k64-arabic-sans-medium-pixel-24px-y2x.woff2 --game-output game/k64-arabic-sans-medium-pixel-24px-y1.ttf --preview-output game/k64-arabic-sans-medium-pixel-24px-y1.preview.png
 ```
 
 Local browser sample:

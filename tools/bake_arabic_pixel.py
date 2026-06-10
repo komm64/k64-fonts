@@ -211,7 +211,8 @@ def rewrite_name(tt, family, style, full, postscript, unique):
 
 def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
          top_units=DEFAULT_TOP_UNITS, bottom_units=DEFAULT_BOTTOM_UNITS,
-         src_rows=SRC_ROWS, px_y=PX_Y_WEB, upm_out=None):
+         src_rows=SRC_ROWS, px_y=PX_Y_WEB, upm_out=None,
+         name_suffix=""):
     tt = TTFont(str(source))
     src_upm = tt["head"].unitsPerEm
     units_per_px_x = src_upm / src_rows
@@ -288,14 +289,18 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
 
     scale_gpos(tt, units_per_px_x, units_per_px_y, px_y)
     size_suffix = "" if src_rows == SRC_ROWS else f" {src_rows}px"
+    variant_suffix = f" {name_suffix.strip()}" if name_suffix.strip() else ""
     postscript_size_suffix = "" if src_rows == SRC_ROWS else f"{src_rows}px"
-    family = f"K64 Arabic Sans Medium Pixel{size_suffix}"
+    postscript_variant_suffix = "".join(
+        ch for ch in name_suffix.title() if ch.isalnum()
+    )
+    family = f"K64 Arabic Sans Medium Pixel{size_suffix}{variant_suffix}"
     rewrite_name(
         tt,
         family,
         "Regular",
         f"{family} Regular",
-        f"K64ArabicSansMediumPixel{postscript_size_suffix}-Regular",
+        f"K64ArabicSansMediumPixel{postscript_size_suffix}{postscript_variant_suffix}-Regular",
         f"{family} Regular 1.0",
     )
     tt["head"].xMin = min((coords_bbox(glyf[g]) or (0, 0, 0, 0))[0] for g in glyph_order)
@@ -350,6 +355,8 @@ def main(argv=None):
     parser.add_argument("--bottom-units", type=int, default=DEFAULT_BOTTOM_UNITS)
     parser.add_argument("--rows", type=int, default=SRC_ROWS,
                         help="source raster rows; 16 for the default game 16px font, 24 for a larger trial")
+    parser.add_argument("--name-suffix", default="",
+                        help="extra family/PostScript suffix for variants such as Thin")
     parser.add_argument("--scanline", choices=["none", "erase-upper", "erase-lower"],
                         default="none")
     args = parser.parse_args(argv)
@@ -360,12 +367,14 @@ def main(argv=None):
 
     bake(args.source, args.web_output, flavor="woff2", threshold=args.threshold,
          scanline=args.scanline, top_units=args.top_units,
-         bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB)
+         bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB,
+         name_suffix=args.name_suffix)
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_y2x = Path(tmp_dir) / "k64-arabic-sans-medium-pixel-y2x.ttf"
         bake(args.source, tmp_y2x, flavor=None, threshold=args.threshold,
              scanline=args.scanline, top_units=args.top_units,
-             bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB)
+             bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB,
+             name_suffix=args.name_suffix)
         compress_y2x_to_y1(tmp_y2x, args.game_output)
         print(f"wrote {args.game_output} (compressed y2x -> game y1)")
     make_preview(args.game_output, args.preview_output, args.rows)
