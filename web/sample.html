@@ -107,6 +107,12 @@
       font-display: swap;
     }
 
+    @font-face {
+      font-family: "K64 Arabic Sans Medium Pixel";
+      src: url("./k64-arabic-sans-medium-pixel-y2x.woff2") format("woff2");
+      font-display: swap;
+    }
+
     :root {
       color-scheme: light;
       --ink: #151719;
@@ -340,6 +346,13 @@
       font-family: "K64 Fantasy 2X", "K64 Thai Smooth", monospace;
     }
 
+    .arabic {
+      direction: rtl;
+      font-family: "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", monospace;
+      text-align: right;
+      unicode-bidi: plaintext;
+    }
+
     .font-card-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -448,7 +461,7 @@
     <header>
       <div>
         <h1>k64-fonts sample</h1>
-        <p class="lede">K64F, JP-Dot, Unifont, and Thai pixel variants rendered from local WOFF2 files.</p>
+        <p class="lede">K64F, JP-Dot, Unifont, Thai, and Arabic pixel variants rendered from local WOFF2 files.</p>
       </div>
       <div class="controls">
         <label>
@@ -472,6 +485,7 @@
             <option value="unifont-scan-lower">Unifont scan erase lower</option>
             <option value="k64f-scan-upper">K64F scan erase upper</option>
             <option value="k64f-scan-lower">K64F scan erase lower</option>
+            <option value="arabic">Arabic pixel</option>
             <option value="k64f">K64F only</option>
           </select>
         </label>
@@ -620,6 +634,25 @@ MENU SCORE</div>
             <strong>Thai prop erase upper</strong>
             <div class="card-sample thai12prop-scan-upper" lang="th">กี้ กํ่า เก้า
 กขฉญฑ</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Arabic</h2>
+          <p class="note">Noto Sans Arabic Medium rasterized to pixel outlines with GSUB/GPOS shaping preserved.</p>
+        </div>
+        <div class="font-card-grid">
+          <div class="font-card">
+            <strong>Arabic pixel</strong>
+            <div class="card-sample arabic" lang="ar" dir="rtl">السلام عليكم
+مرحبا بالعالم 123</div>
+          </div>
+          <div class="font-card">
+            <strong>Arabic + K64 size</strong>
+            <div class="card-sample arabic" lang="ar" dir="rtl">HP 0123
+مرحبا بالعالم</div>
           </div>
         </div>
       </section>
