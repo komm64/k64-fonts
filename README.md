@@ -107,8 +107,8 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | File | Notes |
 |------|-------|
 | `komm64Fantasy_v1.37_16px_bitmap_x2w.fnt` + `_0.png` | Reecho-compatible K64F primary face. Generated as BMFont to avoid FreeType outline rasterization drift at 16ppem; horizontally 2x-wide for the 640x240 CRT signal path. |
-| `k64-thai-pixel-native12px-y1-prop.ttf` | Recommended natural Thai 12px source for Reecho's 640x240 internal surface: y2x web-style output compressed to y1, proportional advances preserved. |
-| `k64-thai-pixel-12w-or12-y1-prop.ttf` | More stylized compact Thai: 16px source fitted to 12w, 4→3 OR merge, then compressed to y1 for Reecho game rendering. |
+| `k64-thai-pixel-12w-or12-y1-prop.ttf` | Reecho default Thai game face. 16px source fitted to 12w, compressed with 4→3 OR merge, then converted to y1; this gives the most readable K64F-adjacent pixel look in Reecho's 640x240 internal surface. |
+| `k64-thai-pixel-native12px-y1-prop.ttf` | Natural alternate Thai game face. Rasterized directly at 12px, then compressed from y2x to y1 with proportional advances preserved; smoother and less K64F-like than the Reecho default. |
 | `k64-arabic-sans-medium-pixel-y1.ttf` | Arabic pixel font: Noto Sans Arabic Medium rasterized with GSUB/GPOS preserved, then compressed from y2x to y1 for Reecho's internal surface. |
 | `k64-arabic-sans-medium-pixel-20px-y1.ttf` | 20px Arabic size trial for Reecho game rendering. |
 | `k64-arabic-sans-medium-pixel-20px-thin-y1.ttf` | 20px thinner Arabic trial for Reecho game rendering. |
