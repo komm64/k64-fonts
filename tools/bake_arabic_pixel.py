@@ -212,7 +212,7 @@ def rewrite_name(tt, family, style, full, postscript, unique):
 def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
          top_units=DEFAULT_TOP_UNITS, bottom_units=DEFAULT_BOTTOM_UNITS,
          src_rows=SRC_ROWS, px_y=PX_Y_WEB, upm_out=None,
-         metric_rows=None, name_suffix=""):
+         metric_rows=None, metric_ascent_rows=None, name_suffix=""):
     tt = TTFont(str(source))
     src_upm = tt["head"].unitsPerEm
     units_per_px_x = src_upm / src_rows
@@ -220,7 +220,13 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
     asc_rows = int(round(top_units / units_per_px_y))
     desc_rows = src_rows - asc_rows
     metric_rows = src_rows if metric_rows is None else metric_rows
-    metric_asc_rows = int(round(metric_rows * asc_rows / src_rows))
+    metric_asc_rows = (
+        int(round(metric_rows * asc_rows / src_rows))
+        if metric_ascent_rows is None
+        else int(metric_ascent_rows)
+    )
+    if metric_asc_rows < 0 or metric_asc_rows > metric_rows:
+        raise ValueError("--metric-ascent-rows must be within --metric-rows")
     metric_desc_rows = metric_rows - metric_asc_rows
     if upm_out is None:
         upm_out = src_rows * px_y
@@ -362,6 +368,8 @@ def main(argv=None):
                         help="source raster rows; 16 for the default game 16px font, 24 for a larger trial")
     parser.add_argument("--metric-rows", type=int, default=None,
                         help="vertical metrics rows; defaults to --rows. Use 16 with --rows 20 to keep line spacing on the 16px rhythm")
+    parser.add_argument("--metric-ascent-rows", type=int, default=None,
+                        help="baseline row within --metric-rows; use 12 with --metric-rows 16 to match K64F's 12/4 line metrics")
     parser.add_argument("--name-suffix", default="",
                         help="extra family/PostScript suffix for variants such as Thin")
     parser.add_argument("--scanline", choices=["none", "erase-upper", "erase-lower"],
@@ -376,6 +384,7 @@ def main(argv=None):
          scanline=args.scanline, top_units=args.top_units,
          bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB,
          metric_rows=args.metric_rows,
+         metric_ascent_rows=args.metric_ascent_rows,
          name_suffix=args.name_suffix)
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_y2x = Path(tmp_dir) / "k64-arabic-sans-medium-pixel-y2x.ttf"
@@ -383,6 +392,7 @@ def main(argv=None):
              scanline=args.scanline, top_units=args.top_units,
              bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB,
              metric_rows=args.metric_rows,
+             metric_ascent_rows=args.metric_ascent_rows,
              name_suffix=args.name_suffix)
         compress_y2x_to_y1(tmp_y2x, args.game_output)
         print(f"wrote {args.game_output} (compressed y2x -> game y1)")
