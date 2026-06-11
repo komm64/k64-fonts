@@ -363,6 +363,13 @@
       unicode-bidi: plaintext;
     }
 
+    .sample.arabic,
+    .card-sample.arabic,
+    .editable.arabic {
+      font-size: calc(var(--sample-size, 32px) * 1.25);
+      line-height: var(--sample-size, 32px);
+    }
+
     .font-card-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));

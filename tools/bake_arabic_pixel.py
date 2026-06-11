@@ -212,13 +212,16 @@ def rewrite_name(tt, family, style, full, postscript, unique):
 def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
          top_units=DEFAULT_TOP_UNITS, bottom_units=DEFAULT_BOTTOM_UNITS,
          src_rows=SRC_ROWS, px_y=PX_Y_WEB, upm_out=None,
-         name_suffix=""):
+         metric_rows=None, name_suffix=""):
     tt = TTFont(str(source))
     src_upm = tt["head"].unitsPerEm
     units_per_px_x = src_upm / src_rows
     units_per_px_y = (top_units - bottom_units) / src_rows
     asc_rows = int(round(top_units / units_per_px_y))
     desc_rows = src_rows - asc_rows
+    metric_rows = src_rows if metric_rows is None else metric_rows
+    metric_asc_rows = int(round(metric_rows * asc_rows / src_rows))
+    metric_desc_rows = metric_rows - metric_asc_rows
     if upm_out is None:
         upm_out = src_rows * px_y
 
@@ -226,8 +229,10 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         if table in tt:
             del tt[table]
 
-    new_asc = asc_rows * px_y
-    new_desc = -desc_rows * px_y
+    glyph_asc = asc_rows * px_y
+    glyph_desc = -desc_rows * px_y
+    new_asc = metric_asc_rows * px_y
+    new_desc = -metric_desc_rows * px_y
     tt["head"].unitsPerEm = upm_out
     tt["hhea"].ascent = new_asc
     tt["hhea"].descent = new_desc
@@ -237,8 +242,8 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         os2.sTypoAscender = new_asc
         os2.sTypoDescender = new_desc
         os2.sTypoLineGap = 0
-        os2.usWinAscent = new_asc
-        os2.usWinDescent = -new_desc
+        os2.usWinAscent = max(new_asc, glyph_asc)
+        os2.usWinDescent = max(-new_desc, -glyph_desc)
         os2.sxHeight = snap_y(getattr(os2, "sxHeight", 0), units_per_px_y, px_y)
         os2.sCapHeight = snap_y(getattr(os2, "sCapHeight", 0), units_per_px_y, px_y)
 
@@ -304,9 +309,9 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         f"{family} Regular 1.0",
     )
     tt["head"].xMin = min((coords_bbox(glyf[g]) or (0, 0, 0, 0))[0] for g in glyph_order)
-    tt["head"].yMin = new_desc
+    tt["head"].yMin = min((coords_bbox(glyf[g]) or (0, 0, 0, 0))[1] for g in glyph_order)
     tt["head"].xMax = max((coords_bbox(glyf[g]) or (0, 0, 0, 0))[2] for g in glyph_order)
-    tt["head"].yMax = new_asc
+    tt["head"].yMax = max((coords_bbox(glyf[g]) or (0, 0, 0, 0))[3] for g in glyph_order)
     tt.flavor = flavor
     output.parent.mkdir(parents=True, exist_ok=True)
     tt.save(str(output))
@@ -355,6 +360,8 @@ def main(argv=None):
     parser.add_argument("--bottom-units", type=int, default=DEFAULT_BOTTOM_UNITS)
     parser.add_argument("--rows", type=int, default=SRC_ROWS,
                         help="source raster rows; 16 for the default game 16px font, 24 for a larger trial")
+    parser.add_argument("--metric-rows", type=int, default=None,
+                        help="vertical metrics rows; defaults to --rows. Use 16 with --rows 20 to keep line spacing on the 16px rhythm")
     parser.add_argument("--name-suffix", default="",
                         help="extra family/PostScript suffix for variants such as Thin")
     parser.add_argument("--scanline", choices=["none", "erase-upper", "erase-lower"],
@@ -368,12 +375,14 @@ def main(argv=None):
     bake(args.source, args.web_output, flavor="woff2", threshold=args.threshold,
          scanline=args.scanline, top_units=args.top_units,
          bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB,
+         metric_rows=args.metric_rows,
          name_suffix=args.name_suffix)
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_y2x = Path(tmp_dir) / "k64-arabic-sans-medium-pixel-y2x.ttf"
         bake(args.source, tmp_y2x, flavor=None, threshold=args.threshold,
              scanline=args.scanline, top_units=args.top_units,
              bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB,
+             metric_rows=args.metric_rows,
              name_suffix=args.name_suffix)
         compress_y2x_to_y1(tmp_y2x, args.game_output)
         print(f"wrote {args.game_output} (compressed y2x -> game y1)")
