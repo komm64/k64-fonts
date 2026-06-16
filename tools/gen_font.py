@@ -99,7 +99,8 @@ def _nn_scale(src):
     return dst
 
 
-def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False, hscale=1, cp_min=None, cp_max=None):
+def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False,
+             hscale=1, cp_min=None, cp_max=None, output_name=None):
     name = os.path.splitext(os.path.basename(input_path))[0]
     # glyph_h: actual pixel rows of ink (12 if OR-merged, 16 if no-merge)
     # cell_h:  atlas row height, always SRC_H=16 so font_size=16 needs no scaling
@@ -107,7 +108,8 @@ def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False, hs
     cell_h  = SRC_H
     yoffset = cell_h - glyph_h  # bottom-align compressed glyphs within the cell
     hscale_tag = f"_x{hscale}w" if hscale != 1 else ""
-    output_name = f"{name}_{glyph_h}px" + ("" if no_merge else f"_or{or_pair}") + hscale_tag
+    if output_name is None:
+        output_name = f"{name}_{glyph_h}px" + ("" if no_merge else f"_or{or_pair}") + hscale_tag
     print(f"[{name}] {'no-merge' if no_merge else 'or_pair=' + str(or_pair)}{' hscale=' + str(hscale) if hscale != 1 else ''}", end="", flush=True)
 
     tt = TTLibFont(input_path)
@@ -355,7 +357,7 @@ def main():
     ap.add_argument('--format', choices=['bitmap', 'ttf'], default='bitmap',
                     help='output format: bitmap (.fnt+.png) or ttf (OR-merged pixel outlines, shaping tables preserved)')
     ap.add_argument('--output-name', default=None,
-                    help='override output filename stem (ttf format only; useful when generating range-filtered subsets)')
+                    help='override output filename stem')
     ap.add_argument('--cp-exclude-ranges', default=None,
                     help='comma-separated ranges to strip from cmap (e.g. 0x3000-0x303F,0xFF00-0xFFEF)')
     ap.add_argument('--no-merge-ttf', action='store_true',
@@ -382,7 +384,7 @@ def main():
                          no_merge=args.no_merge_ttf, hscale=args.hscale_ttf)
         else:
             gen_font(path, args.or_pair, args.output_dir, args.max_chars, no_merge=args.no_merge, hscale=args.hscale,
-                     cp_min=args.cp_min, cp_max=args.cp_max)
+                     cp_min=args.cp_min, cp_max=args.cp_max, output_name=args.output_name)
 
 
 if __name__ == '__main__':

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Bake NotoSansThai as pixel font with 1x2 tall rectangular dots.
+"""Bake NotoSansThai as a pixel font.
 
 Process:
-  1. Rasterize NotoSansThai_x2w at 16px
+  1. Rasterize NotoSansThai at 16px
   2. Horizontally fit the typical Thai base advance to 16px
-  3. Each fitted source pixel → 1×2 display pixels, matching CJK y2x dots
-  4. UPM=3200 (matches CJK y2x line metrics at font-size 32px)
+  3. Emit either y2x rectangular dots or square 1x1 dots
+  4. UPM matches the selected target pixel aspect
   5. Preserve GPOS anchors (rescaled) so HarfBuzz stacks tone marks correctly
 """
 from __future__ import annotations
@@ -24,12 +24,15 @@ from fontTools.varLib.instancer import instantiateVariableFont
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src" / "NotoSansThai-Regular_x2w.ttf"
+SRC_Y2X = ROOT / "src" / "NotoSansThai-Regular_x2w.ttf"
+SRC_SQUARE = ROOT / "src" / "NotoSansThai-Regular.ttf"
 
 SRC_SIZE = 16       # rasterize at 16px
 PX_X = 100          # font units per fitted source pixel in X (1 disp px at font-size 32)
-PX_Y = 200          # font units per source pixel in Y (2 disp px at font-size 32)
-UPM_OUT = 3200      # matches CJK y2x bake UPM
+PX_Y_Y2X = 200      # font units per source pixel in Y (2 disp px at font-size 32)
+PX_Y_SQUARE = 100   # font units per source pixel in Y (1 disp px at font-size 16)
+UPM_Y2X = 3200      # matches CJK y2x bake UPM
+UPM_SQUARE = 1600   # 16px game line, 1 source pixel = 1 display px
 SRC_UPM_ASSUMED = 1000  # NotoSansThai source UPM
 MARK_LEFT_SHIFT_PX = 0
 MARK_RAISE_ROWS = 0
@@ -170,9 +173,9 @@ def snap_to_grid(value, grid):
     return int(round(value / grid)) * grid
 
 
-def scanline_bounds(row, y_end, asc_design, scanline):
-    y_top = (asc_design - row) * PX_Y
-    y_bot = (asc_design - y_end - 1) * PX_Y
+def scanline_bounds(row, y_end, asc_design, scanline, px_y):
+    y_top = (asc_design - row) * px_y
+    y_bot = (asc_design - y_end - 1) * px_y
     if scanline == "erase-upper":
         return y_bot, y_bot + PX_X
     if scanline == "erase-lower":
@@ -330,10 +333,10 @@ def rasterize(pil_font, char, cell_w, cell_h, force_combining=False):
 
 
 def emit_pixels_as_contours(bitmap, cell_h, cell_w, asc_design):
-    return emit_pixels_as_contours_shifted(bitmap, cell_h, cell_w, asc_design, 0, "none")
+    return emit_pixels_as_contours_shifted(bitmap, cell_h, cell_w, asc_design, 0, "none", PX_Y_Y2X)
 
 def emit_pixels_as_contours_shifted(bitmap, cell_h, cell_w, asc_design, x_shift_pixels,
-                                    scanline):
+                                    scanline, px_y):
     """Emit per Reecho convention. x_shift_pixels shifts the entire contour
     horizontally by N source pixels (negative = left, for marks)."""
     pen = TTGlyphPen(None)
@@ -350,7 +353,7 @@ def emit_pixels_as_contours_shifted(bitmap, cell_h, cell_w, asc_design, x_shift_
             has_ink = True
             x_off = x_shift_pixels
             x0, x1 = (x + x_off) * PX_X, (x + 1 + x_off) * PX_X
-            y_bot, y_top = scanline_bounds(y, y_end, asc_design, scanline)
+            y_bot, y_top = scanline_bounds(y, y_end, asc_design, scanline, px_y)
             pen.moveTo((x0, y_bot))
             pen.lineTo((x0, y_top))
             pen.lineTo((x1, y_top))
@@ -420,7 +423,19 @@ def main(argv=None):
         "--output",
         type=Path,
         default=None,
-        help="output path. TTF/WOFF2 outputs are y2x; run compress_y2x_to_y1.py for Reecho game TTFs",
+        help="output path. y2x WOFF2/TTF outputs can be compressed with compress_y2x_to_y1.py for Reecho game TTFs",
+    )
+    parser.add_argument(
+        "--pixel-aspect",
+        choices=["y2x", "square"],
+        default="y2x",
+        help="target dot aspect: y2x for 640x240/Reecho, square for 320x240p",
+    )
+    parser.add_argument(
+        "--source",
+        type=Path,
+        default=None,
+        help="source TTF override. Defaults to the x2w source for y2x, and the unmodified source for square",
     )
     parser.add_argument(
         "--height-mode",
@@ -470,39 +485,48 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
     mark_left_shift = args.mark_left_shift
+    px_y = PX_Y_SQUARE if args.pixel_aspect == "square" else PX_Y_Y2X
+    upm_out = UPM_SQUARE if args.pixel_aspect == "square" else UPM_Y2X
+    source_path = args.source
+    if source_path is None:
+        source_path = SRC_SQUARE if args.pixel_aspect == "square" else SRC_Y2X
+    aspect_tag = args.pixel_aspect
+    output_dir = ROOT / "game" if args.pixel_aspect == "square" else ROOT / "web"
+    output_ext = ".ttf" if args.pixel_aspect == "square" else ".woff2"
+
     if args.output:
         out_path = args.output
     elif args.fit_mode == "native":
-        suffix = f"native{args.raster_size}px-y2x"
+        suffix = f"native{args.raster_size}px-{aspect_tag}"
         if ADVANCE_MODE_SUFFIX[args.advance_mode]:
             suffix = f"{suffix}-{ADVANCE_MODE_SUFFIX[args.advance_mode]}"
         if SCANLINE_SUFFIX[args.scanline]:
             suffix = f"{suffix}-{SCANLINE_SUFFIX[args.scanline]}"
-        out_path = ROOT / "web" / f"k64-thai-pixel-{suffix}.woff2"
+        out_path = output_dir / f"k64-thai-pixel-{suffix}{output_ext}"
     elif args.height_mode == "full":
-        suffix = f"{args.target_width}w-y2x" if args.target_width == 16 else f"{args.target_width}w-16h-y2x"
+        suffix = f"{args.target_width}w-{aspect_tag}" if args.target_width == 16 else f"{args.target_width}w-16h-{aspect_tag}"
         if ADVANCE_MODE_SUFFIX[args.advance_mode]:
             suffix = f"{suffix}-{ADVANCE_MODE_SUFFIX[args.advance_mode]}"
         if SCANLINE_SUFFIX[args.scanline]:
             suffix = f"{suffix}-{SCANLINE_SUFFIX[args.scanline]}"
-        out_path = ROOT / "web" / f"k64-thai-pixel-{suffix}.woff2"
+        out_path = output_dir / f"k64-thai-pixel-{suffix}{output_ext}"
     elif args.height_mode == "or12":
-        suffix = f"{args.target_width}w-or12-y2x"
+        suffix = f"{args.target_width}w-or12-{aspect_tag}"
         if ADVANCE_MODE_SUFFIX[args.advance_mode]:
             suffix = f"{suffix}-{ADVANCE_MODE_SUFFIX[args.advance_mode]}"
         if SCANLINE_SUFFIX[args.scanline]:
             suffix = f"{suffix}-{SCANLINE_SUFFIX[args.scanline]}"
-        out_path = ROOT / "web" / f"k64-thai-pixel-{suffix}.woff2"
+        out_path = output_dir / f"k64-thai-pixel-{suffix}{output_ext}"
     else:
-        suffix = f"{args.target_width}w-scaled-y2x"
+        suffix = f"{args.target_width}w-scaled-{aspect_tag}"
         if ADVANCE_MODE_SUFFIX[args.advance_mode]:
             suffix = f"{suffix}-{ADVANCE_MODE_SUFFIX[args.advance_mode]}"
         if SCANLINE_SUFFIX[args.scanline]:
             suffix = f"{suffix}-{SCANLINE_SUFFIX[args.scanline]}"
-        out_path = ROOT / "web" / f"k64-thai-pixel-{suffix}.woff2"
+        out_path = output_dir / f"k64-thai-pixel-{suffix}{output_ext}"
 
-    print(f"reading {SRC.name}")
-    tt = TTFont(str(SRC))
+    print(f"reading {source_path.name} ({args.pixel_aspect})")
+    tt = TTFont(str(source_path))
     src_upm = tt['head'].unitsPerEm
     print(f"  source UPM={src_upm}")
 
@@ -518,7 +542,7 @@ def main(argv=None):
             del tt[tbl]
             print(f"  removed {tbl} table")
 
-    pil_font = ImageFont.truetype(str(SRC), args.raster_size)
+    pil_font = ImageFont.truetype(str(source_path), args.raster_size)
     pil_asc, pil_desc = pil_font.getmetrics()
     src_h = pil_asc + pil_desc   # raster canvas height
     print(f"  PIL @ {args.raster_size}px: asc={pil_asc} desc={pil_desc} (cell h={src_h})")
@@ -542,17 +566,17 @@ def main(argv=None):
     if args.height_mode in ("full", "or12"):
         # Thai stacked marks need the top of the em. Descender margin remains
         # below the baseline; lineGap stays zero to keep browser layout simple.
-        new_asc = 3200
-        new_desc = -400
+        new_asc = 16 * px_y
+        new_desc = -2 * px_y
         new_lineGap = 0
     else:
         # Narrow variants scale height with width. 12w lands on the same
         # 24px ink height / 32px line rhythm as CJK or12+y2x.
-        new_asc = 2400
-        new_desc = -400
-        new_lineGap = UPM_OUT - (new_asc - new_desc)
+        new_asc = 12 * px_y
+        new_desc = -2 * px_y
+        new_lineGap = upm_out - (new_asc - new_desc)
 
-    tt['head'].unitsPerEm = UPM_OUT
+    tt['head'].unitsPerEm = upm_out
     tt['hhea'].ascent  = new_asc
     tt['hhea'].descent = new_desc
     tt['hhea'].lineGap = new_lineGap
@@ -578,8 +602,8 @@ def main(argv=None):
     base_adv_px = pil_font.getlength("ก")
     width_scale = 1.0 if args.fit_mode == "native" else args.target_width / base_adv_px
     source_to_out_x = PX_X / units_per_px * width_scale
-    source_to_out_y = PX_Y / units_per_px * vertical_scale
-    source_to_out_mark_y = PX_Y / units_per_px
+    source_to_out_y = px_y / units_per_px * vertical_scale
+    source_to_out_mark_y = px_y / units_per_px
     mark_target_width = base_adv_px if args.fit_mode == "native" else max(args.target_width, MARK_WIDTH_FOR_SMALL_FONTS)
     mark_width_scale = 1.0 if args.fit_mode == "native" else mark_target_width / base_adv_px
     source_to_out_mark_x = PX_X / units_per_px * mark_width_scale
@@ -662,7 +686,7 @@ def main(argv=None):
                     # upper *.small tone mark while keeping a gap from the base.
                     bitmap = clear_top_ink_rows(bitmap, 1)
             pen = emit_pixels_as_contours_shifted(bitmap, emit_h, fitted_w, emit_asc,
-                                                  x_shift, args.scanline)
+                                                  x_shift, args.scanline, px_y)
             if pen:
                 new_glyph = pen.glyph()
                 glyf[gname] = new_glyph
@@ -742,7 +766,7 @@ def main(argv=None):
         pen = TTGlyphPen(None)
         ends = list(base_g.endPtsOfContours)
         start = 0
-        y_snap_grid = PX_X if args.scanline != "none" else PX_Y
+        y_snap_grid = PX_X if args.scanline != "none" else px_y
         for end in ends:
             pts = coords[start:end+1]
             if len(pts) >= 3:
@@ -789,13 +813,13 @@ def main(argv=None):
     # So GPOS anchor scale = 64/125 = 0.512.
     if 'GPOS' in tt:
         anchor_scale_x = (PX_X / (SRC_UPM_ASSUMED / args.raster_size)) * width_scale
-        anchor_scale_y = (PX_Y / (SRC_UPM_ASSUMED / args.raster_size)) * vertical_scale
+        anchor_scale_y = (px_y / (SRC_UPM_ASSUMED / args.raster_size)) * vertical_scale
         if args.fit_mode == "native":
             def snap_x(v): return int(round(v))
             def snap_y(v): return int(round(v))
         else:
             def snap_x(v): return int(round(v / PX_X)) * PX_X
-            def snap_y(v): return int(round(v / PX_Y)) * PX_Y
+            def snap_y(v): return int(round(v / px_y)) * px_y
         anchor_count = [0]
 
         def scale_anchor(anchor):
@@ -864,16 +888,18 @@ def main(argv=None):
         for lookup in tt['GPOS'].table.LookupList.Lookup:
             for sub in lookup.SubTable:
                 visit_subtable(sub)
-        snap_note = "unsnapped" if args.fit_mode == "native" else f"snapped to grid {PX_X}/{PX_Y}"
+        snap_note = "unsnapped" if args.fit_mode == "native" else f"snapped to grid {PX_X}/{px_y}"
         print(f"  GPOS: scaled {anchor_count[0]} anchors x*{anchor_scale_x:.3f} y*{anchor_scale_y:.3f} ({snap_note})")
 
     # Rewrite name
     name = tt['name']
     name.names = [r for r in name.names if r.nameID not in (1, 2, 3, 4, 6, 16, 17)]
     ps_suffix = ADVANCE_MODE_SUFFIX[args.advance_mode].replace("-", "").title()
-    ps_name = f"K64ThaiPixel{args.target_width}W{ps_suffix}-Y2X-Regular"
-    for nid, txt in [(1, "K64 Thai"), (2, "Regular"),
-                     (3, ps_name), (4, "K64 Thai Regular"),
+    aspect_ps = "Square" if args.pixel_aspect == "square" else "Y2X"
+    family = "K64 Thai Square" if args.pixel_aspect == "square" else "K64 Thai"
+    ps_name = f"K64ThaiPixel{args.target_width}W{ps_suffix}-{aspect_ps}-Regular"
+    for nid, txt in [(1, family), (2, "Regular"),
+                     (3, ps_name), (4, f"{family} Regular"),
                      (6, ps_name)]:
         name.setName(txt, nid, 3, 1, 0x409)
 

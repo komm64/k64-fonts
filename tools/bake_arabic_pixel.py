@@ -30,10 +30,13 @@ SRC = ROOT / "src" / "NotoSansArabic-Medium.ttf"
 WEB_OUT = ROOT / "web" / "k64-arabic-sans-medium-pixel-y2x.woff2"
 GAME_OUT = ROOT / "game" / "k64-arabic-sans-medium-pixel-y1.ttf"
 PREVIEW_OUT = ROOT / "game" / "k64-arabic-sans-medium-pixel-y1.preview.png"
+SQUARE_GAME_OUT = ROOT / "game" / "k64-arabic-sans-medium-pixel-square.ttf"
+SQUARE_PREVIEW_OUT = ROOT / "game" / "k64-arabic-sans-medium-pixel-square.preview.png"
 
 SRC_ROWS = 16
 PX_X = 100
 PX_Y_WEB = 200
+PX_Y_SQUARE = 100
 THRESHOLD = 80
 DEFAULT_TOP_UNITS = 1100
 DEFAULT_BOTTOM_UNITS = -500
@@ -324,7 +327,7 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
     print(f"wrote {output} ({processed} glyphs pixelated, {emptied} empty)")
 
 
-def make_preview(font_path, out_path, font_size=16):
+def make_preview(font_path, out_path, font_size=16, target_label="game y1"):
     sample_ar = (
         "\u0627\u0644\u0633\u064e\u0651\u0644\u064e\u0627\u0645\u064f "
         "\u0639\u064e\u0644\u064e\u064a\u0652\u0643\u064f\u0645\u0652   "
@@ -342,7 +345,7 @@ def make_preview(font_path, out_path, font_size=16):
     img = Image.new("RGB", (width, 78 + row_h * len(lines)), "white")
     draw = ImageDraw.Draw(img)
     draw.text((24, 18), "K64 Arabic pixel preview", font=title, fill=(20, 20, 20))
-    draw.text((24, 45), f"Top is the generated game y1 font at {font_size}px. Bottom is the source at the same size.", font=label, fill=(90, 90, 90))
+    draw.text((24, 45), f"Top is the generated {target_label} font at {font_size}px. Bottom is the source at the same size.", font=label, fill=(90, 90, 90))
     y = 78
     for idx, ((name, _path, text, direction, lang), font) in enumerate(zip(lines, fonts)):
         if idx % 2:
@@ -358,9 +361,11 @@ def make_preview(font_path, out_path, font_size=16):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Bake K64 Arabic pixel fonts.")
     parser.add_argument("--source", type=Path, default=SRC)
-    parser.add_argument("--web-output", type=Path, default=WEB_OUT)
-    parser.add_argument("--game-output", type=Path, default=GAME_OUT)
-    parser.add_argument("--preview-output", type=Path, default=PREVIEW_OUT)
+    parser.add_argument("--web-output", type=Path, default=None)
+    parser.add_argument("--game-output", type=Path, default=None)
+    parser.add_argument("--preview-output", type=Path, default=None)
+    parser.add_argument("--pixel-aspect", choices=["y2x", "square"], default="y2x",
+                        help="target dot aspect: y2x emits web y2x plus Reecho y1 game TTF; square emits a direct square-dot game TTF")
     parser.add_argument("--threshold", type=int, default=THRESHOLD)
     parser.add_argument("--top-units", type=int, default=DEFAULT_TOP_UNITS)
     parser.add_argument("--bottom-units", type=int, default=DEFAULT_BOTTOM_UNITS)
@@ -380,7 +385,25 @@ def main(argv=None):
         print(f"ERROR: source font not found: {args.source}", file=sys.stderr)
         return 2
 
-    bake(args.source, args.web_output, flavor="woff2", threshold=args.threshold,
+    if args.pixel_aspect == "square":
+        game_output = args.game_output or SQUARE_GAME_OUT
+        preview_output = args.preview_output or SQUARE_PREVIEW_OUT
+        name_suffix = args.name_suffix
+        if "square" not in name_suffix.lower():
+            name_suffix = f"{name_suffix} Square".strip()
+        bake(args.source, game_output, flavor=None, threshold=args.threshold,
+             scanline=args.scanline, top_units=args.top_units,
+             bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_SQUARE,
+             metric_rows=args.metric_rows,
+             metric_ascent_rows=args.metric_ascent_rows,
+             name_suffix=name_suffix)
+        make_preview(game_output, preview_output, args.rows, "square game")
+        return 0
+
+    web_output = args.web_output or WEB_OUT
+    game_output = args.game_output or GAME_OUT
+    preview_output = args.preview_output or PREVIEW_OUT
+    bake(args.source, web_output, flavor="woff2", threshold=args.threshold,
          scanline=args.scanline, top_units=args.top_units,
          bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB,
          metric_rows=args.metric_rows,
@@ -394,9 +417,9 @@ def main(argv=None):
              metric_rows=args.metric_rows,
              metric_ascent_rows=args.metric_ascent_rows,
              name_suffix=args.name_suffix)
-        compress_y2x_to_y1(tmp_y2x, args.game_output)
-        print(f"wrote {args.game_output} (compressed y2x -> game y1)")
-    make_preview(args.game_output, args.preview_output, args.rows)
+        compress_y2x_to_y1(tmp_y2x, game_output)
+        print(f"wrote {game_output} (compressed y2x -> game y1)")
+    make_preview(game_output, preview_output, args.rows)
     return 0
 
 

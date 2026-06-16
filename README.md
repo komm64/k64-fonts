@@ -57,6 +57,7 @@ Pin a specific release tag for stability: `cdn.jsdelivr.net/gh/komm64/k64-fonts@
 - `-or12` — OR-merged (Reecho 4→3 row collapse, 16px → 12px height, `--or-pair 1`)
 - `-y2x` — Y axis 2× stretched (each source pixel = 1 disp px wide × 2 disp px tall)
 - `-y1` — Reecho game/internal 640x240 target: same X as y2x, but Y is halved so the final display path supplies the tall pixels
+- `-square` — 320x240p game target: each source pixel = 1 disp px wide × 1 disp px tall
 - `-scan-erase-upper` / `-scan-erase-lower` — scanline variant; each 1×2 `y2x` dot keeps only the lower/upper 1px half
 - `-x2w` — X axis 2× stretched (each source pixel = 2 disp px wide × 1 disp px tall)
 - `-2x` — both axes 2× (each source pixel = 2 disp × 2 disp, square dots)
@@ -65,6 +66,8 @@ Pin a specific release tag for stability: `cdn.jsdelivr.net/gh/komm64/k64-fonts@
 Web target display: `font-size: 32px` with K64F 2x and CJK or12+y2x sharing a 32px-tall line. K64F 2x advances 16px per monospace glyph on that 32px line, with source design pixels rendered as 2×2 square dots. CJK or12+y2x also advances 16px, with 24px-tall OR-merged ink on the same line.
 
 Reecho game target: text is rendered into the internal 640x240 surface at `font-size: 16px`, then the final display path makes those pixels vertically tall. Game TTFs therefore use `y1` outlines, not baked-in `y2x` outlines.
+
+320x240p square game target: text is rendered directly into a 320x240 square-pixel surface. K64F uses a 16px BMFont with 8px Latin advance, CJK uses the unmodified 16px source fonts, Thai is baked from unmodified `NotoSansThai-Regular.ttf`, and Arabic is baked directly with square pixel outlines rather than compressing y2x/y1 output.
 
 ## Source fonts (src/) — unmodified originals
 
@@ -102,17 +105,22 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `k64-arabic-sans-medium-pixel-20px-y2x.woff2` | `NotoSansArabic-Medium.ttf` | 20-row Arabic size trial, normal threshold. | `font-size: 32px` → same line height as x2 web fonts; `font-size: 40px` → natural 20px source scale |
 | `k64-arabic-sans-medium-pixel-24px-y2x.woff2` | `NotoSansArabic-Medium.ttf` | 24-row Arabic size trial, normal threshold. | `font-size: 32px` → same line height as x2 web fonts; `font-size: 48px` → natural 24px source scale |
 
-## Game fonts (game/) — TTF outputs
+## Game fonts (game/) — TTF/BMFont outputs
 
 | File | Notes |
 |------|-------|
 | `komm64Fantasy_v1.37_16px_bitmap_x2w.fnt` + `_0.png` | Reecho-compatible K64F primary face. Generated as BMFont to avoid FreeType outline rasterization drift at 16ppem; horizontally 2x-wide for the 640x240 CRT signal path. |
+| `komm64Fantasy_v1.37_16px_bitmap_square.fnt` + `_0.png` | 320x240p square-pixel K64F primary face. Generated as BMFont at 16ppem with 8px Latin advance and no horizontal stretch. |
 | `k64-thai-pixel-12w-or12-y1-prop.ttf` | Reecho default Thai game face. 16px source fitted to 12w, compressed with 4→3 OR merge, then converted to y1; this gives the most readable K64F-adjacent pixel look in Reecho's 640x240 internal surface. |
 | `k64-thai-pixel-native12px-y1-prop.ttf` | Natural alternate Thai game face. Rasterized directly at 12px, then compressed from y2x to y1 with proportional advances preserved; smoother and less K64F-like than the Reecho default. |
+| `k64-thai-pixel-12w-or12-square-prop.ttf` | 320x240p square-pixel Thai face. Baked from unmodified Noto Sans Thai, not the `x2w` intermediate, with GSUB/GPOS mark positioning preserved. |
+| `k64-thai-pixel-native12px-square-prop.ttf` | Natural alternate 320x240p Thai face. Rasterized directly at 12px from unmodified Noto Sans Thai with proportional advances preserved. |
 | `k64-arabic-sans-medium-pixel-y1.ttf` | Arabic pixel font: Noto Sans Arabic Medium rasterized with GSUB/GPOS preserved, then compressed from y2x to y1 for Reecho's internal surface. |
 | `k64-arabic-sans-medium-pixel-20px-y1.ttf` | 20px Arabic size trial for Reecho game rendering. |
 | `k64-arabic-sans-medium-pixel-20px-thin-y1.ttf` | 20px thinner Arabic trial for Reecho game rendering. |
 | `k64-arabic-sans-medium-pixel-24px-y1.ttf` | 24px Arabic size trial for Reecho game rendering. |
+| `k64-arabic-sans-medium-pixel-square.ttf` | 320x240p square-pixel baseline Arabic face. Rasterized with GSUB/GPOS preserved and emitted directly as square pixel outlines. |
+| `k64-arabic-sans-medium-pixel-20px-thin-square.ttf` | 320x240p square-pixel Arabic face matching the current 20px thin default style; use with `render_size: 20` and a 16px layout rhythm. |
 
 ## Attribution / Copyright
 
@@ -130,7 +138,7 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 |--------|---------|
 | `bake_web_fonts.py` | Main bake: source TTFs → web/*.woff2. Uses Reecho's `gen_font.py`-produced or12 intermediates as input |
 | `bake_thai_pixel.py` | Thai pixelization — rasterize NotoSansThai → pixel-rect contours, preserve GPOS |
-| `bake_arabic_pixel.py` | Arabic pixelization — rasterize Noto Sans Arabic by glyph name, preserve GSUB/GPOS shaping, emit web y2x WOFF2 + game y1 TTF |
+| `bake_arabic_pixel.py` | Arabic pixelization — rasterize Noto Sans Arabic by glyph name, preserve GSUB/GPOS shaping, emit web y2x + game y1 or 320p square game TTF |
 | `compress_y2x_to_y1.py` | Reecho game conversion — halve Y coordinates/metrics/GPOS Y values so y2x TTFs render correctly into the internal 640x240 surface |
 | `gen_font.py` | Reecho's OR-merge bake (16px TTF → 12px pixel-outline TTF or BMFont) |
 | `stretch_ttf_x2w.py` | Reecho's horizontal 2× scaler (preserves GPOS anchors) |
@@ -170,6 +178,13 @@ python tools/bake_arabic_pixel.py --rows 20 --metric-rows 16 --metric-ascent-row
 Generate game TTFs:
 
 ```bash
+# 320x240p square-pixel game fonts.
+python tools/gen_font.py src/komm64Fantasy.ttf --no-merge --output-dir game --output-name komm64Fantasy_v1.37_16px_bitmap_square
+python tools/bake_thai_pixel.py --pixel-aspect square --target-width 12 --height-mode or12 --advance-mode noto-proportional --min-right-bearing-px 1 --output game/k64-thai-pixel-12w-or12-square-prop.ttf
+python tools/bake_thai_pixel.py --pixel-aspect square --fit-mode native --raster-size 12 --height-mode full --advance-mode noto-proportional --min-right-bearing-px 1 --output game/k64-thai-pixel-native12px-square-prop.ttf
+python tools/bake_arabic_pixel.py --pixel-aspect square --game-output game/k64-arabic-sans-medium-pixel-square.ttf --preview-output game/k64-arabic-sans-medium-pixel-square.preview.png
+python tools/bake_arabic_pixel.py --pixel-aspect square --rows 20 --metric-rows 16 --metric-ascent-rows 12 --threshold 144 --name-suffix Thin --game-output game/k64-arabic-sans-medium-pixel-20px-thin-square.ttf --preview-output game/k64-arabic-sans-medium-pixel-20px-thin-square.preview.png
+
 # Bake Thai y2x intermediates, then compress to Reecho's 640x240 y1 game TTFs.
 python tools/bake_thai_pixel.py --fit-mode native --raster-size 12 --height-mode full --advance-mode noto-proportional --min-right-bearing-px 1 --output tmp-thai-native12px-y2x-prop.ttf
 python tools/compress_y2x_to_y1.py tmp-thai-native12px-y2x-prop.ttf game/k64-thai-pixel-native12px-y1-prop.ttf
