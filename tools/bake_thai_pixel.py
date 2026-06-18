@@ -10,6 +10,7 @@ Process:
 """
 from __future__ import annotations
 import argparse
+import io
 import sys
 from pathlib import Path
 
@@ -17,7 +18,9 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import numpy as np
+from fontTools.misc.transform import Transform
 from fontTools.ttLib import TTFont
+from fontTools.pens.freetypePen import FreeTypePen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib.tables._g_l_y_f import Glyph as TtGlyph
 from fontTools.varLib.instancer import instantiateVariableFont
@@ -25,6 +28,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "NotoSansThai-Regular_x2w.ttf"
+SRC_SQUARE = ROOT / "src" / "NotoSansThai-Regular.ttf"
 
 SRC_SIZE = 16       # rasterize at 16px
 PX_X = 100          # font units per fitted source pixel in X (1 disp px at font-size 32)
@@ -98,6 +102,21 @@ def scale_bitmap_x(bitmap, out_w):
     return bitmap[:, xs]
 
 
+def scale_bitmap_x_any(bitmap, out_w):
+    """Horizontal fit by OR coverage: any source ink in the cell becomes ink."""
+    in_w = bitmap.shape[1]
+    if in_w == out_w:
+        return bitmap
+    out = np.zeros((bitmap.shape[0], out_w), dtype=bitmap.dtype)
+    for x in range(out_w):
+        start = int(np.floor(x * in_w / out_w))
+        end = int(np.ceil((x + 1) * in_w / out_w))
+        start = max(0, min(in_w - 1, start))
+        end = max(start + 1, min(in_w, end))
+        out[:, x] = bitmap[:, start:end].max(axis=1)
+    return out
+
+
 def scale_bitmap_y(bitmap, out_h):
     """Nearest-neighbor vertical fit, preserving hard pixel edges."""
     in_h = bitmap.shape[0]
@@ -105,6 +124,130 @@ def scale_bitmap_y(bitmap, out_h):
         return bitmap
     ys = np.floor(np.arange(out_h) * in_h / out_h).astype(np.int32)
     return bitmap[ys, :]
+
+
+def scale_bitmap_y_any(bitmap, out_h):
+    """Vertical fit by OR coverage: any source ink in the cell becomes ink."""
+    in_h = bitmap.shape[0]
+    if in_h == out_h:
+        return bitmap
+    out = np.zeros((out_h, bitmap.shape[1]), dtype=bitmap.dtype)
+    for y in range(out_h):
+        start = int(np.floor(y * in_h / out_h))
+        end = int(np.ceil((y + 1) * in_h / out_h))
+        start = max(0, min(in_h - 1, start))
+        end = max(start + 1, min(in_h, end))
+        out[y] = bitmap[start:end, :].max(axis=0)
+    return out
+
+
+def downsample_points_nearest(bitmap, out_h, out_w):
+    """Map ink pixels to the nearest output cell instead of OR-ing bin coverage."""
+    in_h, in_w = bitmap.shape
+    out = np.zeros((out_h, out_w), dtype=bitmap.dtype)
+    ys, xs = np.where(bitmap > 0)
+    if len(xs) == 0:
+        return out
+    tx = np.rint((xs + 0.5) * out_w / in_w - 0.5).astype(np.int32)
+    ty = np.rint((ys + 0.5) * out_h / in_h - 0.5).astype(np.int32)
+    tx = np.clip(tx, 0, out_w - 1)
+    ty = np.clip(ty, 0, out_h - 1)
+    out[ty, tx] = 1
+    return out
+
+
+def downsample_coverage_threshold(coverage, out_h, out_w, threshold):
+    """Average grayscale coverage into target cells and binarize."""
+    in_h, in_w = coverage.shape
+    out = np.zeros((out_h, out_w), dtype=np.uint8)
+    for y in range(out_h):
+        y0 = int(np.floor(y * in_h / out_h))
+        y1 = int(np.ceil((y + 1) * in_h / out_h))
+        y0 = max(0, min(in_h - 1, y0))
+        y1 = max(y0 + 1, min(in_h, y1))
+        for x in range(out_w):
+            x0 = int(np.floor(x * in_w / out_w))
+            x1 = int(np.ceil((x + 1) * in_w / out_w))
+            x0 = max(0, min(in_w - 1, x0))
+            x1 = max(x0 + 1, min(in_w, x1))
+            if float(coverage[y0:y1, x0:x1].mean()) >= threshold:
+                out[y, x] = 1
+    return out
+
+
+def downsample_coverage_warp_thai(coverage, out_h, out_w, source_asc,
+                                  threshold, mark_rows=None):
+    """Coverage downsample with the same Thai vertical regions as the bitmap warp."""
+    source_h, source_w = coverage.shape
+    base_top = max(1, min(source_asc - 1, int(round(source_asc * 0.47))))
+    baseline = max(base_top + 1, min(source_h - 1, source_asc))
+    if mark_rows is None:
+        mark_rows = 2 if out_h == 12 else max(2, round(out_h * 0.25))
+    mark_rows = max(1, min(out_h - 2, int(mark_rows)))
+    desc_rows = 1
+    base_rows = max(1, out_h - mark_rows - desc_rows)
+
+    def map_span(y, src_start, src_len, dst_start, dst_len):
+        if dst_len <= 1 or src_len <= 1:
+            return dst_start
+        rel = (y - src_start) / (src_len - 1)
+        return dst_start + int(round(rel * (dst_len - 1)))
+
+    row_map = np.zeros(source_h, dtype=np.int32)
+    for y in range(source_h):
+        if y < base_top:
+            target = map_span(y, 0, base_top, 0, mark_rows)
+        elif y < baseline:
+            target = map_span(y, base_top, baseline - base_top, mark_rows, base_rows)
+        else:
+            target = map_span(y, baseline, source_h - baseline,
+                              mark_rows + base_rows, desc_rows)
+        row_map[y] = max(0, min(out_h - 1, int(target)))
+
+    out = np.zeros((out_h, out_w), dtype=np.uint8)
+    for y in range(out_h):
+        rows = np.where(row_map == y)[0]
+        if rows.size == 0:
+            continue
+        for x in range(out_w):
+            x0 = int(np.floor(x * source_w / out_w))
+            x1 = int(np.ceil((x + 1) * source_w / out_w))
+            x0 = max(0, min(source_w - 1, x0))
+            x1 = max(x0 + 1, min(source_w, x1))
+            if float(coverage[rows, x0:x1].mean()) >= threshold:
+                out[y, x] = 1
+    return out
+
+
+def warp_bitmap_y_square_thai(bitmap, source_asc, out_h, mark_rows=None):
+    """Map Thai source rows into a square cell while preserving base-letter size."""
+    out = np.zeros((out_h, bitmap.shape[1]), dtype=bitmap.dtype)
+    source_h = bitmap.shape[0]
+    base_top = max(1, min(source_asc - 1, int(round(source_asc * 0.47))))
+    baseline = max(base_top + 1, min(source_h - 1, source_asc))
+    if mark_rows is None:
+        mark_rows = 2 if out_h == 12 else max(2, round(out_h * 0.25))
+    mark_rows = max(1, min(out_h - 2, int(mark_rows)))
+    desc_rows = 1
+    base_rows = max(1, out_h - mark_rows - desc_rows)
+
+    def map_span(y, src_start, src_len, dst_start, dst_len):
+        if dst_len <= 1 or src_len <= 1:
+            return dst_start
+        rel = (y - src_start) / (src_len - 1)
+        return dst_start + int(round(rel * (dst_len - 1)))
+
+    for y in range(source_h):
+        if y < base_top:
+            target = map_span(y, 0, base_top, 0, mark_rows)
+        elif y < baseline:
+            target = map_span(y, base_top, baseline - base_top, mark_rows, base_rows)
+        else:
+            target = map_span(y, baseline, source_h - baseline,
+                              mark_rows + base_rows, desc_rows)
+        target = max(0, min(out_h - 1, int(target)))
+        out[target] |= bitmap[y]
+    return out
 
 
 def or_merge_4to3(bitmap, or_pair=1):
@@ -264,7 +407,8 @@ def normalize_vertical_stems(bitmap):
     return img
 
 
-def rasterize(pil_font, char, cell_w, cell_h, force_combining=False):
+def rasterize(pil_font, char, cell_w, cell_h, force_combining=False,
+              coverage_threshold=127):
     """Render char into binary bitmap. For combining marks (where PIL would
     add a U+25CC dotted-circle base), render 'NBSP + mark' instead and take
     the mark portion only (= image minus what NBSP alone produces)."""
@@ -285,12 +429,18 @@ def rasterize(pil_font, char, cell_w, cell_h, force_combining=False):
             h = cell_h + 4
             img_both = _I.new("L", (w, h), 255)
             _D.Draw(img_both).text((4, 0), ' ' + char, fill=0, font=pil_font)
-            img_both = img_both.point(lambda p: 0 if p < 128 else 255, mode="L")
+            img_both = img_both.point(
+                lambda p: 0 if (255 - p) > coverage_threshold else 255,
+                mode="L",
+            )
             img_base = _I.new("L", (w, h), 255)
             _D.Draw(img_base).text((4, 0), ' ', fill=0, font=pil_font)
-            img_base = img_base.point(lambda p: 0 if p < 128 else 255, mode="L")
-            arr_both = (np.array(img_both) < 128).astype(np.uint8)
-            arr_base = (np.array(img_base) < 128).astype(np.uint8)
+            img_base = img_base.point(
+                lambda p: 0 if (255 - p) > coverage_threshold else 255,
+                mode="L",
+            )
+            arr_both = (np.array(img_both) < 255).astype(np.uint8)
+            arr_base = (np.array(img_base) < 255).astype(np.uint8)
             arr = arr_both & ~arr_base  # only pixels in both-render not in base-alone
             # Find bbox of mark
             ys, xs = np.where(arr)
@@ -314,7 +464,9 @@ def rasterize(pil_font, char, cell_w, cell_h, force_combining=False):
         mw, mh = mask.size
         if mw == 0 or mh == 0:
             return cell
-        arr = (np.array(mask, dtype=np.uint8).reshape(mh, mw) > 127).astype(np.uint8)
+        arr = (
+            np.array(mask, dtype=np.uint8).reshape(mh, mw) > coverage_threshold
+        ).astype(np.uint8)
         bbox = pil_font.getbbox(char)
         if bbox is None:
             return cell
@@ -327,6 +479,29 @@ def rasterize(pil_font, char, cell_w, cell_h, force_combining=False):
         return cell
     except Exception:
         return cell
+
+
+def rasterize_outline(glyph_set, glyph_name, cell_w, cell_h, top_px,
+                      units_per_px, x_start_px, coverage_threshold=127):
+    """Render one glyph by glyph name, including non-cmap GSUB variants."""
+    pen = FreeTypePen(glyph_set)
+    glyph_set[glyph_name].draw(pen)
+    scale = 1.0 / units_per_px
+    transform = Transform(scale, 0, 0, -scale, -x_start_px, top_px)
+    arr = pen.array(width=cell_w, height=cell_h, transform=transform)
+    arr = np.flipud(arr)
+    return (arr > (coverage_threshold / 255.0)).astype(np.uint8)
+
+
+def rasterize_outline_coverage(glyph_set, glyph_name, cell_w, cell_h, top_px,
+                               units_per_px, x_start_px):
+    """Render one glyph by glyph name as grayscale coverage."""
+    pen = FreeTypePen(glyph_set)
+    glyph_set[glyph_name].draw(pen)
+    scale = 1.0 / units_per_px
+    transform = Transform(scale, 0, 0, -scale, -x_start_px, top_px)
+    arr = pen.array(width=cell_w, height=cell_h, transform=transform)
+    return np.flipud(arr)
 
 
 def emit_pixels_as_contours(bitmap, cell_h, cell_w, asc_design):
@@ -397,6 +572,7 @@ def scale_gpos_anchors(gpos_table, scale):
 
 
 def main(argv=None):
+    global PX_Y, UPM_OUT
     parser = argparse.ArgumentParser(description="Bake pixel Thai WOFF2.")
     parser.add_argument(
         "--target-width",
@@ -409,6 +585,12 @@ def main(argv=None):
         type=int,
         default=SRC_SIZE,
         help="FreeType/Pillow raster size used as the source bitmap (default: 16)",
+    )
+    parser.add_argument(
+        "--source",
+        type=Path,
+        default=None,
+        help="override source Thai TTF/OTF. Defaults to NotoSansThai-Regular.ttf for square trials",
     )
     parser.add_argument(
         "--fit-mode",
@@ -441,6 +623,39 @@ def main(argv=None):
         help="erase one half of each 1x2 dot: erase-upper keeps the lower pixel, erase-lower keeps the upper pixel",
     )
     parser.add_argument(
+        "--square12",
+        action="store_true",
+        help="emit a 12px square-dot trial font using UPM=1200, asc=1100, desc=-100",
+    )
+    parser.add_argument(
+        "--square16",
+        action="store_true",
+        help="emit a 16px square-dot trial font using UPM=1600, asc=1500, desc=-100",
+    )
+    parser.add_argument(
+        "--square-scale",
+        type=float,
+        default=1.0,
+        help="extra visual scale for square12/square16 glyph widths and advances",
+    )
+    parser.add_argument(
+        "--square-mark-rows",
+        type=int,
+        default=None,
+        help="rows reserved for upper Thai mark area in square12/square16 vertical warp",
+    )
+    parser.add_argument(
+        "--weight",
+        type=float,
+        default=None,
+        help="instantiate NotoSansThai variable wght axis before rasterizing, e.g. 100 for Thin",
+    )
+    parser.add_argument(
+        "--name-suffix",
+        default="",
+        help="override square trial family suffix, e.g. 'Thin 12px Square Large Trial'",
+    )
+    parser.add_argument(
         "--min-right-bearing-px",
         type=int,
         default=0,
@@ -457,6 +672,43 @@ def main(argv=None):
         help="use full 1px skeleton thinning after raster fit",
     )
     parser.add_argument(
+        "--pre-skeleton-strokes",
+        action="store_true",
+        help="skeletonize the high-resolution source bitmap before fitting it to the target grid",
+    )
+    parser.add_argument(
+        "--coverage-any",
+        action="store_true",
+        help="when scaling into the target grid, OR all covered source pixels instead of nearest-neighbor sampling",
+    )
+    parser.add_argument(
+        "--centerline-downsample",
+        action="store_true",
+        help="after high-resolution skeletonization, map centerline pixels to nearest target cells instead of OR downsampling",
+    )
+    parser.add_argument(
+        "--outline-glyphs",
+        action="store_true",
+        help="rasterize every glyph by glyph name instead of rendering cmap characters with PIL",
+    )
+    parser.add_argument(
+        "--coverage-downsample",
+        action="store_true",
+        help="downsample grayscale outline coverage by averaging each target cell, then threshold it",
+    )
+    parser.add_argument(
+        "--coverage-cell-threshold",
+        type=float,
+        default=0.25,
+        help="minimum average cell coverage for --coverage-downsample, from 0.0 to 1.0",
+    )
+    parser.add_argument(
+        "--coverage-threshold",
+        type=int,
+        default=127,
+        help="source coverage threshold before fitting; 0 means any antialias coverage counts as ink",
+    )
+    parser.add_argument(
         "--mark-left-shift",
         type=int,
         default=MARK_LEFT_SHIFT_PX,
@@ -469,6 +721,14 @@ def main(argv=None):
         help="extra upward shift in source rows for zero-width Thai marks",
     )
     args = parser.parse_args(argv)
+    if args.square12 and args.square16:
+        parser.error("--square12 and --square16 are mutually exclusive")
+    if args.square12:
+        PX_Y = 100
+        UPM_OUT = 1200
+    elif args.square16:
+        PX_Y = 100
+        UPM_OUT = 1600
     mark_left_shift = args.mark_left_shift
     if args.output:
         out_path = args.output
@@ -501,29 +761,46 @@ def main(argv=None):
             suffix = f"{suffix}-{SCANLINE_SUFFIX[args.scanline]}"
         out_path = ROOT / "web" / f"k64-thai-pixel-{suffix}.woff2"
 
-    print(f"reading {SRC.name}")
-    tt = TTFont(str(SRC))
+    source_path = args.source or (SRC_SQUARE if (args.square12 or args.square16) else SRC)
+    print(f"reading {source_path.name}")
+    tt = TTFont(str(source_path))
     src_upm = tt['head'].unitsPerEm
     print(f"  source UPM={src_upm}")
 
     # Flatten variable font first (NotoSansThai is variable). Without this,
     # gvar/HVAR/STAT/prep tables would reference original glyph outlines and
     # apply deltas to our pixelated outlines, breaking shaping.
+    pil_source = source_path
     if 'fvar' in tt:
-        print("  variable font detected → instantiating at default master")
-        tt = instantiateVariableFont(tt, {})
+        location = {"wght": args.weight} if args.weight is not None else {}
+        loc_note = ", ".join(f"{k}={v:g}" for k, v in location.items()) or "default master"
+        print(f"  variable font detected → instantiating at {loc_note}")
+        tt = instantiateVariableFont(tt, location)
+        if location:
+            pil_buf = io.BytesIO()
+            tt.save(pil_buf)
+            pil_buf.seek(0)
+            pil_source = pil_buf
     # Also drop hinting code (prep/fpgm/cvt) which assumes original outlines
     for tbl in ['prep', 'fpgm', 'cvt ']:
         if tbl in tt:
             del tt[tbl]
             print(f"  removed {tbl} table")
 
-    pil_font = ImageFont.truetype(str(SRC), args.raster_size)
+    pil_font = ImageFont.truetype(str(pil_source) if isinstance(pil_source, Path) else pil_source, args.raster_size)
     pil_asc, pil_desc = pil_font.getmetrics()
     src_h = pil_asc + pil_desc   # raster canvas height
     print(f"  PIL @ {args.raster_size}px: asc={pil_asc} desc={pil_desc} (cell h={src_h})")
 
-    if args.fit_mode == "native":
+    if args.square12:
+        vertical_scale = 12 / args.raster_size
+        fitted_h = 12
+        asc_design = 11
+    elif args.square16:
+        vertical_scale = 16 / args.raster_size
+        fitted_h = 16
+        asc_design = 15
+    elif args.fit_mode == "native":
         vertical_scale = 1.0
         fitted_h = src_h
         asc_design = pil_asc
@@ -539,7 +816,15 @@ def main(argv=None):
         vertical_scale = args.target_width / 16
         fitted_h = max(1, int(round(src_h * vertical_scale)))
         asc_design = max(1, int(round(pil_asc * vertical_scale)))
-    if args.height_mode in ("full", "or12"):
+    if args.square12:
+        new_asc = 1100
+        new_desc = -100
+        new_lineGap = 0
+    elif args.square16:
+        new_asc = 1500
+        new_desc = -100
+        new_lineGap = 0
+    elif args.height_mode in ("full", "or12"):
         # Thai stacked marks need the top of the em. Descender margin remains
         # below the baseline; lineGap stays zero to keep browser layout simple.
         new_asc = 3200
@@ -576,20 +861,174 @@ def main(argv=None):
     units_per_px = source_units_per_raster_pixel(src_upm, args.raster_size)
     cmap_glyphs = set(cmap.values())
     base_adv_px = pil_font.getlength("ก")
-    width_scale = 1.0 if args.fit_mode == "native" else args.target_width / base_adv_px
+    if args.square12:
+        width_scale = (12 / args.raster_size) * args.square_scale
+    elif args.square16:
+        width_scale = (16 / args.raster_size) * args.square_scale
+    elif args.fit_mode == "native":
+        width_scale = 1.0
+    else:
+        width_scale = args.target_width / base_adv_px
     source_to_out_x = PX_X / units_per_px * width_scale
     source_to_out_y = PX_Y / units_per_px * vertical_scale
-    source_to_out_mark_y = PX_Y / units_per_px
-    mark_target_width = base_adv_px if args.fit_mode == "native" else max(args.target_width, MARK_WIDTH_FOR_SMALL_FONTS)
-    mark_width_scale = 1.0 if args.fit_mode == "native" else mark_target_width / base_adv_px
+    source_to_out_mark_y = source_to_out_y if (args.square12 or args.square16) else PX_Y / units_per_px
+    if args.square12 or args.square16:
+        mark_target_width = base_adv_px * width_scale
+        mark_width_scale = width_scale
+    elif args.fit_mode == "native":
+        mark_target_width = base_adv_px
+        mark_width_scale = 1.0
+    else:
+        mark_target_width = max(args.target_width, MARK_WIDTH_FOR_SMALL_FONTS)
+        mark_width_scale = mark_target_width / base_adv_px
     source_to_out_mark_x = PX_X / units_per_px * mark_width_scale
-    if args.fit_mode == "native":
+    if args.square12 or args.square16:
+        print(f"  horizontal fit: square raster advance ก={base_adv_px:.2f}px -> {base_adv_px * width_scale:.2f}px (x*{width_scale:.3f})")
+    elif args.fit_mode == "native":
         print(f"  horizontal fit: native raster advance ก={base_adv_px:.2f}px (x*1.000)")
     else:
         print(f"  horizontal fit: ก advance {base_adv_px:.2f}px -> {args.target_width}px (x*{width_scale:.3f})")
     print(f"  vertical fit: {src_h}px canvas -> {fitted_h}px canvas ({args.height_mode}, y*{vertical_scale:.3f})")
     print(f"  advance mode: {args.advance_mode}")
     print(f"  scanline: {args.scanline}")
+
+    if args.outline_glyphs:
+        glyph_set = tt.getGlyphSet()
+        processed = 0
+        emptied = 0
+        top_px = pil_asc
+        for gname in glyph_order:
+            if gname == ".notdef":
+                continue
+            source_adv, source_lsb = source_hmtx.get(gname, (0, 0))
+            box = source_bboxes.get(gname)
+            is_combining = (source_adv == 0)
+            if box is None or getattr(glyf[gname], "numberOfContours", 0) == 0:
+                empty = TtGlyph()
+                empty.numberOfContours = 0
+                glyf[gname] = empty
+                hmtx[gname] = (
+                    fitted_advance(source_adv, 1, source_to_out_x, args.advance_mode),
+                    0,
+                )
+                emptied += 1
+                continue
+
+            x_min, _y_min, x_max, _y_max = box
+            x_start_px = int(np.floor(min(0, x_min, source_lsb) / units_per_px))
+            x_end_px = int(np.ceil(max(source_adv, x_max, source_lsb + source_adv) / units_per_px))
+            cell_w = max(1, x_end_px - x_start_px)
+            glyph_width_scale = mark_width_scale if is_combining else width_scale
+            fitted_w = fit_width(cell_w, glyph_width_scale)
+            if args.coverage_downsample and (args.square12 or args.square16):
+                coverage = rasterize_outline_coverage(
+                    glyph_set,
+                    gname,
+                    cell_w,
+                    src_h,
+                    top_px,
+                    units_per_px,
+                    x_start_px,
+                )
+                bitmap = downsample_coverage_warp_thai(
+                    coverage,
+                    fitted_h,
+                    fitted_w,
+                    pil_asc,
+                    args.coverage_cell_threshold,
+                    args.square_mark_rows,
+                )
+                emit_h = fitted_h
+                emit_asc = asc_design
+            else:
+                bitmap = rasterize_outline(
+                    glyph_set,
+                    gname,
+                    cell_w,
+                    src_h,
+                    top_px,
+                    units_per_px,
+                    x_start_px,
+                    args.coverage_threshold,
+                )
+                if args.pre_skeleton_strokes:
+                    bitmap = thin_bitmap(bitmap)
+
+            if args.coverage_downsample and (args.square12 or args.square16):
+                pass
+            elif args.centerline_downsample and (args.square12 or args.square16):
+                bitmap = downsample_points_nearest(bitmap, fitted_h, fitted_w)
+                emit_h = fitted_h
+                emit_asc = asc_design
+            else:
+                if args.coverage_any:
+                    bitmap = scale_bitmap_x_any(bitmap, fitted_w)
+                else:
+                    bitmap = scale_bitmap_x(bitmap, fitted_w)
+                if args.square12 or args.square16:
+                    if args.coverage_any:
+                        bitmap = scale_bitmap_y_any(bitmap, fitted_h)
+                    else:
+                        bitmap = warp_bitmap_y_square_thai(
+                            bitmap,
+                            pil_asc,
+                            fitted_h,
+                            args.square_mark_rows,
+                        )
+                    emit_h = fitted_h
+                    emit_asc = asc_design
+                elif args.height_mode == "or12":
+                    if is_combining:
+                        emit_h = src_h
+                        emit_asc = pil_asc
+                    else:
+                        bitmap = or_merge_4to3(bitmap)
+                        emit_h = fitted_h
+                        emit_asc = asc_design
+                else:
+                    bitmap = scale_bitmap_y(bitmap, fitted_h)
+                    emit_h = fitted_h
+                    emit_asc = asc_design
+            if args.skeleton_strokes:
+                bitmap = thin_bitmap(bitmap)
+            elif args.normalize_vertical_stems:
+                bitmap = normalize_vertical_stems(bitmap)
+
+            x_shift = int(round(x_start_px * glyph_width_scale))
+            if is_combining:
+                x_shift -= mark_left_shift
+                if args.mark_raise_rows > 0:
+                    bitmap = shift_bitmap_y(bitmap, args.mark_raise_rows)
+                elif args.mark_raise_rows < 0:
+                    bitmap = shift_bitmap_y_down(bitmap, -args.mark_raise_rows)
+
+            pen = emit_pixels_as_contours_shifted(
+                bitmap,
+                emit_h,
+                fitted_w,
+                emit_asc,
+                x_shift,
+                args.scanline,
+            )
+            if pen:
+                new_glyph = pen.glyph()
+                glyf[gname] = new_glyph
+            else:
+                empty = TtGlyph()
+                empty.numberOfContours = 0
+                new_glyph = empty
+                glyf[gname] = new_glyph
+            new_adv = fitted_advance(source_adv, fitted_w, source_to_out_x, args.advance_mode)
+            new_box = glyph_coord_bbox(new_glyph)
+            if not is_combining and new_box and args.min_right_bearing_px > 0:
+                new_adv = max(new_adv, new_box[2] + args.min_right_bearing_px * PX_X)
+            new_lsb = new_box[0] if new_box else 0
+            hmtx[gname] = (new_adv, new_lsb)
+            processed += 1
+        print(f"  processed {processed} outline glyphs")
+        print(f"  emptied {emptied} outline glyphs")
+        cmap = {}
+        cmap_glyphs = set(glyph_order)
 
     # Process cmap-mapped glyphs first (have a codepoint to render via PIL)
     processed = 0
@@ -614,25 +1053,50 @@ def main(argv=None):
                     continue
                 cell_w = max(advance, 1)
 
-            bitmap = rasterize(pil_font, char, cell_w, src_h, force_combining=is_combining)
+            bitmap = rasterize(
+                pil_font,
+                char,
+                cell_w,
+                src_h,
+                force_combining=is_combining,
+                coverage_threshold=args.coverage_threshold,
+            )
+            if args.pre_skeleton_strokes:
+                bitmap = thin_bitmap(bitmap)
             glyph_width_scale = mark_width_scale if is_combining else width_scale
             fitted_w = fit_width(cell_w, glyph_width_scale)
-            bitmap = scale_bitmap_x(bitmap, fitted_w)
-            if args.height_mode == "or12":
-                # OR merge is good for base glyphs because it preserves thin
-                # horizontal strokes. Thai tone/mark glyphs lose distinctions
-                # under OR merge, so keep them at the original 16px-tall raster.
-                if is_combining:
-                    emit_h = src_h
-                    emit_asc = pil_asc
-                else:
-                    bitmap = or_merge_4to3(bitmap)
-                    emit_h = fitted_h
-                    emit_asc = asc_design
-            else:
-                bitmap = scale_bitmap_y(bitmap, fitted_h)
+            if args.centerline_downsample and (args.square12 or args.square16):
+                bitmap = downsample_points_nearest(bitmap, fitted_h, fitted_w)
                 emit_h = fitted_h
                 emit_asc = asc_design
+            else:
+                if args.coverage_any:
+                    bitmap = scale_bitmap_x_any(bitmap, fitted_w)
+                else:
+                    bitmap = scale_bitmap_x(bitmap, fitted_w)
+                if args.square12 or args.square16:
+                    if args.coverage_any:
+                        bitmap = scale_bitmap_y_any(bitmap, fitted_h)
+                    else:
+                        bitmap = warp_bitmap_y_square_thai(bitmap, pil_asc, fitted_h,
+                                                           args.square_mark_rows)
+                    emit_h = fitted_h
+                    emit_asc = asc_design
+                elif args.height_mode == "or12":
+                    # OR merge is good for base glyphs because it preserves thin
+                    # horizontal strokes. Thai tone/mark glyphs lose distinctions
+                    # under OR merge, so keep them at the original 16px-tall raster.
+                    if is_combining:
+                        emit_h = src_h
+                        emit_asc = pil_asc
+                    else:
+                        bitmap = or_merge_4to3(bitmap)
+                        emit_h = fitted_h
+                        emit_asc = asc_design
+                else:
+                    bitmap = scale_bitmap_y(bitmap, fitted_h)
+                    emit_h = fitted_h
+                    emit_asc = asc_design
             if args.skeleton_strokes:
                 bitmap = thin_bitmap(bitmap)
             elif args.normalize_vertical_stems:
@@ -679,7 +1143,8 @@ def main(argv=None):
             processed += 1
         except Exception:
             pass
-    print(f"  processed {processed} cmap glyphs")
+    if not args.outline_glyphs:
+        print(f"  processed {processed} cmap glyphs")
 
     # Non-cmap glyphs (= variants/composed marks reached via GSUB substitution).
     # For variants like "uni0E35.narrow" or "uni0E49.small", strip the suffix
@@ -718,11 +1183,13 @@ def main(argv=None):
         is_mark_variant = source_hmtx.get(base_gname, (1, 0))[0] == 0
         dx = dy = 0
         sx = sy = 1.0
+        narrow_above_mark = False
         if base_box and variant_box:
             dx = int(round((variant_box[0] - base_box[0]) * source_to_out_x))
             y_scale = source_to_out_mark_y if is_mark_variant else source_to_out_y
             dy = int(round((variant_box[1] - base_box[1]) * y_scale))
             if is_mark_variant:
+                base_cp = cmap_gname_to_cp.get(base_gname)
                 base_w = max(1, base_box[2] - base_box[0])
                 base_h = max(1, base_box[3] - base_box[1])
                 sx = max(0.5, min(1.0, (variant_box[2] - variant_box[0]) / base_w))
@@ -730,6 +1197,14 @@ def main(argv=None):
                 if args.target_width < MARK_WIDTH_FOR_SMALL_FONTS:
                     sx = min(1.0, sx * (MARK_WIDTH_FOR_SMALL_FONTS / args.target_width))
                 dx = int(round((variant_box[0] - base_box[0]) * source_to_out_mark_x))
+                narrow_above_mark = (
+                    gname.endswith(".narrow")
+                    and base_cp is not None
+                    and is_above_mark(base_cp)
+                )
+                if narrow_above_mark:
+                    dy += PX_Y
+                    sy = min(sy, 0.55)
                 # Keep upper stacked variants high enough to avoid merging
                 # into the lower mark. Base/cmap marks are shifted above.
                 # Mark variants such as *.small are raised/nudged in the source
@@ -749,7 +1224,10 @@ def main(argv=None):
                 def transform(p):
                     if is_mark_variant and base_out_box:
                         x_anchor = base_out_box[2]
-                        y_anchor = base_out_box[1]
+                        # Narrow above-marks are used over tall Thai bases.
+                        # Anchor at the top and shrink upward so the mark does
+                        # not visually fuse with the tall base stroke.
+                        y_anchor = base_out_box[3] if narrow_above_mark else base_out_box[1]
                         x = x_anchor + dx + int(round((p[0] - x_anchor) * sx))
                         y = y_anchor + dy + int(round((p[1] - y_anchor) * sy))
                         return snap_to_grid(x, PX_X), snap_to_grid(y, y_snap_grid)
@@ -766,7 +1244,8 @@ def main(argv=None):
         new_lsb = new_box[0] if is_mark_variant and new_box else 0
         hmtx[gname] = (hmtx[base_gname][0], new_lsb)
         non_cmap_count += 1
-    print(f"  copied {non_cmap_count} non-cmap variants from base glyphs")
+    if not args.outline_glyphs:
+        print(f"  copied {non_cmap_count} non-cmap variants from base glyphs")
 
     # Remaining non-cmap glyphs (no obvious base): empty them out so they
     # at least don't render as smooth vectors
@@ -780,7 +1259,8 @@ def main(argv=None):
             glyf[gname] = empty
             hmtx[gname] = (0, 0)
             other_empty += 1
-    print(f"  emptied {other_empty} other non-cmap glyphs")
+    if not args.outline_glyphs:
+        print(f"  emptied {other_empty} other non-cmap glyphs")
 
     # GPOS rescale: source UPM=1000, target UPM=1024, plus pixel snap to PX boundaries
     # Anchor scale = (1 source unit in source UPM) → (1 source unit in our PX scheme)
@@ -870,10 +1350,22 @@ def main(argv=None):
     # Rewrite name
     name = tt['name']
     name.names = [r for r in name.names if r.nameID not in (1, 2, 3, 4, 6, 16, 17)]
-    ps_suffix = ADVANCE_MODE_SUFFIX[args.advance_mode].replace("-", "").title()
-    ps_name = f"K64ThaiPixel{args.target_width}W{ps_suffix}-Y2X-Regular"
-    for nid, txt in [(1, "K64 Thai"), (2, "Regular"),
-                     (3, ps_name), (4, "K64 Thai Regular"),
+    if args.square12:
+        family_suffix = args.name_suffix.strip() or "12px Square Trial"
+        family_name = f"K64 Thai {family_suffix}"
+        ps_suffix = "".join(ch for ch in family_suffix.title() if ch.isalnum())
+        ps_name = f"K64Thai{ps_suffix}-Regular"
+    elif args.square16:
+        family_suffix = args.name_suffix.strip() or "16px Square Trial"
+        family_name = f"K64 Thai {family_suffix}"
+        ps_suffix = "".join(ch for ch in family_suffix.title() if ch.isalnum())
+        ps_name = f"K64Thai{ps_suffix}-Regular"
+    else:
+        family_name = "K64 Thai"
+        ps_suffix = ADVANCE_MODE_SUFFIX[args.advance_mode].replace("-", "").title()
+        ps_name = f"K64ThaiPixel{args.target_width}W{ps_suffix}-Y2X-Regular"
+    for nid, txt in [(1, family_name), (2, "Regular"),
+                     (3, ps_name), (4, f"{family_name} Regular"),
                      (6, ps_name)]:
         name.setName(txt, nid, 3, 1, 0x409)
 

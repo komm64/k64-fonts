@@ -87,18 +87,99 @@ def emit_pixels(bitmap, asc_rows, x_shift_px=0, scanline="none", px_y=PX_Y_WEB):
 
 def render_glyph(glyph_set, glyph_name, cell_w, top_units, units_per_px_x,
                  units_per_px_y,
-                 x_shift_px, threshold, src_rows=SRC_ROWS):
+                 x_shift_px, threshold, src_rows=SRC_ROWS, render_scale=1,
+                 coverage_any=False, pre_skeleton_strokes=False,
+                 centerline_downsample=False, coverage_downsample=False,
+                 coverage_cell_threshold=0.25):
     pen = FreeTypePen(glyph_set)
     glyph_set[glyph_name].draw(pen)
-    scale_x = 1.0 / units_per_px_x
-    scale_y = 1.0 / units_per_px_y
-    transform = Transform(scale_x, 0, 0, -scale_y, -x_shift_px,
+    render_scale = max(1, int(render_scale))
+    render_w = cell_w * render_scale
+    render_rows = src_rows * render_scale
+    render_units_per_px_x = units_per_px_x / render_scale
+    render_units_per_px_y = units_per_px_y / render_scale
+    scale_x = 1.0 / render_units_per_px_x
+    scale_y = 1.0 / render_units_per_px_y
+    transform = Transform(scale_x, 0, 0, -scale_y, -x_shift_px * render_scale,
                           top_units * scale_y)
-    arr = pen.array(width=cell_w, height=src_rows, transform=transform)
+    arr = pen.array(width=render_w, height=render_rows, transform=transform)
     # FreeTypePen returns rows in the opposite vertical order from the
     # top-to-bottom bitmap convention used by emit_pixels().
     arr = np.flipud(arr)
-    return (arr >= (threshold / 255.0)).astype(np.uint8)
+    if coverage_downsample and render_scale > 1:
+        coverage = arr.reshape(src_rows, render_scale, cell_w, render_scale)
+        coverage = coverage.mean(axis=(1, 3))
+        return (coverage >= coverage_cell_threshold).astype(np.uint8)
+    bitmap = (arr > (threshold / 255.0)).astype(np.uint8)
+    if pre_skeleton_strokes:
+        bitmap = thin_bitmap(bitmap)
+    if centerline_downsample and render_scale > 1:
+        bitmap = downsample_points_nearest(bitmap, src_rows, cell_w)
+    if coverage_any and render_scale > 1:
+        bitmap = bitmap.reshape(src_rows, render_scale, cell_w, render_scale)
+        bitmap = bitmap.max(axis=(1, 3))
+    return bitmap
+
+
+def thin_bitmap(bitmap):
+    """Zhang-Suen thinning. Reduces thickened coverage to a 1px skeleton."""
+    img = (bitmap > 0).astype(np.uint8).copy()
+    if img.shape[0] < 3 or img.shape[1] < 3:
+        return img
+    changed = True
+    while changed:
+        changed = False
+        for step in (0, 1):
+            remove = []
+            for y in range(1, img.shape[0] - 1):
+                for x in range(1, img.shape[1] - 1):
+                    if img[y, x] == 0:
+                        continue
+                    p2 = img[y - 1, x]
+                    p3 = img[y - 1, x + 1]
+                    p4 = img[y, x + 1]
+                    p5 = img[y + 1, x + 1]
+                    p6 = img[y + 1, x]
+                    p7 = img[y + 1, x - 1]
+                    p8 = img[y, x - 1]
+                    p9 = img[y - 1, x - 1]
+                    neighbors = [p2, p3, p4, p5, p6, p7, p8, p9]
+                    count = sum(neighbors)
+                    if count < 2 or count > 6:
+                        continue
+                    transitions = sum(
+                        1 for a, b in zip(neighbors, neighbors[1:] + neighbors[:1])
+                        if a == 0 and b == 1
+                    )
+                    if transitions != 1:
+                        continue
+                    if step == 0:
+                        if p2 * p4 * p6 != 0 or p4 * p6 * p8 != 0:
+                            continue
+                    else:
+                        if p2 * p4 * p8 != 0 or p2 * p6 * p8 != 0:
+                            continue
+                    remove.append((y, x))
+            if remove:
+                changed = True
+                for y, x in remove:
+                    img[y, x] = 0
+    return img
+
+
+def downsample_points_nearest(bitmap, out_h, out_w):
+    """Map ink pixels to the nearest output cell instead of OR-ing bin coverage."""
+    in_h, in_w = bitmap.shape
+    out = np.zeros((out_h, out_w), dtype=bitmap.dtype)
+    ys, xs = np.where(bitmap > 0)
+    if len(xs) == 0:
+        return out
+    tx = np.rint((xs + 0.5) * out_w / in_w - 0.5).astype(np.int32)
+    ty = np.rint((ys + 0.5) * out_h / in_h - 0.5).astype(np.int32)
+    tx = np.clip(tx, 0, out_w - 1)
+    ty = np.clip(ty, 0, out_h - 1)
+    out[ty, tx] = 1
+    return out
 
 
 def copy_glyph(glyph):
@@ -209,13 +290,27 @@ def rewrite_name(tt, family, style, full, postscript, unique):
     add(17, style)
 
 
+def source_weight_name(source):
+    stem = Path(source).stem
+    prefix = "NotoSansArabic-"
+    if stem.startswith(prefix):
+        return stem[len(prefix):]
+    return "Medium"
+
+
 def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
          top_units=DEFAULT_TOP_UNITS, bottom_units=DEFAULT_BOTTOM_UNITS,
          src_rows=SRC_ROWS, px_y=PX_Y_WEB, upm_out=None,
-         metric_rows=None, metric_ascent_rows=None, name_suffix=""):
+         metric_rows=None, metric_ascent_rows=None, name_suffix="",
+         render_scale=1, coverage_any=False, skeleton_strokes=False,
+         pre_skeleton_strokes=False, centerline_downsample=False,
+         coverage_downsample=False, coverage_cell_threshold=0.25,
+         x_scale=1.0):
     tt = TTFont(str(source))
     src_upm = tt["head"].unitsPerEm
-    units_per_px_x = src_upm / src_rows
+    if x_scale <= 0:
+        raise ValueError("--x-scale must be positive")
+    units_per_px_x = (src_upm / src_rows) / x_scale
     units_per_px_y = (top_units - bottom_units) / src_rows
     asc_rows = int(round(top_units / units_per_px_y))
     desc_rows = src_rows - asc_rows
@@ -281,7 +376,11 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         cell_w = max(1, x_end_px - x_start_px)
         bitmap = render_glyph(glyph_set, glyph_name, cell_w, top_units,
                               units_per_px_x, units_per_px_y, x_start_px,
-                              threshold, src_rows)
+                              threshold, src_rows, render_scale, coverage_any,
+                              pre_skeleton_strokes, centerline_downsample,
+                              coverage_downsample, coverage_cell_threshold)
+        if skeleton_strokes:
+            bitmap = thin_bitmap(bitmap)
         pixel_pen = emit_pixels(bitmap, asc_rows, x_start_px, scanline, px_y)
         if pixel_pen:
             glyf[glyph_name] = pixel_pen.glyph()
@@ -305,13 +404,15 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
     postscript_variant_suffix = "".join(
         ch for ch in name_suffix.title() if ch.isalnum()
     )
-    family = f"K64 Arabic Sans Medium Pixel{size_suffix}{variant_suffix}"
+    weight_name = source_weight_name(source)
+    postscript_weight_name = "".join(ch for ch in weight_name.title() if ch.isalnum())
+    family = f"K64 Arabic Sans {weight_name} Pixel{size_suffix}{variant_suffix}"
     rewrite_name(
         tt,
         family,
         "Regular",
         f"{family} Regular",
-        f"K64ArabicSansMediumPixel{postscript_size_suffix}{postscript_variant_suffix}-Regular",
+        f"K64ArabicSans{postscript_weight_name}Pixel{postscript_size_suffix}{postscript_variant_suffix}-Regular",
         f"{family} Regular 1.0",
     )
     tt["head"].xMin = min((coords_bbox(glyf[g]) or (0, 0, 0, 0))[0] for g in glyph_order)
@@ -374,29 +475,148 @@ def main(argv=None):
                         help="extra family/PostScript suffix for variants such as Thin")
     parser.add_argument("--scanline", choices=["none", "erase-upper", "erase-lower"],
                         default="none")
+    parser.add_argument("--render-scale", type=int, default=1,
+                        help="supersample outlines by this factor before optional OR downsample")
+    parser.add_argument("--coverage-any", action="store_true",
+                        help="OR supersampled pixels into the target grid so any covered cell becomes ink")
+    parser.add_argument("--skeleton-strokes", action="store_true",
+                        help="thin the OR coverage bitmap to a 1px skeleton before outline emission")
+    parser.add_argument("--pre-skeleton-strokes", action="store_true",
+                        help="thin the supersampled bitmap before OR downsampling into the target grid")
+    parser.add_argument(
+        "--centerline-downsample",
+        action="store_true",
+        help="after high-resolution skeletonization, map centerline pixels to nearest target cells instead of OR downsampling",
+    )
+    parser.add_argument(
+        "--coverage-downsample",
+        action="store_true",
+        help="downsample supersampled grayscale coverage by averaging each target cell, then threshold it",
+    )
+    parser.add_argument(
+        "--coverage-cell-threshold",
+        type=float,
+        default=0.25,
+        help="minimum average cell coverage for --coverage-downsample, from 0.0 to 1.0",
+    )
+    parser.add_argument(
+        "--x-scale",
+        type=float,
+        default=1.0,
+        help="horizontal scale for glyph outlines, advances, and GPOS X values",
+    )
+    parser.add_argument(
+        "--square12",
+        action="store_true",
+        help="emit a 12px square-dot trial font using UPM=1200, asc=1100, desc=-100",
+    )
+    parser.add_argument(
+        "--square16-thin",
+        action="store_true",
+        help="emit a 16px square-dot thin trial font from the original source",
+    )
     args = parser.parse_args(argv)
+    if args.square12 and args.square16_thin:
+        parser.error("--square12 and --square16-thin are mutually exclusive")
 
     if not args.source.exists():
         print(f"ERROR: source font not found: {args.source}", file=sys.stderr)
         return 2
 
+    px_y = PX_Y_WEB
+    upm_out = None
+    preview_size = args.rows
+    if args.square12:
+        if args.web_output == WEB_OUT:
+            args.web_output = ROOT / "web" / "k64-arabic-sans-medium-pixel-12px-square-trial.woff2"
+        if args.game_output == GAME_OUT:
+            args.game_output = ROOT / "game" / "k64-arabic-sans-medium-pixel-12px-square-trial.ttf"
+        if args.preview_output == PREVIEW_OUT:
+            args.preview_output = ROOT / "game" / "k64-arabic-sans-medium-pixel-12px-square-trial.preview.png"
+        if args.top_units == DEFAULT_TOP_UNITS:
+            args.top_units = 900
+        if args.bottom_units == DEFAULT_BOTTOM_UNITS:
+            args.bottom_units = -100
+        args.rows = 12
+        args.metric_rows = 12
+        args.metric_ascent_rows = 11
+        if not args.name_suffix:
+            args.name_suffix = "Square Trial"
+        px_y = 100
+        upm_out = 1200
+        preview_size = 12
+    elif args.square16_thin:
+        if args.web_output == WEB_OUT:
+            args.web_output = ROOT / "web" / "k64-arabic-sans-medium-pixel-16px-thin-square-trial.woff2"
+        if args.game_output == GAME_OUT:
+            args.game_output = ROOT / "game" / "k64-arabic-sans-medium-pixel-16px-thin-square-trial.ttf"
+        if args.preview_output == PREVIEW_OUT:
+            args.preview_output = ROOT / "game" / "k64-arabic-sans-medium-pixel-16px-thin-square-trial.preview.png"
+        args.top_units = DEFAULT_TOP_UNITS
+        args.bottom_units = DEFAULT_BOTTOM_UNITS
+        args.rows = 16
+        args.metric_rows = 16
+        args.metric_ascent_rows = 12
+        if args.threshold == THRESHOLD:
+            args.threshold = 160
+        if not args.name_suffix:
+            args.name_suffix = "16px Thin Square Trial"
+        px_y = 100
+        upm_out = 1600
+        preview_size = 16
+
     bake(args.source, args.web_output, flavor="woff2", threshold=args.threshold,
          scanline=args.scanline, top_units=args.top_units,
-         bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB,
+         bottom_units=args.bottom_units, src_rows=args.rows, px_y=px_y,
+         upm_out=upm_out,
          metric_rows=args.metric_rows,
          metric_ascent_rows=args.metric_ascent_rows,
-         name_suffix=args.name_suffix)
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        tmp_y2x = Path(tmp_dir) / "k64-arabic-sans-medium-pixel-y2x.ttf"
-        bake(args.source, tmp_y2x, flavor=None, threshold=args.threshold,
+         name_suffix=args.name_suffix,
+         render_scale=args.render_scale,
+         coverage_any=args.coverage_any,
+         skeleton_strokes=args.skeleton_strokes,
+         pre_skeleton_strokes=args.pre_skeleton_strokes,
+         centerline_downsample=args.centerline_downsample,
+         coverage_downsample=args.coverage_downsample,
+         coverage_cell_threshold=args.coverage_cell_threshold,
+         x_scale=args.x_scale)
+    if args.square12 or args.square16_thin:
+        bake(args.source, args.game_output, flavor=None, threshold=args.threshold,
              scanline=args.scanline, top_units=args.top_units,
-             bottom_units=args.bottom_units, src_rows=args.rows, px_y=PX_Y_WEB,
+             bottom_units=args.bottom_units, src_rows=args.rows, px_y=px_y,
+             upm_out=upm_out,
              metric_rows=args.metric_rows,
              metric_ascent_rows=args.metric_ascent_rows,
-             name_suffix=args.name_suffix)
-        compress_y2x_to_y1(tmp_y2x, args.game_output)
-        print(f"wrote {args.game_output} (compressed y2x -> game y1)")
-    make_preview(args.game_output, args.preview_output, args.rows)
+             name_suffix=args.name_suffix,
+             render_scale=args.render_scale,
+             coverage_any=args.coverage_any,
+             skeleton_strokes=args.skeleton_strokes,
+             pre_skeleton_strokes=args.pre_skeleton_strokes,
+             centerline_downsample=args.centerline_downsample,
+             coverage_downsample=args.coverage_downsample,
+             coverage_cell_threshold=args.coverage_cell_threshold,
+             x_scale=args.x_scale)
+    else:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_y2x = Path(tmp_dir) / "k64-arabic-sans-medium-pixel-y2x.ttf"
+            bake(args.source, tmp_y2x, flavor=None, threshold=args.threshold,
+                 scanline=args.scanline, top_units=args.top_units,
+                 bottom_units=args.bottom_units, src_rows=args.rows, px_y=px_y,
+                 upm_out=upm_out,
+                 metric_rows=args.metric_rows,
+                 metric_ascent_rows=args.metric_ascent_rows,
+                 name_suffix=args.name_suffix,
+                 render_scale=args.render_scale,
+                 coverage_any=args.coverage_any,
+                 skeleton_strokes=args.skeleton_strokes,
+                 pre_skeleton_strokes=args.pre_skeleton_strokes,
+                 centerline_downsample=args.centerline_downsample,
+                 coverage_downsample=args.coverage_downsample,
+                 coverage_cell_threshold=args.coverage_cell_threshold,
+                 x_scale=args.x_scale)
+            compress_y2x_to_y1(tmp_y2x, args.game_output)
+            print(f"wrote {args.game_output} (compressed y2x -> game y1)")
+    make_preview(args.game_output, args.preview_output, preview_size)
     return 0
 
 
