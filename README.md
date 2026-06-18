@@ -26,6 +26,17 @@ from the existing 640x240 Reecho `y1`/`y2x` fonts.
 
 Preview: `docs/320x240/preview.png`
 
+Distribution paths:
+
+| Target | Files |
+|--------|-------|
+| Game / Godot / Reecho-style runtime | `game/320x240/*.ttf` |
+| Web / CDN | `web/320x240/*.woff2` |
+
+Use the 320x240 fonts at `font-size: 12px` on a square-dot 320x240 surface.
+The 640x240 `y1`/`y2x` fonts remain in the existing `game/` and `web/` root
+paths for the tall-dot Reecho target.
+
 ## Quick start (web)
 
 Reference fonts from this repo via jsDelivr CDN. Example CSS:
@@ -66,6 +77,33 @@ body { font-size: 32px; }
 ```
 
 Pin a specific release tag for stability: `cdn.jsdelivr.net/gh/komm64/k64-fonts@vX.Y/web/...`
+
+### 320x240 web CSS
+
+```css
+@font-face {
+  font-family: 'K64 320 JP';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/320x240/k64-320-j-shinonome-mincho-12px.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'K64 320 CJK';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/320x240/k64-320-cjk-fallback-12px.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'K64 320 Thai';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/320x240/k64-320-thai-light-12px-mark16-max2.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'K64 320 Arabic';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/320x240/k64-320-arabic-light-12px.woff2') format('woff2');
+}
+
+body { font-size: 12px; line-height: 1; }
+:lang(ja) { font-family: 'K64 320 JP', 'K64 320 CJK', monospace; }
+:lang(zh), :lang(zh-Hans), :lang(zh-Hant), :lang(ko) { font-family: 'K64 320 CJK', monospace; }
+:lang(th) { font-family: 'K64 320 Thai', monospace; }
+:lang(ar) { font-family: 'K64 320 Arabic', monospace; direction: rtl; }
+```
 
 ## File suffix legend
 
@@ -125,6 +163,10 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | File | Notes |
 |------|-------|
 | `komm64Fantasy_v1.37_16px_bitmap_x2w.fnt` + `_0.png` | Reecho-compatible K64F primary face. Generated as BMFont to avoid FreeType outline rasterization drift at 16ppem; horizontally 2x-wide for the 640x240 CRT signal path. |
+| `320x240/k64-320-j-shinonome-mincho-12px.ttf` | 320x240 Japanese face: Shinonome Mincho 12px with baseline fixed to the 12px square-dot cell. |
+| `320x240/k64-320-cjk-fallback-12px.ttf` | 320x240 Chinese/Korean fallback: Unifont-derived 12px drop-bridge CJK face. |
+| `320x240/k64-320-thai-light-12px-mark16-max2.ttf` | 320x240 Thai face: Noto Sans Thai Light pixelized at 12px with 16px marks and collision-aware mark lift. |
+| `320x240/k64-320-arabic-light-12px.ttf` | 320x240 Arabic face: Noto Sans Arabic Light pixelized at 12px with shaping tables preserved. |
 | `k64-thai-pixel-12w-or12-y1-prop.ttf` | Reecho default Thai game face. 16px source fitted to 12w, compressed with 4→3 OR merge, then converted to y1; this gives the most readable K64F-adjacent pixel look in Reecho's 640x240 internal surface. |
 | `k64-thai-pixel-native12px-y1-prop.ttf` | Natural alternate Thai game face. Rasterized directly at 12px, then compressed from y2x to y1 with proportional advances preserved; smoother and less K64F-like than the Reecho default. |
 | `k64-arabic-sans-medium-pixel-y1.ttf` | Arabic pixel font: Noto Sans Arabic Medium rasterized with GSUB/GPOS preserved, then compressed from y2x to y1 for Reecho's internal surface. |
