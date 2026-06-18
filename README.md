@@ -23,6 +23,24 @@ The live sample compares K64F, J (Shinonome), CK (Unifont), Thai and Arabic
 pixel fonts, smooth Thai alternate rendering, and scanline variants at the intended
 `font-size: 32px` display size.
 
+## Godot sample
+
+Open this repository as a Godot project, or run:
+
+```sh
+godot --path .
+```
+
+The main scene is `godot/preview.tscn`. It renders the game fonts into a fixed
+640x480 preview window with three switchable modes:
+
+- `1`: draw into a 640x240 surface, then scale to 640x480.
+- `2`: draw into a 320x240 surface, then scale to 640x480.
+- `3`: draw directly into a 640x480 surface.
+
+The 320x240 mode uses `game/320x240/k64-320-k64f-visual16-12px.ttf`, so K64F can
+be rendered at `font-size: 12px` while keeping the visual 8x16 K64F size.
+
 ## Locale font stacks
 
 `k64-locale.json` is the source-of-truth stack manifest.  The normal stack and
