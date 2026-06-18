@@ -38,7 +38,8 @@ def shaped_width(font_path: Path, text: str, size: int, x_scale=1, lang=None, di
 
 
 def draw_run(img: Image.Image, font_path: Path, text: str, x: int, baseline: int,
-             size: int, *, x_scale=1, y_scale=1, lang=None, direction=None) -> int:
+             size: int, *, x_scale=1, y_scale=1, lang=None, direction=None,
+             load_flags=FT_FLAGS) -> int:
     face = freetype.Face(str(font_path))
     shaped = shape_gids(font_path, text, size, lang=lang, direction=direction)
     pen_x = float(x)
@@ -46,7 +47,7 @@ def draw_run(img: Image.Image, font_path: Path, text: str, x: int, baseline: int
     for info, pos in shaped:
         gid = info.codepoint
         face.set_pixel_sizes(0, size)
-        face.load_glyph(gid, FT_FLAGS)
+        face.load_glyph(gid, load_flags)
         glyph = face.glyph
         rows = bitmap_rows(glyph.bitmap)
         gx = int(round(pen_x + (pos.x_offset / 64.0 + glyph.bitmap_left) * x_scale))
@@ -69,13 +70,13 @@ def draw_run(img: Image.Image, font_path: Path, text: str, x: int, baseline: int
     return int(round(pen_x))
 
 
-def draw_sequence(img: Image.Image, runs: list[tuple[Path, str, int, int, int, str | None]],
+def draw_sequence(img: Image.Image, runs: list[tuple[Path, str, int, int, int, str | None, int]],
                   x: int, baseline: int) -> int:
     pen_x = x
-    for font_path, text, size, x_scale, y_scale, lang in runs:
+    for font_path, text, size, x_scale, y_scale, lang, load_flags in runs:
         pen_x = draw_run(
             img, font_path, text, pen_x, baseline, size,
-            x_scale=x_scale, y_scale=y_scale, lang=lang,
+            x_scale=x_scale, y_scale=y_scale, lang=lang, load_flags=load_flags,
         )
     return pen_x
 
@@ -131,9 +132,9 @@ def render_640() -> Path:
     draw_sequence(
         img,
         [
-            (defaults["cjk_j"], SAMPLES["cjk_j"], 32, 1, 1, None),
-            (defaults["cjk_j"], SAMPLES["cjk_c"], 32, 1, 1, None),
-            (defaults["cjk_k"], SAMPLES["cjk_k"], 32, 1, 1, "ko"),
+            (defaults["cjk_j"], SAMPLES["cjk_j"], 32, 1, 1, None, FT_FLAGS),
+            (defaults["cjk_j"], SAMPLES["cjk_c"], 32, 1, 1, None, FT_FLAGS),
+            (defaults["cjk_k"], SAMPLES["cjk_k"], 32, 1, 1, "ko", FT_FLAGS),
         ],
         16,
         rows[1][1],
@@ -141,9 +142,9 @@ def render_640() -> Path:
     draw_sequence(
         img,
         [
-            (k64["j"], SAMPLES["cjk_j"], 16, 1, 2, None),
-            (k64["cjk"], SAMPLES["cjk_c"], 16, 1, 2, None),
-            (k64["cjk"], SAMPLES["cjk_k"], 16, 1, 2, "ko"),
+            (k64["j"], SAMPLES["cjk_j"], 16, 1, 2, None, FT_FLAGS | freetype.FT_LOAD_NO_BITMAP),
+            (k64["cjk"], SAMPLES["cjk_c"], 16, 1, 2, None, FT_FLAGS),
+            (k64["cjk"], SAMPLES["cjk_k"], 16, 1, 2, "ko", FT_FLAGS),
         ],
         330,
         rows[1][1],
@@ -188,9 +189,9 @@ def render_320() -> Path:
     draw_sequence(
         img,
         [
-            (defaults["cjk_j"], SAMPLES["cjk_j"], 12, 1, 1, None),
-            (defaults["cjk_j"], SAMPLES["cjk_c"], 12, 1, 1, None),
-            (defaults["cjk_k"], SAMPLES["cjk_k"], 12, 1, 1, "ko"),
+            (defaults["cjk_j"], SAMPLES["cjk_j"], 12, 1, 1, None, FT_FLAGS),
+            (defaults["cjk_j"], SAMPLES["cjk_c"], 12, 1, 1, None, FT_FLAGS),
+            (defaults["cjk_k"], SAMPLES["cjk_k"], 12, 1, 1, "ko", FT_FLAGS),
         ],
         8,
         rows[1][1],
@@ -198,9 +199,9 @@ def render_320() -> Path:
     draw_sequence(
         img,
         [
-            (k64["j"], SAMPLES["cjk_j"], 12, 1, 1, None),
-            (k64["cjk"], SAMPLES["cjk_c"], 12, 1, 1, None),
-            (k64["cjk"], SAMPLES["cjk_k"], 12, 1, 1, "ko"),
+            (k64["j"], SAMPLES["cjk_j"], 12, 1, 1, None, FT_FLAGS),
+            (k64["cjk"], SAMPLES["cjk_c"], 12, 1, 1, None, FT_FLAGS),
+            (k64["cjk"], SAMPLES["cjk_k"], 12, 1, 1, "ko", FT_FLAGS),
         ],
         168,
         rows[1][1],
