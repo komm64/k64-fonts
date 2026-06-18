@@ -84,11 +84,18 @@ def set_line_metrics(tt: TTFont, ascent: int, descent: int) -> None:
         os2.usWinDescent = max(-descent, 0)
 
 
-def save_ttf_and_woff2(tt: TTFont, stem: str, *, transform_tables: bool = True) -> tuple[Path, Path]:
-    GAME.mkdir(parents=True, exist_ok=True)
-    WEB.mkdir(parents=True, exist_ok=True)
-    ttf_path = GAME / f"{stem}.ttf"
-    woff_path = WEB / f"{stem}.woff2"
+def save_ttf_and_woff2(
+    tt: TTFont,
+    stem: str,
+    *,
+    transform_tables: bool = True,
+    game_dir: Path = GAME,
+    web_dir: Path = WEB,
+) -> tuple[Path, Path]:
+    game_dir.mkdir(parents=True, exist_ok=True)
+    web_dir.mkdir(parents=True, exist_ok=True)
+    ttf_path = game_dir / f"{stem}.ttf"
+    woff_path = web_dir / f"{stem}.woff2"
     tt.save(ttf_path)
     if transform_tables:
         woff = TTFont(ttf_path)
@@ -353,7 +360,14 @@ def mark_aligned_shift(ref: RenderedGlyph, mark: RenderedGlyph, is_below: bool) 
     return x_shift, y_shift
 
 
-def thai_collision_up_by_gid(font_path: Path, glyph_order: list[str], max_up: int = 2) -> dict[int, int]:
+def thai_collision_up_by_gid(
+    font_path: Path,
+    glyph_order: list[str],
+    *,
+    base_size: int = 12,
+    mark_size: int = 16,
+    max_up: int = 2,
+) -> dict[int, int]:
     face = freetype.Face(str(font_path))
     samples = [
         "ก่ ก้ ก๊ ก๋ ก์ กำ ก่ำ ก้ำ กิ กี กึ กื กุ กู เก แก",
@@ -361,7 +375,7 @@ def thai_collision_up_by_gid(font_path: Path, glyph_order: list[str], max_up: in
     ]
     up_by_gid: dict[int, int] = {}
     for text in samples:
-        shaped = shape_gids(font_path, text, 12, lang="th")
+        shaped = shape_gids(font_path, text, base_size, lang="th")
         base_mask: set[tuple[int, int]] = set()
         pen_x = 0.0
         for info, pos in shaped:
@@ -369,8 +383,8 @@ def thai_collision_up_by_gid(font_path: Path, glyph_order: list[str], max_up: in
             gname = glyph_order[gid] if gid < len(glyph_order) else ""
             is_mark, is_below = glyph_name_marks(gname)
             if is_mark:
-                ref = render_gid(face, gid, 12)
-                mark = render_gid(face, gid, 16)
+                ref = render_gid(face, gid, base_size)
+                mark = render_gid(face, gid, mark_size)
                 x_shift, y_shift = mark_aligned_shift(ref, mark, is_below)
                 gx = pen_x + pos.x_offset / 64.0 + mark.left + x_shift
                 gy = -(pos.y_offset / 64.0) - mark.top - y_shift
@@ -386,7 +400,7 @@ def thai_collision_up_by_gid(font_path: Path, glyph_order: list[str], max_up: in
                             break
                     up_by_gid[gid] = max(up_by_gid.get(gid, 0), best_up)
             else:
-                base = render_gid(face, gid, 12)
+                base = render_gid(face, gid, base_size)
                 gx = pen_x + pos.x_offset / 64.0 + base.left
                 gy = -(pos.y_offset / 64.0) - base.top
                 ix = int(round(gx))
@@ -405,8 +419,13 @@ def bake_pixel_outline_font(
     family: str,
     ps_name: str,
     *,
+    base_size: int = 12,
+    mark_size: int = 16,
+    upm: int = UPM,
     thai_mark16=False,
     descent=-300,
+    game_dir: Path = GAME,
+    web_dir: Path = WEB,
 ) -> tuple[Path, Path]:
     tt = TTFont(source)
     glyph_order = tt.getGlyphOrder()
@@ -414,7 +433,17 @@ def bake_pixel_outline_font(
     glyf = tt["glyf"]
     hmtx = tt["hmtx"]
 
-    up_by_gid = thai_collision_up_by_gid(source, glyph_order, max_up=2) if thai_mark16 else {}
+    up_by_gid = (
+        thai_collision_up_by_gid(
+            source,
+            glyph_order,
+            base_size=base_size,
+            mark_size=mark_size,
+            max_up=2,
+        )
+        if thai_mark16
+        else {}
+    )
 
     for tbl in ["prep", "fpgm", "cvt ", "gasp", "EBDT", "EBLC", "CBDT", "CBLC", "sbix"]:
         if tbl in tt:
@@ -423,10 +452,10 @@ def bake_pixel_outline_font(
     for gid, gname in enumerate(glyph_order):
         source_adv = hmtx[gname][0] if gname in hmtx.metrics else 0
         is_mark, is_below = glyph_name_marks(gname) if thai_mark16 else (False, False)
-        render_size = 16 if is_mark else 12
+        render_size = mark_size if is_mark else base_size
         rendered = render_gid(face, gid, render_size)
         if thai_mark16 and is_mark:
-            ref = render_gid(face, gid, 12)
+            ref = render_gid(face, gid, base_size)
             x_shift, y_shift = mark_aligned_shift(ref, rendered, is_below)
             if not is_below:
                 y_shift += up_by_gid.get(gid, 0)
@@ -438,18 +467,18 @@ def bake_pixel_outline_font(
             box = glyph_bbox(new_glyph)
             hmtx[gname] = (0, box[0] if box else 0)
         else:
-            hmtx[gname] = (max(1, int(round(render_gid(face, gid, 12).advance * PX))), 0)
+            hmtx[gname] = (max(1, int(round(render_gid(face, gid, base_size).advance * PX))), 0)
 
-    tt["head"].unitsPerEm = UPM
-    set_line_metrics(tt, UPM, descent)
+    tt["head"].unitsPerEm = upm
+    set_line_metrics(tt, upm, descent)
     if "head" in tt:
-        tt["head"].yMax = UPM
+        tt["head"].yMax = upm
         tt["head"].yMin = descent
     if "maxp" in tt:
         tt["maxp"].maxZones = 1
-    scale_gpos(tt, UPM / 1000.0, UPM / 1000.0)
+    scale_gpos(tt, upm / 1000.0, upm / 1000.0)
     set_names(tt, family, ps_name)
-    return save_ttf_and_woff2(tt, stem)
+    return save_ttf_and_woff2(tt, stem, game_dir=game_dir, web_dir=web_dir)
 
 
 def bake_thai() -> tuple[Path, Path]:

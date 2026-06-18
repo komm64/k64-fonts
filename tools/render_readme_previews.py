@@ -150,6 +150,10 @@ def find_chrome() -> Path | None:
     return None
 
 
+def normalize_chrome_screenshot(path: Path) -> None:
+    Image.open(path).convert("L").convert("RGB").save(path)
+
+
 def render_640_with_chrome(out: Path) -> bool:
     chrome = find_chrome()
     if chrome is None:
@@ -201,6 +205,11 @@ html, body {{
 .k64-j {{ font-family: K64J; }}
 .k64-ck {{ font-family: K64CK; }}
 .k64-thai {{ font-family: K64Thai; }}
+.default-arabic, .k64-arabic {{
+  direction: rtl;
+  unicode-bidi: isolate;
+  display: inline-block;
+}}
 .k64-arabic {{ font: 40px/32px K64Arabic, K64F2X, K64CK, K64J, monospace; }}
 </style>
 </head>
@@ -211,7 +220,7 @@ html, body {{
   <div class="head" style="top:126px">K64 target stack</div>
   <div class="guide" style="top:112px"></div>
   <div class="guide" style="top:206px"></div>
-  <div class="run default-line" style="top:52px">{e(LINE_SAMPLES['latin'])} / {e(LINE_SAMPLES['cjk_j'] + LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])} / {e(LINE_SAMPLES['thai'])} / <span lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
+  <div class="run default-line" style="top:52px">{e(LINE_SAMPLES['latin'])} / {e(LINE_SAMPLES['cjk_j'] + LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])} / {e(LINE_SAMPLES['thai'])} / <span class="default-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
   <div class="run k64-line" style="top:146px"><span class="k64-latin">{e(LINE_SAMPLES['latin'])}</span><span class="sep">/</span><span class="k64-j">{e(LINE_SAMPLES['cjk_j'])}</span><span class="k64-ck">{e(LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])}</span><span class="sep">/</span><span class="k64-thai" lang="th">{e(LINE_SAMPLES['thai'])}</span><span class="sep">/</span><span class="k64-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
 </div>
 </body>
@@ -234,7 +243,204 @@ html, body {{
         text=True,
         timeout=120,
     )
-    return result.returncode == 0 and out.exists()
+    ok = result.returncode == 0 and out.exists()
+    if ok:
+        normalize_chrome_screenshot(out)
+    return ok
+
+
+def render_320_with_chrome(out: Path) -> bool:
+    chrome = find_chrome()
+    if chrome is None:
+        return False
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp_html = ROOT / "tmp" / "readme-preview-320.html"
+    tmp_html.parent.mkdir(parents=True, exist_ok=True)
+    font = {
+        "k64f": as_file_url(ROOT / "web" / "k64-fantasy.woff2"),
+        "j": as_file_url(ROOT / "web" / "320x240" / "k64-320-j-shinonome-mincho-12px.woff2"),
+        "ck": as_file_url(ROOT / "web" / "320x240" / "k64-320-ck-unifont-12px.woff2"),
+        "thai": as_file_url(ROOT / "web" / "320x240" / "k64-320-thai-light-12px-mark16-max2.woff2"),
+        "arabic": as_file_url(ROOT / "web" / "320x240" / "k64-320-arabic-light-12px.woff2"),
+    }
+
+    def e(text: str) -> str:
+        return html.escape(text, quote=True)
+
+    tmp_html.write_text(f"""<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face {{ font-family: "K64F320"; src: url("{font['k64f']}") format("woff2"); }}
+@font-face {{ font-family: "K64J320"; src: url("{font['j']}") format("woff2"); }}
+@font-face {{ font-family: "K64CK320"; src: url("{font['ck']}") format("woff2"); }}
+@font-face {{ font-family: "K64Thai320"; src: url("{font['thai']}") format("woff2"); }}
+@font-face {{ font-family: "K64Arabic320"; src: url("{font['arabic']}") format("woff2"); }}
+html, body {{
+  margin: 0;
+  width: 320px;
+  height: 240px;
+  overflow: hidden;
+  background: white;
+  color: black;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}}
+.canvas {{ position: relative; width: 320px; height: 240px; background: white; }}
+.title {{ position: absolute; left: 8px; top: 5px; font: 9px Arial, sans-serif; }}
+.head {{ position: absolute; left: 8px; font: 6px Arial, sans-serif; color: rgb(70,70,70); }}
+.guide {{ position: absolute; left: 8px; width: 304px; height: 1px; background: rgb(210,235,255); }}
+.run {{ position: absolute; left: 8px; white-space: nowrap; }}
+.default-line {{ font: 12px Arial, "Yu Gothic", "Malgun Gothic", Tahoma, sans-serif; }}
+.k64-line {{ font: 12px K64J320, K64CK320, K64Thai320, K64Arabic320, monospace; }}
+.sep {{ color: rgb(120,120,120); font-family: Arial, sans-serif; padding: 0 2px; }}
+.k64-latin {{ font: 16px/16px K64F320, monospace; }}
+.k64-j {{ font-family: K64J320; }}
+.k64-ck {{ font-family: K64CK320; }}
+.k64-thai {{ font-family: K64Thai320; }}
+.default-arabic, .k64-arabic {{
+  direction: rtl;
+  unicode-bidi: isolate;
+  display: inline-block;
+}}
+.k64-arabic {{ font-family: K64Arabic320; }}
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="title">K64 320x240 square-dot target</div>
+  <div class="head" style="top:38px">Default font</div>
+  <div class="head" style="top:108px">K64 target stack</div>
+  <div class="guide" style="top:86px"></div>
+  <div class="guide" style="top:156px"></div>
+  <div class="run default-line" style="top:58px">{e(LINE_SAMPLES['latin'])} / {e(LINE_SAMPLES['cjk_j'] + LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])} / {e(LINE_SAMPLES['thai'])} / <span class="default-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
+  <div class="run k64-line" style="top:126px"><span class="k64-latin">{e(LINE_SAMPLES['latin'])}</span><span class="sep">/</span><span class="k64-j">{e(LINE_SAMPLES['cjk_j'])}</span><span class="k64-ck">{e(LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])}</span><span class="sep">/</span><span class="k64-thai" lang="th">{e(LINE_SAMPLES['thai'])}</span><span class="sep">/</span><span class="k64-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
+</div>
+</body>
+</html>
+""", encoding="utf-8")
+    result = subprocess.run(
+        [
+            str(chrome),
+            "--headless=new",
+            "--disable-gpu",
+            "--hide-scrollbars",
+            "--force-device-scale-factor=4",
+            "--window-size=320,240",
+            f"--screenshot={out.resolve()}",
+            tmp_html.resolve().as_uri(),
+        ],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=120,
+    )
+    ok = result.returncode == 0 and out.exists()
+    if ok:
+        normalize_chrome_screenshot(out)
+    return ok
+
+
+def render_640x480_with_chrome(out: Path) -> bool:
+    chrome = find_chrome()
+    if chrome is None:
+        return False
+
+    font_paths = {
+        "k64f": ROOT / "web" / "k64-fantasy.woff2",
+        "j": ROOT / "web" / "640x480" / "k64-640x480-j-shinonome-mincho-16px.woff2",
+        "ck": ROOT / "web" / "640x480" / "k64-640x480-ck-unifont-16px.woff2",
+        "thai": ROOT / "web" / "640x480" / "k64-640x480-thai-light-16px.woff2",
+        "arabic": ROOT / "web" / "640x480" / "k64-640x480-arabic-light-16px.woff2",
+    }
+    if not all(path.exists() for path in font_paths.values()):
+        return False
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp_html = ROOT / "tmp" / "readme-preview-640x480.html"
+    tmp_html.parent.mkdir(parents=True, exist_ok=True)
+    font = {role: as_file_url(path) for role, path in font_paths.items()}
+
+    def e(text: str) -> str:
+        return html.escape(text, quote=True)
+
+    tmp_html.write_text(f"""<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face {{ font-family: "K64F480"; src: url("{font['k64f']}") format("woff2"); }}
+@font-face {{ font-family: "K64J480"; src: url("{font['j']}") format("woff2"); }}
+@font-face {{ font-family: "K64CK480"; src: url("{font['ck']}") format("woff2"); }}
+@font-face {{ font-family: "K64Thai480"; src: url("{font['thai']}") format("woff2"); }}
+@font-face {{ font-family: "K64Arabic480"; src: url("{font['arabic']}") format("woff2"); }}
+html, body {{
+  margin: 0;
+  width: 640px;
+  height: 480px;
+  overflow: hidden;
+  background: white;
+  color: black;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}}
+.canvas {{ position: relative; width: 640px; height: 480px; background: white; }}
+.title {{ position: absolute; left: 16px; top: 10px; font: 12px Arial, sans-serif; }}
+.head {{ position: absolute; left: 16px; font: 8px Arial, sans-serif; color: rgb(70,70,70); }}
+.guide {{ position: absolute; left: 16px; width: 608px; height: 1px; background: rgb(210,235,255); }}
+.run {{ position: absolute; left: 16px; white-space: nowrap; }}
+.default-line {{ font: 16px Arial, "Yu Gothic", "Malgun Gothic", Tahoma, sans-serif; }}
+.k64-line {{ font: 16px K64F480, K64J480, K64CK480, K64Thai480, K64Arabic480, monospace; }}
+.sep {{ color: rgb(120,120,120); font-family: Arial, sans-serif; padding: 0 4px; }}
+.k64-latin {{ font-family: K64F480; }}
+.k64-j {{ font-family: K64J480; }}
+.k64-ck {{ font-family: K64CK480; }}
+.k64-thai {{ font-family: K64Thai480; }}
+.default-arabic, .k64-arabic {{
+  direction: rtl;
+  unicode-bidi: isolate;
+  display: inline-block;
+}}
+.k64-arabic {{ font-family: K64Arabic480; }}
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="title">K64 640x480 square-dot target</div>
+  <div class="head" style="top:42px">Default font</div>
+  <div class="head" style="top:126px">K64 16px target stack</div>
+  <div class="guide" style="top:104px"></div>
+  <div class="guide" style="top:188px"></div>
+  <div class="run default-line" style="top:68px">{e(LINE_SAMPLES['latin'])} / {e(LINE_SAMPLES['cjk_j'] + LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])} / {e(LINE_SAMPLES['thai'])} / <span class="default-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
+  <div class="run k64-line" style="top:152px"><span class="k64-latin">{e(LINE_SAMPLES['latin'])}</span><span class="sep">/</span><span class="k64-j">{e(LINE_SAMPLES['cjk_j'])}</span><span class="k64-ck">{e(LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])}</span><span class="sep">/</span><span class="k64-thai" lang="th">{e(LINE_SAMPLES['thai'])}</span><span class="sep">/</span><span class="k64-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
+</div>
+</body>
+</html>
+""", encoding="utf-8")
+    result = subprocess.run(
+        [
+            str(chrome),
+            "--headless=new",
+            "--disable-gpu",
+            "--hide-scrollbars",
+            "--force-device-scale-factor=2",
+            "--window-size=640,480",
+            f"--screenshot={out.resolve()}",
+            tmp_html.resolve().as_uri(),
+        ],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=120,
+    )
+    ok = result.returncode == 0 and out.exists()
+    if ok:
+        normalize_chrome_screenshot(out)
+    return ok
 
 
 def ensure_y2x_ttf(src: Path, stem: str) -> Path:
@@ -339,6 +545,8 @@ def render_640() -> Path:
 
 def render_320() -> Path:
     out = DOCS / "320x240" / "preview.png"
+    if render_320_with_chrome(out):
+        return out
     out.parent.mkdir(parents=True, exist_ok=True)
     img = Image.new("RGB", (320, 240), "white")
     draw = ImageDraw.Draw(img)
@@ -397,8 +605,19 @@ def render_320() -> Path:
     return out
 
 
+def render_640x480() -> Path:
+    out = DOCS / "640x480" / "preview.png"
+    if render_640x480_with_chrome(out):
+        return out
+    if out.exists():
+        return out
+    raise FileNotFoundError(
+        f"{out.relative_to(ROOT)} does not exist; run tools/bake_640x480_fonts.py first"
+    )
+
+
 def main() -> int:
-    for renderer in (render_640, render_320):
+    for renderer in (render_640, render_320, render_640x480):
         preview = renderer()
         print(f"wrote {preview.relative_to(ROOT)}")
     return 0

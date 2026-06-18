@@ -12,6 +12,10 @@ komm64 pixel font ecosystem — source TTFs + web-baked WOFF2s for CDN distribut
 
 ![K64 320x240 sample](docs/320x240/preview.png)
 
+### 640x480 square-dot target
+
+![K64 640x480 sample](docs/640x480/preview.png)
+
 Open the live browser sample:
 https://komm64.github.io/k64-fonts/web/sample.html
 
@@ -53,6 +57,21 @@ Use the 320x240 J/CK/Thai/Arabic fonts at `font-size: 12px` on a square-dot 320x
 K64F stays dot-by-dot at its native `font-size: 16px` grid.
 The 640x240 `y1`/`y2x` fonts remain in the existing `game/` and `web/` root
 paths for the tall-dot Reecho target.
+
+## 640x480 / 16px font set
+
+The 640x480 monitor target uses a separate 16px square-dot set under
+`game/640x480/` and `web/640x480/`.
+
+| File | Source | Notes |
+|------|--------|-------|
+| `k64-640x480-j-shinonome-mincho-16px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 16px | Embedded 16px bitmap kept intact; baseline metrics fixed to `ascent=16px / descent=0px`. |
+| `k64-640x480-ck-unifont-16px.ttf` / `.woff2` | GNU Unifont 16px | Original Unifont 16px glyphs with bottom-aligned line metrics. |
+| `k64-640x480-thai-light-16px.ttf` / `.woff2` | Noto Sans Thai Light | Direct 16px mono pixel render with Thai shaping and mark positioning tables preserved. |
+| `k64-640x480-arabic-light-16px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 16px mono pixel render with Arabic shaping tables preserved. |
+
+Use the 640x480 J/CK/Thai/Arabic fonts at `font-size: 16px` on a square-dot
+640x480 surface. K64F uses the existing dot-by-dot 16px face.
 
 ## Quick start (web)
 
@@ -149,6 +168,46 @@ body {
 }
 ```
 
+### 640x480 web CSS
+
+```css
+@font-face {
+  font-family: 'K64 640x480 K64F';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-fantasy.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'K64 640x480 J';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/640x480/k64-640x480-j-shinonome-mincho-16px.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'K64 640x480 CK';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/640x480/k64-640x480-ck-unifont-16px.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'K64 640x480 Thai';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/640x480/k64-640x480-thai-light-16px.woff2') format('woff2');
+  unicode-range: U+0E00-0E7F;
+}
+@font-face {
+  font-family: 'K64 640x480 Arabic';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/640x480/k64-640x480-arabic-light-16px.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+body {
+  font-size: 16px;
+  line-height: 1;
+  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 K64F', 'K64 640x480 CK', 'K64 640x480 J', monospace;
+}
+:lang(ja) {
+  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 K64F', 'K64 640x480 J', 'K64 640x480 CK', monospace;
+}
+:lang(ar) {
+  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 K64F', 'K64 640x480 CK', 'K64 640x480 J', monospace;
+  direction: rtl;
+}
+```
+
 ## File suffix legend
 
 - `-or12` — OR-merged (Reecho 4→3 row collapse, 16px → 12px height, `--or-pair 1`)
@@ -172,9 +231,9 @@ Reecho game target: text is rendered into the internal 640x240 surface at `font-
 | `JF-Dot-ShinonomeMin16.ttf` | 自由工房 (Jiyukoubou) | Public Domain | unmodified |
 | `unifont-16px.ttf` | Roman Czyborra, Paul Hardy et al. (unifoundry.com) | SIL OFL 1.1 | unmodified |
 | `NotoSansThai-Regular.ttf` | Google LLC | SIL OFL 1.1 | unmodified |
-| `NotoSansThai-Light.ttf` | Google LLC | SIL OFL 1.1 | unmodified Light source for 320x240 Thai |
+| `NotoSansThai-Light.ttf` | Google LLC | SIL OFL 1.1 | unmodified Light source for 320x240 and 640x480 Thai |
 | `NotoSansArabic-Medium.ttf` | Google LLC / Noto Fonts | SIL OFL 1.1 | unmodified Noto Sans Arabic Medium source |
-| `NotoSansArabic-Light.ttf` | Google LLC / Noto Fonts | SIL OFL 1.1 | unmodified Light source for 320x240 Arabic |
+| `NotoSansArabic-Light.ttf` | Google LLC / Noto Fonts | SIL OFL 1.1 | unmodified Light source for 320x240 and 640x480 Arabic |
 
 Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step):
 
@@ -201,6 +260,10 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `k64-arabic-sans-medium-pixel-y2x.woff2` | `NotoSansArabic-Medium.ttf` | Original 16-row Arabic pixel face, emitted as 1×2 tall pixel rectangles with GSUB/GPOS preserved. RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → baseline Arabic pixel font for RTL shaped text |
 | `k64-arabic-sans-medium-pixel-20px-y2x.woff2` | `NotoSansArabic-Medium.ttf` | 20-row Arabic size trial, normal threshold. | `font-size: 32px` → same line height as x2 web fonts; `font-size: 40px` → natural 20px source scale |
 | `k64-arabic-sans-medium-pixel-24px-y2x.woff2` | `NotoSansArabic-Medium.ttf` | 24-row Arabic size trial, normal threshold. | `font-size: 32px` → same line height as x2 web fonts; `font-size: 48px` → natural 24px source scale |
+| `640x480/k64-640x480-j-shinonome-mincho-16px.woff2` | `JF-Dot-ShinonomeMin16.ttf` | 16px embedded bitmap kept intact; baseline metrics fixed for a square-dot 16px cell. | `font-size: 16px` → 16px Japanese |
+| `640x480/k64-640x480-ck-unifont-16px.woff2` | `unifont-16px.ttf` | Original 16px Unifont glyphs; baseline metrics fixed for a square-dot 16px cell. | `font-size: 16px` → 16px Chinese/Korean fallback |
+| `640x480/k64-640x480-thai-light-16px.woff2` | `NotoSansThai-Light.ttf` | Direct 16px mono pixel rectangles with Thai GSUB/GPOS preserved. | `font-size: 16px` → square-dot Thai |
+| `640x480/k64-640x480-arabic-light-16px.woff2` | `NotoSansArabic-Light.ttf` | Direct 16px mono pixel rectangles with Arabic GSUB/GPOS preserved. | `font-size: 16px` → square-dot Arabic |
 
 ## Game fonts (game/) — TTF outputs
 
@@ -211,6 +274,10 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `320x240/k64-320-ck-unifont-12px.ttf` | 320x240 CK face: Unifont-derived 12px drop-bridge Chinese/Korean face. |
 | `320x240/k64-320-thai-light-12px-mark16-max2.ttf` | 320x240 Thai face: Noto Sans Thai Light pixelized at 12px with 16px marks and collision-aware mark lift. |
 | `320x240/k64-320-arabic-light-12px.ttf` | 320x240 Arabic face: Noto Sans Arabic Light pixelized at 12px with shaping tables preserved. |
+| `640x480/k64-640x480-j-shinonome-mincho-16px.ttf` | 640x480 Japanese face: Shinonome Mincho 16px with baseline fixed to the 16px square-dot cell. |
+| `640x480/k64-640x480-ck-unifont-16px.ttf` | 640x480 CK face: original Unifont 16px with baseline fixed to the 16px square-dot cell. |
+| `640x480/k64-640x480-thai-light-16px.ttf` | 640x480 Thai face: Noto Sans Thai Light pixelized at 16px with shaping tables preserved. |
+| `640x480/k64-640x480-arabic-light-16px.ttf` | 640x480 Arabic face: Noto Sans Arabic Light pixelized at 16px with shaping tables preserved. |
 | `k64-thai-pixel-12w-or12-y1-prop.ttf` | Reecho default Thai game face. 16px source fitted to 12w, compressed with 4→3 OR merge, then converted to y1; this gives the most readable K64F-adjacent pixel look in Reecho's 640x240 internal surface. |
 | `k64-thai-pixel-native12px-y1-prop.ttf` | Natural alternate Thai game face. Rasterized directly at 12px, then compressed from y2x to y1 with proportional advances preserved; smoother and less K64F-like than the Reecho default. |
 | `k64-arabic-sans-medium-pixel-y1.ttf` | Arabic pixel font: Noto Sans Arabic Medium rasterized with GSUB/GPOS preserved, then compressed from y2x to y1 for Reecho's internal surface. |
@@ -234,6 +301,7 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 |--------|---------|
 | `bake_web_fonts.py` | Main bake: source TTFs → web/*.woff2. Uses Reecho's `gen_font.py`-produced or12 intermediates as input |
 | `bake_320x240_fonts.py` | Final 320x240 / 12px square-dot set bake |
+| `bake_640x480_fonts.py` | Final 640x480 / 16px square-dot set bake |
 | `bake_unifont_12px_drop.py` | Unifont 16px → 12px CK converter used by the 320x240 bake |
 | `bake_thai_pixel.py` | Thai pixelization — rasterize NotoSansThai → pixel-rect contours, preserve GPOS |
 | `bake_arabic_pixel.py` | Arabic pixelization — rasterize Noto Sans Arabic by glyph name, preserve GSUB/GPOS shaping, emit web y2x WOFF2 + game y1 TTF |
@@ -244,7 +312,7 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 | `render_pangrams.py` | Multi-language pangram visual QA |
 | `render_readcheck.py` | Confusable-pair visual QA (Il1, O0, rn/m, etc.) |
 | `diff_fonts.py` | Glyph + metrics diff between two TTFs |
-| `render_readme_previews.py` | Render the README preview images for the 640x240 and 320x240 targets |
+| `render_readme_previews.py` | Render the README preview images for the 640x240, 320x240, and 640x480 targets |
 
 Regenerate web fonts:
 
@@ -295,7 +363,11 @@ python tools/bake_arabic_pixel.py --rows 24 --web-output web/k64-arabic-sans-med
 # Note: CK WOFF2 compression is slow because the font has many glyphs.
 python tools/bake_320x240_fonts.py
 
-# README preview images for both monitor targets.
+# 640x480 / 16px square-dot set.
+# Note: CK WOFF2 compression is slow because the font has many glyphs.
+python tools/bake_640x480_fonts.py
+
+# README preview images for all monitor targets.
 python tools/render_readme_previews.py
 ```
 

@@ -70,6 +70,24 @@
         "ck": "game/320x240/k64-320-ck-unifont-12px.ttf",
         "j": "game/320x240/k64-320-j-shinonome-mincho-12px.ttf"
       }
+    },
+    "640x480": {
+      "display": "square-dot",
+      "fontSizePx": 16,
+      "web": {
+        "thai": "web/640x480/k64-640x480-thai-light-16px.woff2",
+        "arabic": "web/640x480/k64-640x480-arabic-light-16px.woff2",
+        "k64f": "web/k64-fantasy.woff2",
+        "ck": "web/640x480/k64-640x480-ck-unifont-16px.woff2",
+        "j": "web/640x480/k64-640x480-j-shinonome-mincho-16px.woff2"
+      },
+      "game": {
+        "thai": "game/640x480/k64-640x480-thai-light-16px.ttf",
+        "arabic": "game/640x480/k64-640x480-arabic-light-16px.ttf",
+        "k64f": "src/komm64Fantasy.ttf",
+        "ck": "game/640x480/k64-640x480-ck-unifont-16px.ttf",
+        "j": "game/640x480/k64-640x480-j-shinonome-mincho-16px.ttf"
+      }
     }
   }
 }
