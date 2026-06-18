@@ -10,7 +10,7 @@ script writes the 320x240-specific square-dot fonts under:
 
 Final choices:
   - Japanese: Shinonome Mincho 12px, embedded bitmap baseline fixed to 12/0
-  - CJK fallback: Unifont 16px -> 12px drop-bridge repair
+  - CK: Unifont 16px -> 12px drop-bridge repair for Chinese/Korean
   - Thai: Noto Sans Thai Light, 12px base glyphs with 16px upper/lower marks;
           upper marks use collision-aware max-up 2px per mark glyph
   - Arabic: Noto Sans Arabic Light, direct 12px mono pixel render
@@ -27,7 +27,7 @@ import freetype
 import numpy as np
 import uharfbuzz as hb
 from fontTools.pens.ttGlyphPen import TTGlyphPen
-from fontTools.ttLib import TTFont
+from fontTools.ttLib import TTFont, woff2
 from fontTools.ttLib.tables._g_l_y_f import Glyph as TtGlyph
 from PIL import Image, ImageDraw, ImageFont
 
@@ -43,7 +43,7 @@ FT_FLAGS = freetype.FT_LOAD_RENDER | freetype.FT_LOAD_TARGET_MONO | freetype.FT_
 
 OUT = {
     "j": ("k64-320-j-shinonome-mincho-12px", "K64 320 J Shinonome Mincho 12px"),
-    "cjk": ("k64-320-cjk-fallback-12px", "K64 320 CJK Fallback 12px"),
+    "ck": ("k64-320-ck-unifont-12px", "K64 320 CK Unifont 12px"),
     "thai": (
         "k64-320-thai-light-12px-mark16-max2",
         "K64 320 Thai Light 12px Mark16 Max2",
@@ -84,15 +84,18 @@ def set_line_metrics(tt: TTFont, ascent: int, descent: int) -> None:
         os2.usWinDescent = max(-descent, 0)
 
 
-def save_ttf_and_woff2(tt: TTFont, stem: str) -> tuple[Path, Path]:
+def save_ttf_and_woff2(tt: TTFont, stem: str, *, transform_tables: bool = True) -> tuple[Path, Path]:
     GAME.mkdir(parents=True, exist_ok=True)
     WEB.mkdir(parents=True, exist_ok=True)
     ttf_path = GAME / f"{stem}.ttf"
     woff_path = WEB / f"{stem}.woff2"
     tt.save(ttf_path)
-    woff = TTFont(ttf_path)
-    woff.flavor = "woff2"
-    woff.save(woff_path)
+    if transform_tables:
+        woff = TTFont(ttf_path)
+        woff.flavor = "woff2"
+        woff.save(woff_path)
+    else:
+        woff2.compress(str(ttf_path), str(woff_path), transform_tables=set())
     return ttf_path, woff_path
 
 
@@ -119,14 +122,14 @@ def fix_shinonome_bitmap_baseline() -> tuple[Path, Path]:
     return save_ttf_and_woff2(tt, stem)
 
 
-def make_cjk_fallback() -> tuple[Path, Path]:
-    stem, family = OUT["cjk"]
-    source = SRC / "k64-cjk-fallback-12px-drop-bridge-asc1200-trial.ttf"
+def make_ck_font() -> tuple[Path, Path]:
+    stem, family = OUT["ck"]
+    source = SRC / "k64-ck-unifont-12px-drop-bridge-asc1200-trial.ttf"
     if not source.exists():
         import bake_unifont_12px_drop as drop
 
-        source = GAME / "_tmp-k64-320-cjk-fallback-12px.ttf"
-        # The generic lab script defaults to ASC=11.  The final 320x240 CJK
+        source = GAME / "_tmp-k64-320-ck-unifont-12px.ttf"
+        # The generic lab script defaults to ASC=11.  The final 320x240 CK
         # face is bottom-aligned: 12 ink rows above the baseline, no descent.
         drop.ASC = 12
         drop.bake(
@@ -141,8 +144,8 @@ def make_cjk_fallback() -> tuple[Path, Path]:
     if "OS/2" in tt:
         tt["OS/2"].usWinAscent = UPM
         tt["OS/2"].usWinDescent = 0
-    set_names(tt, family, "K64320CJKFallback12px-Regular")
-    return save_ttf_and_woff2(tt, stem)
+    set_names(tt, family, "K64320CKUnifont12px-Regular")
+    return save_ttf_and_woff2(tt, stem, transform_tables=False)
 
 
 def bitmap_rows(bitmap) -> list[list[int]]:
@@ -506,7 +509,7 @@ def make_preview(paths: dict[str, Path]) -> Path:
     title = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 14)
     draw.text((10, 10), "K64 320x240 12px final font set", fill=(0, 0, 0), font=title)
     rows = [
-        ("J/CJK", 52),
+        ("J / CK", 52),
         ("Thai mark16 collision-aware max2", 94),
         ("Arabic Light 12px", 136),
     ]
@@ -516,7 +519,7 @@ def make_preview(paths: dict[str, Path]) -> Path:
     base = rows[0][1]
     x = 24
     x = draw_shaped_run(img, paths["j"], "日本語 いろはにほへと", x, base, 12) + 12
-    x = draw_shaped_run(img, paths["cjk"], "中国語 敏捷的白狐跳过懒狗 한국어", x, base, 12) + 12
+    x = draw_shaped_run(img, paths["ck"], "中国語 敏捷的白狐跳过懒狗 한국어", x, base, 12) + 12
     base = rows[1][1]
     x = 24
     x = draw_shaped_run(img, paths["j"], "日本語", x, base, 12) + 12
@@ -532,7 +535,7 @@ def make_preview(paths: dict[str, Path]) -> Path:
     base = rows[2][1]
     x = 24
     x = draw_shaped_run(img, paths["j"], "日本語", x, base, 12) + 12
-    x = draw_shaped_run(img, paths["cjk"], "天地玄黄 宇宙洪荒", x, base, 12) + 12
+    x = draw_shaped_run(img, paths["ck"], "天地玄黄 宇宙洪荒", x, base, 12) + 12
     draw_shaped_run(img, paths["arabic"], "السلام عليكم مرحبا بالعالم ١٢٣٤", x, base, 12, lang="ar", direction="rtl")
     img = img.resize((w * 3, h * 3), Image.Resampling.NEAREST)
     img.save(out)
@@ -542,7 +545,7 @@ def make_preview(paths: dict[str, Path]) -> Path:
 def main() -> int:
     outputs = {
         "j": fix_shinonome_bitmap_baseline()[0],
-        "cjk": make_cjk_fallback()[0],
+        "ck": make_ck_font()[0],
         "thai": bake_thai()[0],
         "arabic": bake_arabic()[0],
     }

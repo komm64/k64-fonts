@@ -30,37 +30,37 @@
     }
 
     @font-face {
-      font-family: "K64 CJK JP";
+      font-family: "K64 J";
       src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2") format("woff2");
       font-display: swap;
     }
 
     @font-face {
-      font-family: "K64 CJK Fallback";
+      font-family: "K64 CK";
       src: url("./k64-unifont-16px-or12-y2x.woff2") format("woff2");
       font-display: swap;
     }
 
     @font-face {
-      font-family: "K64 CJK Fallback Scan Upper";
+      font-family: "K64 CK Scan Upper";
       src: url("./k64-unifont-16px-or12-y2x-scan-erase-upper.woff2") format("woff2");
       font-display: swap;
     }
 
     @font-face {
-      font-family: "K64 CJK Fallback Scan Lower";
+      font-family: "K64 CK Scan Lower";
       src: url("./k64-unifont-16px-or12-y2x-scan-erase-lower.woff2") format("woff2");
       font-display: swap;
     }
 
     @font-face {
-      font-family: "K64 CJK JP Scan Upper";
+      font-family: "K64 J Scan Upper";
       src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x-scan-erase-upper.woff2") format("woff2");
       font-display: swap;
     }
 
     @font-face {
-      font-family: "K64 CJK JP Scan Lower";
+      font-family: "K64 J Scan Lower";
       src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x-scan-erase-lower.woff2") format("woff2");
       font-display: swap;
     }
@@ -81,6 +81,7 @@
       font-family: "K64 Thai 12W Prop";
       src: url("./k64-thai-pixel-12w-or12-y2x-prop.woff2") format("woff2");
       font-display: swap;
+      unicode-range: U+0E00-0E7F;
     }
 
     @font-face {
@@ -111,6 +112,7 @@
       font-family: "K64 Arabic Sans Medium Pixel";
       src: url("./k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2") format("woff2");
       font-display: swap;
+      unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
     }
 
     :root {
@@ -295,27 +297,27 @@
     }
 
     .jp {
-      font-family: "K64 Fantasy 2X", "K64 CJK JP", "K64 CJK Fallback", monospace;
+      font-family: "K64 Thai 12W Prop", "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", "K64 J", "K64 CK", monospace;
     }
 
     .jp-scan-upper {
-      font-family: "K64 Fantasy 2X", "K64 CJK JP Scan Upper", "K64 CJK Fallback", monospace;
+      font-family: "K64 Thai 12W Prop", "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", "K64 J Scan Upper", "K64 CK", monospace;
     }
 
     .jp-scan-lower {
-      font-family: "K64 Fantasy 2X", "K64 CJK JP Scan Lower", "K64 CJK Fallback", monospace;
+      font-family: "K64 Thai 12W Prop", "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", "K64 J Scan Lower", "K64 CK", monospace;
     }
 
     .unifont {
-      font-family: "K64 Fantasy 2X", "K64 CJK Fallback", monospace;
+      font-family: "K64 Thai 12W Prop", "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", "K64 CK", "K64 J", monospace;
     }
 
     .unifont-scan-upper {
-      font-family: "K64 Fantasy 2X Scan Upper", "K64 CJK Fallback Scan Upper", monospace;
+      font-family: "K64 Thai 12W Prop", "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X Scan Upper", "K64 CK Scan Upper", "K64 J", monospace;
     }
 
     .unifont-scan-lower {
-      font-family: "K64 Fantasy 2X Scan Lower", "K64 CJK Fallback Scan Lower", monospace;
+      font-family: "K64 Thai 12W Prop", "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X Scan Lower", "K64 CK Scan Lower", "K64 J", monospace;
     }
 
     .thai16 {
@@ -347,7 +349,7 @@
     }
 
     .arabic-stack {
-      font-family: "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", "K64 CJK JP", "K64 CJK Fallback", "K64 Thai 16W", monospace;
+      font-family: "K64 Thai 12W Prop", "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", "K64 CK", "K64 J", monospace;
     }
 
     .rtl {
@@ -358,7 +360,7 @@
 
     .arabic {
       direction: rtl;
-      font-family: "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", "K64 CJK JP", "K64 CJK Fallback", monospace;
+      font-family: "K64 Thai 12W Prop", "K64 Arabic Sans Medium Pixel", "K64 Fantasy 2X", "K64 CK", "K64 J", monospace;
       text-align: right;
       unicode-bidi: plaintext;
     }
@@ -478,7 +480,7 @@
     <header>
       <div>
         <h1>k64-fonts sample</h1>
-        <p class="lede">K64F, JP-Dot, Unifont, Thai, and Arabic pixel variants rendered from local WOFF2 files.</p>
+        <p class="lede">K64F, J (Shinonome), CK (Unifont), Thai, and Arabic pixel variants rendered from local WOFF2 files.</p>
       </div>
       <div class="controls">
         <label>
@@ -488,18 +490,18 @@
         <label>
           Editor font
           <select id="fontSelect">
-            <option value="jp">K64F + JP-Dot + Unifont</option>
-            <option value="unifont">K64F + Unifont</option>
+            <option value="jp">Japanese locale stack</option>
+            <option value="unifont">Default locale stack</option>
             <option value="thai12prop">Thai 12w proportional</option>
             <option value="thai-native12">Thai native 12px</option>
             <option value="thai12prop-scan-upper">Thai 12w scan erase upper</option>
             <option value="thai12prop-scan-lower">Thai 12w scan erase lower</option>
             <option value="thai16">Thai 16w pixel</option>
-            <option value="thai-smooth">Thai smooth fallback</option>
-            <option value="jp-scan-upper">JP-Dot scan erase upper</option>
-            <option value="jp-scan-lower">JP-Dot scan erase lower</option>
-            <option value="unifont-scan-upper">Unifont scan erase upper</option>
-            <option value="unifont-scan-lower">Unifont scan erase lower</option>
+            <option value="thai-smooth">Thai smooth alternate</option>
+            <option value="jp-scan-upper">J scan erase upper</option>
+            <option value="jp-scan-lower">J scan erase lower</option>
+            <option value="unifont-scan-upper">CK scan erase upper</option>
+            <option value="unifont-scan-lower">CK scan erase lower</option>
             <option value="k64f-scan-upper">K64F scan erase upper</option>
             <option value="k64f-scan-lower">K64F scan erase lower</option>
             <option value="arabic">Arabic pixel</option>
@@ -521,8 +523,8 @@
               <div class="head-row">
                 <div class="cell head-cell">Sample</div>
                 <div class="cell head-cell">K64F</div>
-                <div class="cell head-cell">JP-Dot stack</div>
-                <div class="cell head-cell">Unifont stack</div>
+                <div class="cell head-cell">Japanese locale</div>
+                <div class="cell head-cell">Default locale</div>
                 <div class="cell head-cell">Thai 16w</div>
                 <div class="cell head-cell">Thai 12w prop</div>
                 <div class="cell head-cell">Arabic pixel</div>
@@ -549,7 +551,7 @@
               </div>
 
               <div class="row">
-                <div class="cell label-cell">CJK fallback</div>
+                <div class="cell label-cell">CK / J</div>
                 <div class="cell sample k64f">漢字 龍龜 你好 안녕</div>
                 <div class="cell sample jp">漢字 龍龜 你好 안녕</div>
                 <div class="cell sample unifont">漢字 龍龜 你好 안녕</div>
@@ -603,7 +605,8 @@
           <h2>Stacks</h2>
           <ul class="stack-list">
             <li><strong>K64F</strong>: Latin and numbers from the project font.</li>
-            <li><strong>JP-Dot stack</strong>: K64F first, JP glyphs next, Unifont fallback last.</li>
+            <li><strong>Default locale</strong>: Thai, Arabic, K64F, CK, then J.</li>
+            <li><strong>Japanese locale</strong>: Thai, Arabic, K64F, J, then CK.</li>
             <li><strong>Thai prop</strong>: pixel Thai outlines with Noto-derived proportional advance.</li>
           </ul>
         </div>
@@ -617,7 +620,7 @@ HP 0123 / MENU / SCORE
       <section>
         <div class="section-head">
           <h2>Thai variants</h2>
-          <p class="note">Pixel-snap, proportional advance, and smooth fallback.</p>
+          <p class="note">Pixel-snap, proportional advance, and smooth alternate.</p>
         </div>
         <div class="font-card-grid">
           <div class="font-card">
@@ -641,7 +644,7 @@ HP 0123 / MENU / SCORE
 กขฉญฑ</div>
           </div>
           <div class="font-card">
-            <strong>Thai smooth fallback</strong>
+            <strong>Thai smooth alternate</strong>
             <div class="card-sample thai-smooth" lang="th">กี้ กํ่า เก้า ก๋า น้ำ
 กขฉญฑ</div>
           </div>
@@ -660,12 +663,12 @@ HP 0123 / MENU / SCORE
 MENU SCORE</div>
           </div>
           <div class="font-card">
-            <strong>JP-Dot erase upper</strong>
+            <strong>J erase upper</strong>
             <div class="card-sample jp-scan-upper">こんにちは世界
 漢字 龍龜</div>
           </div>
           <div class="font-card">
-            <strong>Unifont erase upper</strong>
+            <strong>CK erase upper</strong>
             <div class="card-sample unifont-scan-upper">你好 안녕
 龍龜 ☺★</div>
           </div>

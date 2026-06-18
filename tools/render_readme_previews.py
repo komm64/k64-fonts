@@ -16,6 +16,7 @@ WIN_FONTS = Path("C:/Windows/Fonts")
 
 sys.path.insert(0, str(ROOT / "tools"))
 from bake_320x240_fonts import FT_FLAGS, bitmap_rows, shape_gids  # noqa: E402
+from bake_web_fonts import apply_y2x_or_scanline_to_glyph  # noqa: E402
 
 SAMPLES = {
     "latin": "HP 0123 / MENU",
@@ -94,12 +95,51 @@ def upscale(img: Image.Image, scale: int) -> Image.Image:
     return img.resize((img.width * scale, img.height * scale), Image.Resampling.NEAREST)
 
 
+def ensure_y2x_ttf(src: Path, stem: str) -> Path:
+    cache = ROOT / "tmp" / "readme-preview-cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    out = cache / f"{stem}.ttf"
+    if out.exists() and out.stat().st_mtime >= src.stat().st_mtime:
+        return out
+
+    from fontTools.ttLib import TTFont
+
+    tt = TTFont(str(src))
+    src_upm = tt["head"].unitsPerEm
+    new_upm = src_upm * 2
+    dot_units = src_upm // 16
+    glyf = tt["glyf"]
+    for gname in glyf.keys():
+        apply_y2x_or_scanline_to_glyph(glyf[gname], dot_units, "none")
+
+    margin = 200
+    new_asc = tt["hhea"].ascent * 2 + margin
+    new_desc = tt["hhea"].descent * 2 - margin
+    new_line_gap = max(0, new_upm - (new_asc - new_desc))
+
+    tt["head"].unitsPerEm = new_upm
+    tt["head"].yMin = tt["head"].yMin * 2
+    tt["head"].yMax = tt["head"].yMax * 2
+    tt["hhea"].ascent = new_asc
+    tt["hhea"].descent = new_desc
+    tt["hhea"].lineGap = new_line_gap
+    if "OS/2" in tt:
+        os2 = tt["OS/2"]
+        os2.sTypoAscender = new_asc
+        os2.sTypoDescender = new_desc
+        os2.sTypoLineGap = new_line_gap
+        os2.usWinAscent = new_asc
+        os2.usWinDescent = max(0, -new_desc)
+    tt.save(str(out))
+    return out
+
+
 def draw_frame(img: Image.Image, title: str, left_x: int, right_x: int,
                header_y: int, label_size: int) -> ImageDraw.ImageDraw:
     draw = ImageDraw.Draw(img)
     draw.text((left_x, 6 if img.width == 640 else 5), title, fill=(0, 0, 0), font=label_font(label_size + 3))
     draw.text((left_x, header_y), "Default font", fill=(70, 70, 70), font=label_font(label_size))
-    draw.text((right_x, header_y), "K64 target font", fill=(70, 70, 70), font=label_font(label_size))
+    draw.text((right_x, header_y), "K64 target stack", fill=(70, 70, 70), font=label_font(label_size))
     return draw
 
 
@@ -117,12 +157,12 @@ def render_640() -> Path:
     }
     k64 = {
         "latin": SRC / "komm64Fantasy.ttf",
-        "j": SRC / "JF-Dot-ShinonomeMin16_12px_or1.ttf",
-        "cjk": SRC / "unifont-16px_12px_or1.ttf",
+        "j": ensure_y2x_ttf(SRC / "JF-Dot-ShinonomeMin16_12px_or1.ttf", "k64-JF-Dot-ShinonomeMin16-or12-y2x"),
+        "ck": ensure_y2x_ttf(SRC / "unifont-16px_12px_or1.ttf", "k64-unifont-16px-or12-y2x"),
         "thai": GAME / "k64-thai-pixel-12w-or12-y1-prop.ttf",
         "arabic": GAME / "k64-arabic-sans-medium-pixel-20px-thin-y1.ttf",
     }
-    rows = [("Latin", 64), ("J / CJK", 110), ("Thai", 154), ("Arabic", 210)]
+    rows = [("Latin", 64), ("J / CK", 110), ("Thai", 154), ("Arabic", 210)]
     for _label, baseline in rows:
         draw.line((16, baseline + 14, 624, baseline + 14), fill=(210, 235, 255))
 
@@ -142,9 +182,9 @@ def render_640() -> Path:
     draw_sequence(
         img,
         [
-            (k64["j"], SAMPLES["cjk_j"], 16, 1, 2, None, FT_FLAGS | freetype.FT_LOAD_NO_BITMAP),
-            (k64["cjk"], SAMPLES["cjk_c"], 16, 1, 2, None, FT_FLAGS),
-            (k64["cjk"], SAMPLES["cjk_k"], 16, 1, 2, "ko", FT_FLAGS),
+            (k64["j"], SAMPLES["cjk_j"], 32, 1, 1, None, FT_FLAGS),
+            (k64["ck"], SAMPLES["cjk_c"], 32, 1, 1, None, FT_FLAGS),
+            (k64["ck"], SAMPLES["cjk_k"], 32, 1, 1, "ko", FT_FLAGS),
         ],
         330,
         rows[1][1],
@@ -174,17 +214,18 @@ def render_320() -> Path:
     }
     base = GAME / "320x240"
     k64 = {
+        "latin": SRC / "komm64Fantasy.ttf",
         "j": base / "k64-320-j-shinonome-mincho-12px.ttf",
-        "cjk": base / "k64-320-cjk-fallback-12px.ttf",
+        "ck": base / "k64-320-ck-unifont-12px.ttf",
         "thai": base / "k64-320-thai-light-12px-mark16-max2.ttf",
         "arabic": base / "k64-320-arabic-light-12px.ttf",
     }
-    rows = [("Latin", 56), ("J / CJK", 100), ("Thai", 144), ("Arabic", 198)]
+    rows = [("Latin", 56), ("J / CK", 100), ("Thai", 144), ("Arabic", 198)]
     for _label, baseline in rows:
         draw.line((8, baseline + 12, 312, baseline + 12), fill=(210, 235, 255))
 
     draw_run(img, defaults["latin"], SAMPLES["latin"], 8, rows[0][1], 12)
-    draw_run(img, k64["j"], SAMPLES["latin"], 168, rows[0][1], 12)
+    draw_run(img, k64["latin"], SAMPLES["latin"], 168, rows[0][1], 12)
 
     draw_sequence(
         img,
@@ -200,8 +241,8 @@ def render_320() -> Path:
         img,
         [
             (k64["j"], SAMPLES["cjk_j"], 12, 1, 1, None, FT_FLAGS),
-            (k64["cjk"], SAMPLES["cjk_c"], 12, 1, 1, None, FT_FLAGS),
-            (k64["cjk"], SAMPLES["cjk_k"], 12, 1, 1, "ko", FT_FLAGS),
+            (k64["ck"], SAMPLES["cjk_c"], 12, 1, 1, None, FT_FLAGS),
+            (k64["ck"], SAMPLES["cjk_k"], 12, 1, 1, "ko", FT_FLAGS),
         ],
         168,
         rows[1][1],

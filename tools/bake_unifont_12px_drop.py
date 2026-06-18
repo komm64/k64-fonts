@@ -24,8 +24,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "src" / "unifont-16px.ttf"
-DEFAULT_OUTPUT = ROOT / "tmp-k64-cjk-unifont-12px-drop-balanced.ttf"
-DEFAULT_PREVIEW = ROOT / "tmp-k64-cjk-unifont-12px-drop-balanced-preview.png"
+DEFAULT_OUTPUT = ROOT / "tmp-k64-ck-unifont-12px-drop-balanced.ttf"
+DEFAULT_PREVIEW = ROOT / "tmp-k64-ck-unifont-12px-drop-balanced-preview.png"
 
 SRC_SIZE = 16
 DST_SIZE = 12
@@ -1018,13 +1018,13 @@ def rewrite_name(font: TTFont) -> None:
     def add(name_id: int, value: str) -> None:
         name.setName(value, name_id, 3, 1, 0x409)
 
-    family = "K64 CJK 12px Drop Balanced Trial"
+    family = "K64 CK Unifont 12px Drop Balanced Trial"
     style = "Regular"
     add(1, family)
     add(2, style)
-    add(3, "K64 CJK 12px Drop Balanced Trial 2026-06-17")
+    add(3, "K64 CK Unifont 12px Drop Balanced Trial 2026-06-17")
     add(4, f"{family} {style}")
-    add(6, "K64CJK12pxDropBalancedTrial-Regular")
+    add(6, "K64CKUnifont12pxDropBalancedTrial-Regular")
     add(16, family)
     add(17, style)
 

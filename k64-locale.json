@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "roles": {
+    "thai": {
+      "label": "Thai",
+      "script": "Thai"
+    },
+    "arabic": {
+      "label": "Arabic",
+      "script": "Arabic"
+    },
+    "k64f": {
+      "label": "K64F",
+      "script": "Latin"
+    },
+    "ck": {
+      "label": "CK (Unifont)",
+      "script": "Chinese/Korean"
+    },
+    "j": {
+      "label": "J (Shinonome Mincho)",
+      "script": "Japanese"
+    }
+  },
+  "stacks": {
+    "default": ["thai", "arabic", "k64f", "ck", "j"],
+    "ja": ["thai", "arabic", "k64f", "j", "ck"]
+  },
+  "targets": {
+    "640x240": {
+      "display": "tall-dot",
+      "fontSizePx": 32,
+      "gameFontSizePx": 16,
+      "web": {
+        "thai": "web/k64-thai-pixel-12w-or12-y2x-prop.woff2",
+        "arabic": "web/k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2",
+        "k64f": "web/k64-fantasy-2x.woff2",
+        "ck": "web/k64-unifont-16px-or12-y2x.woff2",
+        "j": "web/k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2"
+      },
+      "game": {
+        "thai": "game/k64-thai-pixel-12w-or12-y1-prop.ttf",
+        "arabic": "game/k64-arabic-sans-medium-pixel-20px-thin-y1.ttf",
+        "k64f": "game/komm64Fantasy_v1.37_16px_bitmap_x2w.fnt",
+        "ck": "src/unifont-16px_12px_or1.ttf",
+        "j": "src/JF-Dot-ShinonomeMin16_12px_or1.ttf"
+      }
+    },
+    "320x240": {
+      "display": "square-dot",
+      "fontSizePx": 12,
+      "web": {
+        "thai": "web/320x240/k64-320-thai-light-12px-mark16-max2.woff2",
+        "arabic": "web/320x240/k64-320-arabic-light-12px.woff2",
+        "k64f": "web/k64-fantasy.woff2",
+        "ck": "web/320x240/k64-320-ck-unifont-12px.woff2",
+        "j": "web/320x240/k64-320-j-shinonome-mincho-12px.woff2"
+      },
+      "game": {
+        "thai": "game/320x240/k64-320-thai-light-12px-mark16-max2.ttf",
+        "arabic": "game/320x240/k64-320-arabic-light-12px.ttf",
+        "k64f": "src/komm64Fantasy.ttf",
+        "ck": "game/320x240/k64-320-ck-unifont-12px.ttf",
+        "j": "game/320x240/k64-320-j-shinonome-mincho-12px.ttf"
+      }
+    }
+  }
+}

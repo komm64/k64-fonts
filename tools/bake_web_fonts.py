@@ -42,7 +42,7 @@ SRC_K64F = SRC_DIR / "komm64Fantasy.ttf"
 # Using these as starting point means we ONLY need to apply Y-2x scale.
 SRC_JFDOT_OR12 = SRC_DIR / "JF-Dot-ShinonomeMin16_12px_or1.ttf"
 SRC_UNI_OR12 = SRC_DIR / "unifont-16px_12px_or1.ttf"
-# Thai: x2w preserves tone mark positioning for the smooth fallback.
+# Thai: x2w preserves tone mark positioning for the smooth alternate.
 SRC_THAI_X2W = SRC_DIR / "NotoSansThai-Regular_x2w.ttf"
 
 # ---------- constants ----------
@@ -584,10 +584,10 @@ def main(argv=None):
     bake_k64f_2x(SRC_K64F, OUT_DIR / k64f_2x_name, scanline=args.scanline)
 
     # JF-Dot: Reecho's pre-merged TTF + Y2X scale only (= or-merged 12 rows + Y 2x)
-    cjk_suffix = f"-{scan_suffix}" if scan_suffix else ""
+    ck_suffix = f"-{scan_suffix}" if scan_suffix else ""
     bake_y2x_from_reecho_merged(SRC_JFDOT_OR12,
-        OUT_DIR / f"k64-JF-Dot-ShinonomeMin16-or12-y2x{cjk_suffix}.woff2",
-        family="K64 CJK JP", postscript=f"K64CJKJP-OR12-Y2X{scan_suffix}",
+        OUT_DIR / f"k64-JF-Dot-ShinonomeMin16-or12-y2x{ck_suffix}.woff2",
+        family="K64 J", postscript=f"K64J-OR12-Y2X{scan_suffix}",
         scanline=args.scanline)
 
     # unifont: Reecho's pre-merged TTF + Y2X scale only (= or-merged 12 rows + Y 2x).
@@ -595,11 +595,11 @@ def main(argv=None):
     # the normal bake keeps the checked-in web file unless explicitly requested.
     if args.include_unifont:
         bake_y2x_from_reecho_merged(SRC_UNI_OR12,
-            OUT_DIR / f"k64-unifont-16px-or12-y2x{cjk_suffix}.woff2",
-            family="K64 CJK Fallback", postscript=f"K64CJKFallback-OR12-Y2X{scan_suffix}",
+            OUT_DIR / f"k64-unifont-16px-or12-y2x{ck_suffix}.woff2",
+            family="K64 CK", postscript=f"K64CK-OR12-Y2X{scan_suffix}",
             scanline=args.scanline)
     else:
-        print("[unifont] skipped; pass --include-unifont to regenerate the large fallback")
+        print("[unifont] skipped; pass --include-unifont to regenerate the large CK font")
 
     # Thai: rasterize the x2w source into 1x2 pixel outlines while preserving
     # GSUB/GPOS so tone marks still stack above base consonants.
