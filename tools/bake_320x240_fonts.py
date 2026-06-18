@@ -467,7 +467,11 @@ def bake_pixel_outline_font(
             box = glyph_bbox(new_glyph)
             hmtx[gname] = (0, box[0] if box else 0)
         else:
-            hmtx[gname] = (max(1, int(round(render_gid(face, gid, base_size).advance * PX))), 0)
+            box = glyph_bbox(new_glyph)
+            hmtx[gname] = (
+                max(1, int(round(render_gid(face, gid, base_size).advance * PX))),
+                box[0] if box else 0,
+            )
 
     tt["head"].unitsPerEm = upm
     set_line_metrics(tt, upm, descent)
