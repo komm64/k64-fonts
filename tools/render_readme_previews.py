@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import sys
+import os
+import subprocess
+import tempfile
 from pathlib import Path
 
-import freetype
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,7 +16,7 @@ WEB = ROOT / "web"
 GAME = ROOT / "game"
 
 sys.path.insert(0, str(ROOT / "tools"))
-from bake_320x240_fonts import FT_FLAGS, bitmap_rows, draw_shaped_run, shape_gids  # noqa: E402
+from bake_320x240_fonts import draw_shaped_run, shape_gids  # noqa: E402
 
 
 def label_font(size: int) -> ImageFont.FreeTypeFont:
@@ -33,91 +35,118 @@ def draw_rtl(img: Image.Image, font_path: Path, text: str, right: int, baseline:
     return draw_shaped_run(img, font_path, text, right - width, baseline, size, lang=lang, direction="rtl")
 
 
-def draw_shaped_run_scaled(img: Image.Image, font_path: Path, text: str, x: int, baseline: int,
-                           size: int, x_scale: int = 1, y_scale: int = 1,
-                           lang=None, direction=None) -> int:
-    face = freetype.Face(str(font_path))
-    shaped = shape_gids(font_path, text, size, lang=lang, direction=direction)
-    pen_x = float(x)
-    pix = img.load()
-    for info, pos in shaped:
-        gid = info.codepoint
-        face.set_pixel_sizes(0, size)
-        face.load_glyph(gid, FT_FLAGS)
-        g = face.glyph
-        rows = bitmap_rows(g.bitmap)
-        gx = int(round(pen_x + (pos.x_offset / 64.0 + g.bitmap_left) * x_scale))
-        gy = int(round(baseline - (pos.y_offset / 64.0 + g.bitmap_top) * y_scale))
-        for yy, row in enumerate(rows):
-            py0 = gy + yy * y_scale
-            for xx, ink in enumerate(row):
-                if not ink:
-                    continue
-                px0 = gx + xx * x_scale
-                for dy in range(y_scale):
-                    py = py0 + dy
-                    if not (0 <= py < img.height):
-                        continue
-                    for dx in range(x_scale):
-                        px = px0 + dx
-                        if 0 <= px < img.width:
-                            pix[px, py] = (0, 0, 0)
-        pen_x += (pos.x_advance / 64.0) * x_scale
-    return int(round(pen_x))
-
-
-def draw_rtl_scaled(img: Image.Image, font_path: Path, text: str, right: int, baseline: int,
-                    size: int, x_scale: int = 1, y_scale: int = 1, lang="ar") -> int:
-    width = shaped_width(font_path, text, size, lang=lang, direction="rtl") * x_scale
-    return draw_shaped_run_scaled(
-        img, font_path, text, right - width, baseline, size,
-        x_scale=x_scale, y_scale=y_scale, lang=lang, direction="rtl",
-    )
-
-
 def upscale_nearest(img: Image.Image, scale: int) -> Image.Image:
     return img.resize((img.width * scale, img.height * scale), Image.Resampling.NEAREST)
 
 
-def render_640(paths: dict[str, Path]) -> Path:
+def find_chrome() -> Path:
+    env_path = os.environ.get("CHROME_PATH")
+    candidates: list[Path] = []
+    if env_path:
+        candidates.append(Path(env_path))
+    local = Path(os.environ.get("LOCALAPPDATA", ""))
+    candidates.extend(sorted(local.glob("ms-playwright/chromium-*/chrome-win*/chrome.exe"), reverse=True))
+    candidates.extend([
+        Path(os.environ.get("PROGRAMFILES", "")) / "Google/Chrome/Application/chrome.exe",
+        Path(os.environ.get("PROGRAMFILES(X86)", "")) / "Google/Chrome/Application/chrome.exe",
+        Path(os.environ.get("PROGRAMFILES", "")) / "Microsoft/Edge/Application/msedge.exe",
+        Path(os.environ.get("PROGRAMFILES(X86)", "")) / "Microsoft/Edge/Application/msedge.exe",
+    ])
+    for path in candidates:
+        if path.is_file():
+            return path
+    raise FileNotFoundError("Chrome/Edge executable not found; set CHROME_PATH to render the 640x240 web preview")
+
+
+def render_640() -> Path:
     out = DOCS / "640x240" / "preview.png"
     out.parent.mkdir(parents=True, exist_ok=True)
-    img = Image.new("RGB", (640, 240), "white")
-    draw = ImageDraw.Draw(img)
-    title = label_font(11)
-    label = label_font(8)
-    draw.text((8, 6), "K64 640x240 32px tall-dot font set", fill=(0, 0, 0), font=title)
-    rows = [
-        ("K64F", 48),
-        ("J / CJK", 88),
-        ("Thai 12w or12", 132),
-        ("Arabic 20px thin", 188),
-    ]
-    for name, base in rows:
-        draw.text((8, base - 36), name, fill=(70, 70, 70), font=label)
-        draw.line((8, base + 8, 632, base + 8), fill=(210, 235, 255))
+    font_urls = {
+        "k64f": (WEB / "k64-fantasy-2x.woff2").as_uri(),
+        "jp": (WEB / "k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2").as_uri(),
+        "cjk": (WEB / "k64-unifont-16px-or12-y2x.woff2").as_uri(),
+        "thai": (WEB / "k64-thai-pixel-12w-or12-y2x-prop.woff2").as_uri(),
+        "arabic": (WEB / "k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2").as_uri(),
+    }
+    html = f"""<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face {{ font-family: "K64F2X"; src: url("{font_urls['k64f']}") format("woff2"); }}
+@font-face {{ font-family: "K64CJKJP"; src: url("{font_urls['jp']}") format("woff2"); }}
+@font-face {{ font-family: "K64CJKFallback"; src: url("{font_urls['cjk']}") format("woff2"); }}
+@font-face {{ font-family: "K64Thai12WProp"; src: url("{font_urls['thai']}") format("woff2"); }}
+@font-face {{ font-family: "K64Arabic20Thin"; src: url("{font_urls['arabic']}") format("woff2"); }}
+html, body {{
+  width: 640px;
+  height: 240px;
+  margin: 0;
+  overflow: hidden;
+  background: #fff;
+}}
+body {{
+  color: #000;
+  font-family: Arial, sans-serif;
+  -webkit-font-smoothing: none;
+  text-rendering: geometricPrecision;
+}}
+.title {{ position: absolute; left: 8px; top: 6px; font: 11px Arial, sans-serif; }}
+.label {{ position: absolute; left: 8px; color: #555; font: 8px Arial, sans-serif; }}
+.rule {{ position: absolute; left: 8px; right: 8px; height: 1px; background: #d2ebff; }}
+.run {{ position: absolute; left: 24px; font-size: 32px; line-height: 32px; white-space: nowrap; }}
+.k64f {{ font-family: "K64F2X", monospace; }}
+.jcjk {{ font-family: "K64F2X", "K64CJKJP", "K64CJKFallback", monospace; }}
+.thai {{ font-family: "K64F2X", "K64Thai12WProp", monospace; }}
+.arabic {{
+  position: absolute;
+  right: 24px;
+  top: 198px;
+  font-family: "K64Arabic20Thin", "K64F2X", monospace;
+  font-size: 40px;
+  line-height: 32px;
+  direction: rtl;
+  white-space: nowrap;
+}}
+</style>
+</head>
+<body>
+  <div class="title">K64 640x240 32px tall-dot font set</div>
+  <div class="label" style="top:30px">K64F 2x</div>
+  <div class="run k64f" style="top:42px">HP 0123 / MENU / SCORE</div>
+  <div class="rule" style="top:74px"></div>
 
-    draw_shaped_run_scaled(img, paths["k64f"], "HP 0123 / MENU / SCORE", 24, rows[0][1], 16, x_scale=2, y_scale=2)
+  <div class="label" style="top:82px">J / CJK or12-y2x</div>
+  <div class="run jcjk" style="top:94px">日本語 こんにちは世界　中国語 敏捷的白狐 한국어</div>
+  <div class="rule" style="top:126px"></div>
 
-    x = 24
-    x = draw_shaped_run_scaled(img, paths["jp"], "日本語 こんにちは世界", x, rows[1][1], 16, y_scale=2) + 16
-    draw_shaped_run_scaled(img, paths["cjk"], "中国語 敏捷的白狐 한국어", x, rows[1][1], 16, y_scale=2)
+  <div class="label" style="top:134px">Thai 12w-or12-y2x prop</div>
+  <div class="run thai" lang="th" style="top:146px">กา กิ กี กึ กื กุ กู เก แก ก่ ก้ ก๊ ก๋ ก์ ก่ำ ก้ำ</div>
+  <div class="rule" style="top:178px"></div>
 
-    draw_shaped_run_scaled(
-        img,
-        paths["thai"],
-        "กา กิ กี กึ กื กุ กู เก แก ก่ ก้ ก๊ ก๋ ก์ ก่ำ ก้ำ",
-        24,
-        rows[2][1],
-        16,
-        y_scale=2,
-        lang="th",
-    )
-
-    draw_shaped_run_scaled(img, paths["k64f"], "HP 0123", 24, rows[3][1], 16, x_scale=2, y_scale=2)
-    draw_rtl_scaled(img, paths["arabic"], "السلام عليكم مرحبا بالعالم ١٢٣", 616, rows[3][1], 20, y_scale=2)
-
-    upscale_nearest(img, 2).save(out)
+  <div class="label" style="top:186px">Arabic 20px thin y2x</div>
+  <div class="run k64f" style="top:198px">HP 0123</div>
+  <div class="arabic" lang="ar" dir="rtl">السلام عليكم مرحبا بالعالم ١٢٣</div>
+  <div class="rule" style="top:230px"></div>
+</body>
+</html>
+"""
+    chrome = find_chrome()
+    with tempfile.TemporaryDirectory() as tmp:
+        html_path = Path(tmp) / "k64-640-preview.html"
+        html_path.write_text(html, encoding="utf-8")
+        cmd = [
+            str(chrome),
+            "--headless=new",
+            "--disable-gpu",
+            "--hide-scrollbars",
+            "--force-device-scale-factor=2",
+            "--window-size=640,240",
+            "--virtual-time-budget=3000",
+            f"--screenshot={out}",
+            html_path.as_uri(),
+        ]
+        subprocess.run(cmd, check=True)
     return out
 
 
@@ -177,14 +206,7 @@ def render_320() -> Path:
 
 
 def main() -> int:
-    paths_640 = {
-        "k64f": ROOT / "src" / "komm64Fantasy.ttf",
-        "jp": ROOT / "src" / "JF-Dot-ShinonomeMin16_12px_or1.ttf",
-        "cjk": ROOT / "src" / "unifont-16px_12px_or1.ttf",
-        "thai": GAME / "k64-thai-pixel-12w-or12-y1-prop.ttf",
-        "arabic": GAME / "k64-arabic-sans-medium-pixel-20px-thin-y1.ttf",
-    }
-    preview_640 = render_640(paths_640)
+    preview_640 = render_640()
     preview_320 = render_320()
     print(f"wrote {preview_640.relative_to(ROOT)}")
     print(f"wrote {preview_320.relative_to(ROOT)}")
