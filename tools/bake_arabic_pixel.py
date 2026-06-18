@@ -54,6 +54,31 @@ def coords_bbox(glyph):
     return min(xs), min(ys), max(xs), max(ys)
 
 
+def shift_glyph_y(glyph, dy):
+    if dy == 0 or getattr(glyph, "numberOfContours", 0) <= 0:
+        return
+    coords = getattr(glyph, "coordinates", None)
+    if coords is None:
+        return
+    glyph.coordinates = type(coords)((x, y + dy) for x, y in coords)
+
+
+def below_baseline_correction(source_box, output_box, src_upm, src_rows, px_y):
+    if source_box is None or output_box is None:
+        return 0
+    _sx0, sy_min, _sx1, sy_max = source_box
+    _ox0, oy_min, _ox1, oy_max = output_box
+    source_units_per_row = src_upm / src_rows
+    source_min = sy_min / source_units_per_row
+    source_max = sy_max / source_units_per_row
+    output_min = oy_min / px_y
+    if source_min >= -0.25 or source_max > 0.5 or output_min < 3:
+        return 0
+    source_center = (sy_min + sy_max) / (2 * source_units_per_row)
+    output_center = (oy_min + oy_max) / (2 * px_y)
+    return int(round(source_center - output_center)) * px_y
+
+
 def emit_pixels(bitmap, asc_rows, x_shift_px=0, scanline="none", px_y=PX_Y_WEB):
     pen = TTGlyphPen(None)
     has_ink = False
@@ -393,6 +418,11 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         if source_adv > 0:
             new_adv = max(PX_X, new_adv)
         new_box = coords_bbox(glyf[glyph_name])
+        dy = below_baseline_correction(box, new_box, src_upm, src_rows, px_y)
+        if dy:
+            shift_glyph_y(glyf[glyph_name], dy)
+            glyf[glyph_name].recalcBounds(glyf)
+            new_box = coords_bbox(glyf[glyph_name])
         new_lsb = new_box[0] if new_box else 0
         hmtx[glyph_name] = (new_adv, new_lsb)
         processed += 1
