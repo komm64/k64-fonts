@@ -74,6 +74,13 @@
     "640x480": {
       "display": "square-dot",
       "fontSizePx": 16,
+      "roleFontSizePx": {
+        "thai": 16,
+        "arabic": 16,
+        "k64f": 32,
+        "ck": 16,
+        "j": 16
+      },
       "web": {
         "thai": "web/640x480/k64-640x480-thai-light-16px.woff2",
         "arabic": "web/640x480/k64-640x480-arabic-light-16px.woff2",

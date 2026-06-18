@@ -190,13 +190,13 @@ def draw_manual_640x480_k64_line(logical: Image.Image) -> None:
     }
     x = 16
     baseline = 168
-    x = draw_run(logical, fonts["latin"], LINE_SAMPLES["latin"], x, baseline, 16)
-    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
+    x = draw_run(logical, fonts["latin"], LINE_SAMPLES["latin"], x, baseline, 32)
+    x = draw_separator(logical, fonts["latin"], x, baseline, 32)
     x = draw_run(logical, fonts["j"], LINE_SAMPLES["cjk_j"], x, baseline, 16)
     x = draw_run(logical, fonts["ck"], LINE_SAMPLES["cjk_c"] + LINE_SAMPLES["cjk_k"], x, baseline, 16, lang="ko")
-    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
+    x = draw_separator(logical, fonts["latin"], x, baseline, 32)
     x = draw_run(logical, fonts["thai"], LINE_SAMPLES["thai"], x, baseline, 16, lang="th")
-    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
+    x = draw_separator(logical, fonts["latin"], x, baseline, 32)
     draw_run(logical, fonts["arabic"], LINE_SAMPLES["arabic"], x, baseline, 16, lang="ar", direction="rtl")
 
 
@@ -479,7 +479,7 @@ html, body {{
 <div class="canvas">
   <div class="title">K64 640x480 square-dot target</div>
   <div class="head" style="top:42px">Default font</div>
-  <div class="head" style="top:126px">K64 16px target stack</div>
+  <div class="head" style="top:126px">K64 target stack</div>
   <div class="guide" style="top:104px"></div>
   <div class="guide" style="top:188px"></div>
   <div class="run default-line" style="top:68px">{e(LINE_SAMPLES['latin'])} / {e(LINE_SAMPLES['cjk_j'] + LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])} / {e(LINE_SAMPLES['thai'])} / <span class="default-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>

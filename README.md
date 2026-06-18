@@ -71,7 +71,9 @@ The 640x480 monitor target uses a separate 16px square-dot set under
 | `k64-640x480-arabic-light-16px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 16px mono pixel render with Arabic shaping tables preserved. |
 
 Use the 640x480 J/CK/Thai/Arabic fonts at `font-size: 16px` on a square-dot
-640x480 surface. K64F uses the existing dot-by-dot 16px face.
+640x480 surface. K64F keeps its existing 8px-class Latin design, so use it as
+the UI/Latin role at `font-size: 32px` when it should visually match the 16px
+CJK line.
 
 ## Quick start (web)
 
@@ -197,14 +199,20 @@ body {
 body {
   font-size: 16px;
   line-height: 1;
-  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 K64F', 'K64 640x480 CK', 'K64 640x480 J', monospace;
+  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 CK', 'K64 640x480 J', monospace;
 }
 :lang(ja) {
-  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 K64F', 'K64 640x480 J', 'K64 640x480 CK', monospace;
+  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 J', 'K64 640x480 CK', monospace;
 }
 :lang(ar) {
-  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 K64F', 'K64 640x480 CK', 'K64 640x480 J', monospace;
+  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 CK', 'K64 640x480 J', monospace;
   direction: rtl;
+}
+
+.k64-640x480-ui {
+  font-family: 'K64 640x480 K64F', monospace;
+  font-size: 32px;
+  line-height: 1;
 }
 ```
 
