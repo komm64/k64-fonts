@@ -77,7 +77,7 @@
       "roleFontSizePx": {
         "thai": 16,
         "arabic": 16,
-        "k64f": 32,
+        "k64f": 16,
         "ck": 16,
         "j": 16
       },

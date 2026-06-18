@@ -71,9 +71,8 @@ The 640x480 monitor target uses a separate 16px square-dot set under
 | `k64-640x480-arabic-light-16px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 16px mono pixel render with Arabic shaping tables preserved. |
 
 Use the 640x480 J/CK/Thai/Arabic fonts at `font-size: 16px` on a square-dot
-640x480 surface. K64F keeps its existing 8px-class Latin design, so use it as
-the UI/Latin role at `font-size: 32px` when it should visually match the 16px
-CJK line.
+640x480 surface. K64F also stays dot-by-dot at its native `font-size: 16px`
+grid for this target.
 
 ## Quick start (web)
 
@@ -211,7 +210,7 @@ body {
 
 .k64-640x480-ui {
   font-family: 'K64 640x480 K64F', monospace;
-  font-size: 32px;
+  font-size: 16px;
   line-height: 1;
 }
 ```

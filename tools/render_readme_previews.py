@@ -190,13 +190,13 @@ def draw_manual_640x480_k64_line(logical: Image.Image) -> None:
     }
     x = 16
     baseline = 168
-    x = draw_run(logical, fonts["latin"], LINE_SAMPLES["latin"], x, baseline, 32)
-    x = draw_separator(logical, fonts["latin"], x, baseline, 32)
+    x = draw_run(logical, fonts["latin"], LINE_SAMPLES["latin"], x, baseline, 16)
+    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
     x = draw_run(logical, fonts["j"], LINE_SAMPLES["cjk_j"], x, baseline, 16)
     x = draw_run(logical, fonts["ck"], LINE_SAMPLES["cjk_c"] + LINE_SAMPLES["cjk_k"], x, baseline, 16, lang="ko")
-    x = draw_separator(logical, fonts["latin"], x, baseline, 32)
+    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
     x = draw_run(logical, fonts["thai"], LINE_SAMPLES["thai"], x, baseline, 16, lang="th")
-    x = draw_separator(logical, fonts["latin"], x, baseline, 32)
+    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
     draw_run(logical, fonts["arabic"], LINE_SAMPLES["arabic"], x, baseline, 16, lang="ar", direction="rtl")
 
 
