@@ -39,9 +39,12 @@ DOCS = ROOT / "docs" / "320x240"
 
 PX = 100
 UPM = 1200
+K64F_SRC_SIZE = 16
+K64F_DST_SIZE = 12
 FT_FLAGS = freetype.FT_LOAD_RENDER | freetype.FT_LOAD_TARGET_MONO | freetype.FT_LOAD_MONOCHROME
 
 OUT = {
+    "k64f": ("k64-320-k64f-12px", "K64 320 K64F 12px"),
     "j": ("k64-320-j-shinonome-mincho-12px", "K64 320 J Shinonome Mincho 12px"),
     "ck": ("k64-320-ck-unifont-12px", "K64 320 CK Unifont 12px"),
     "thai": (
@@ -119,6 +122,60 @@ def fix_shinonome_bitmap_baseline() -> tuple[Path, Path]:
                     metrics.horiBearingY = 12
     stem, family = OUT["j"]
     set_names(tt, family, "K64320JShinonomeMincho12px-Regular")
+    return save_ttf_and_woff2(tt, stem)
+
+
+def make_k64f_12px() -> tuple[Path, Path]:
+    stem, family = OUT["k64f"]
+    source = SRC / "komm64Fantasy.ttf"
+    tt = TTFont(source)
+    glyph_order = tt.getGlyphOrder()
+    face = freetype.Face(str(source))
+    glyf = tt["glyf"]
+    hmtx = tt["hmtx"]
+
+    for tbl in ["prep", "fpgm", "cvt ", "gasp", "EBDT", "EBLC", "CBDT", "CBLC", "sbix"]:
+        if tbl in tt:
+            del tt[tbl]
+
+    face.set_pixel_sizes(0, 16)
+    for gid, gname in enumerate(glyph_order):
+        face.load_glyph(gid, FT_FLAGS)
+        src = RenderedGlyph(
+            bitmap_rows(face.glyph.bitmap),
+            face.glyph.bitmap_left,
+            face.glyph.bitmap_top,
+            face.glyph.advance.x / 64.0,
+        )
+        src_adv = max(1, int(round(src.advance)))
+        dst_adv = max(1, int(round(src_adv * K64F_DST_SIZE / K64F_SRC_SIZE)))
+        rows = [[0 for _ in range(dst_adv)] for _ in range(K64F_DST_SIZE)]
+        for yy, row in enumerate(src.rows):
+            src_y_abs = src.top - yy - 1
+            if not 0 <= src_y_abs < K64F_SRC_SIZE:
+                continue
+            dst_y_abs = int(src_y_abs * K64F_DST_SIZE / K64F_SRC_SIZE)
+            dst_y = K64F_DST_SIZE - 1 - dst_y_abs
+            for xx, ink in enumerate(row):
+                if not ink:
+                    continue
+                src_x_abs = src.left + xx
+                if not 0 <= src_x_abs < src_adv:
+                    continue
+                dst_x = int(src_x_abs * dst_adv / src_adv)
+                if 0 <= dst_x < dst_adv and 0 <= dst_y < K64F_DST_SIZE:
+                    rows[dst_y][dst_x] = 1
+        glyf[gname] = emit_bitmap_glyph(RenderedGlyph(rows, 0, K64F_DST_SIZE, dst_adv))
+        hmtx[gname] = (dst_adv * PX, 0)
+
+    tt["head"].unitsPerEm = UPM
+    set_line_metrics(tt, UPM, 0)
+    if "head" in tt:
+        tt["head"].yMax = UPM
+        tt["head"].yMin = 0
+    if "maxp" in tt:
+        tt["maxp"].maxZones = 1
+    set_names(tt, family, "K64320K64F12px-Regular")
     return save_ttf_and_woff2(tt, stem)
 
 
@@ -544,6 +601,7 @@ def make_preview(paths: dict[str, Path]) -> Path:
 
 def main() -> int:
     outputs = {
+        "k64f": make_k64f_12px()[0],
         "j": fix_shinonome_bitmap_baseline()[0],
         "ck": make_ck_font()[0],
         "thai": bake_thai()[0],

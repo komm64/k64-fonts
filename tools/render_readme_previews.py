@@ -2,6 +2,8 @@
 """Render README preview images for both monitor targets."""
 from __future__ import annotations
 
+import html
+import subprocess
 import sys
 from pathlib import Path
 
@@ -13,6 +15,11 @@ DOCS = ROOT / "docs"
 SRC = ROOT / "src"
 GAME = ROOT / "game"
 WIN_FONTS = Path("C:/Windows/Fonts")
+CHROME_CANDIDATES = [
+    Path("C:/Program Files/Google/Chrome/Application/chrome.exe"),
+    Path("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"),
+    Path("C:/Program Files/Microsoft/Edge/Application/msedge.exe"),
+]
 
 sys.path.insert(0, str(ROOT / "tools"))
 from bake_320x240_fonts import FT_FLAGS, bitmap_rows, shape_gids  # noqa: E402
@@ -95,6 +102,116 @@ def upscale(img: Image.Image, scale: int) -> Image.Image:
     return img.resize((img.width * scale, img.height * scale), Image.Resampling.NEAREST)
 
 
+def as_file_url(path: Path) -> str:
+    return path.resolve().as_uri()
+
+
+def find_chrome() -> Path | None:
+    for candidate in CHROME_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def render_640_with_chrome(out: Path) -> bool:
+    chrome = find_chrome()
+    if chrome is None:
+        return False
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp_html = ROOT / "tmp" / "readme-preview-640.html"
+    tmp_html.parent.mkdir(parents=True, exist_ok=True)
+    font = {
+        "k64f": as_file_url(ROOT / "web" / "k64-fantasy-2x.woff2"),
+        "j": as_file_url(ROOT / "web" / "k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2"),
+        "ck": as_file_url(ROOT / "web" / "k64-unifont-16px-or12-y2x.woff2"),
+        "thai": as_file_url(ROOT / "web" / "k64-thai-pixel-12w-or12-y2x-prop.woff2"),
+        "arabic": as_file_url(ROOT / "web" / "k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2"),
+    }
+
+    def e(text: str) -> str:
+        return html.escape(text, quote=True)
+
+    tmp_html.write_text(f"""<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face {{ font-family: "K64F2X"; src: url("{font['k64f']}") format("woff2"); }}
+@font-face {{ font-family: "K64J"; src: url("{font['j']}") format("woff2"); }}
+@font-face {{ font-family: "K64CK"; src: url("{font['ck']}") format("woff2"); }}
+@font-face {{ font-family: "K64Thai"; src: url("{font['thai']}") format("woff2"); }}
+@font-face {{ font-family: "K64Arabic"; src: url("{font['arabic']}") format("woff2"); }}
+html, body {{
+  margin: 0;
+  width: 640px;
+  height: 240px;
+  overflow: hidden;
+  background: white;
+  color: black;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}}
+.canvas {{ position: relative; width: 640px; height: 240px; background: white; }}
+.title {{ position: absolute; left: 16px; top: 6px; font: 11px Arial, sans-serif; }}
+.head {{ position: absolute; top: 24px; font: 8px Arial, sans-serif; color: rgb(70,70,70); }}
+.left {{ left: 16px; }}
+.right {{ left: 330px; }}
+.guide {{ position: absolute; left: 16px; width: 608px; height: 1px; background: rgb(210,235,255); }}
+.run {{ position: absolute; white-space: nowrap; }}
+.default-latin {{ font: 32px Arial, sans-serif; }}
+.default-cjk {{ font: 32px "Yu Gothic", "Malgun Gothic", sans-serif; }}
+.default-thai {{ font: 32px Tahoma, sans-serif; }}
+.default-arabic {{ font: 32px Tahoma, sans-serif; direction: rtl; text-align: right; }}
+.k64-latin {{ font: 32px K64F2X, monospace; }}
+.k64-cjk {{ font: 32px K64F2X, K64J, K64CK, monospace; }}
+.k64-j {{ font-family: K64J; }}
+.k64-ck {{ font-family: K64CK; }}
+.k64-thai {{ font: 32px K64Thai, monospace; }}
+.k64-arabic {{ font: 40px/32px K64Arabic, K64F2X, K64CK, K64J, monospace; direction: rtl; text-align: right; }}
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="title">K64 640x240 tall-dot target</div>
+  <div class="head left">Default font</div>
+  <div class="head right">K64 target stack</div>
+  <div class="guide" style="top:78px"></div>
+  <div class="guide" style="top:124px"></div>
+  <div class="guide" style="top:168px"></div>
+  <div class="guide" style="top:224px"></div>
+  <div class="run default-latin left" style="top:33px">{e(SAMPLES['latin'])}</div>
+  <div class="run k64-latin right" style="top:36px">{e(SAMPLES['latin'])}</div>
+  <div class="run default-cjk left" style="top:79px">{e(SAMPLES['cjk_j'] + SAMPLES['cjk_c'] + SAMPLES['cjk_k'])}</div>
+  <div class="run k64-cjk right" style="top:84px"><span class="k64-j">{e(SAMPLES['cjk_j'])}</span><span class="k64-ck">{e(SAMPLES['cjk_c'] + SAMPLES['cjk_k'])}</span></div>
+  <div class="run default-thai left" lang="th" style="top:132px">{e(SAMPLES['thai'])}</div>
+  <div class="run k64-thai right" lang="th" style="top:130px">{e(SAMPLES['thai'])}</div>
+  <div class="run default-arabic" lang="ar" dir="rtl" style="top:174px; left:16px; width:294px">{e(SAMPLES['arabic'])}</div>
+  <div class="run k64-arabic" lang="ar" dir="rtl" style="top:178px; left:330px; width:294px">{e(SAMPLES['arabic'])}</div>
+</div>
+</body>
+</html>
+""", encoding="utf-8")
+    result = subprocess.run(
+        [
+            str(chrome),
+            "--headless=new",
+            "--disable-gpu",
+            "--hide-scrollbars",
+            "--force-device-scale-factor=2",
+            "--window-size=640,240",
+            f"--screenshot={out.resolve()}",
+            tmp_html.resolve().as_uri(),
+        ],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=120,
+    )
+    return result.returncode == 0 and out.exists()
+
+
 def ensure_y2x_ttf(src: Path, stem: str) -> Path:
     cache = ROOT / "tmp" / "readme-preview-cache"
     cache.mkdir(parents=True, exist_ok=True)
@@ -145,6 +262,8 @@ def draw_frame(img: Image.Image, title: str, left_x: int, right_x: int,
 
 def render_640() -> Path:
     out = DOCS / "640x240" / "preview.png"
+    if render_640_with_chrome(out):
+        return out
     out.parent.mkdir(parents=True, exist_ok=True)
     img = Image.new("RGB", (640, 240), "white")
     draw = draw_frame(img, "K64 640x240 tall-dot target", 16, 330, 24, 8)
@@ -214,7 +333,7 @@ def render_320() -> Path:
     }
     base = GAME / "320x240"
     k64 = {
-        "latin": SRC / "komm64Fantasy.ttf",
+        "latin": base / "k64-320-k64f-12px.ttf",
         "j": base / "k64-320-j-shinonome-mincho-12px.ttf",
         "ck": base / "k64-320-ck-unifont-12px.ttf",
         "thai": base / "k64-320-thai-light-12px-mark16-max2.ttf",
