@@ -154,6 +154,68 @@ def normalize_chrome_screenshot(path: Path) -> None:
     Image.open(path).convert("L").convert("RGB").save(path)
 
 
+def draw_separator(img: Image.Image, font_path: Path, x: int, baseline: int, size: int) -> int:
+    return draw_run(img, font_path, " / ", x, baseline, size)
+
+
+def draw_manual_320_k64_line(logical: Image.Image) -> None:
+    base = GAME / "320x240"
+    fonts = {
+        "latin": SRC / "komm64Fantasy.ttf",
+        "j": base / "k64-320-j-shinonome-mincho-12px.ttf",
+        "ck": base / "k64-320-ck-unifont-12px.ttf",
+        "thai": base / "k64-320-thai-light-12px-mark16-max2.ttf",
+        "arabic": base / "k64-320-arabic-light-12px.ttf",
+    }
+    x = 8
+    baseline = 140
+    x = draw_run(logical, fonts["latin"], LINE_SAMPLES["latin"], x, baseline, 16)
+    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
+    x = draw_run(logical, fonts["j"], LINE_SAMPLES["cjk_j"], x, baseline, 12)
+    x = draw_run(logical, fonts["ck"], LINE_SAMPLES["cjk_c"] + LINE_SAMPLES["cjk_k"], x, baseline, 12, lang="ko")
+    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
+    x = draw_run(logical, fonts["thai"], LINE_SAMPLES["thai"], x, baseline, 12, lang="th")
+    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
+    draw_run(logical, fonts["arabic"], LINE_SAMPLES["arabic"], x, baseline, 12, lang="ar", direction="rtl")
+
+
+def draw_manual_640x480_k64_line(logical: Image.Image) -> None:
+    base = GAME / "640x480"
+    fonts = {
+        "latin": SRC / "komm64Fantasy.ttf",
+        "j": base / "k64-640x480-j-shinonome-mincho-16px.ttf",
+        "ck": base / "k64-640x480-ck-unifont-16px.ttf",
+        "thai": base / "k64-640x480-thai-light-16px.ttf",
+        "arabic": base / "k64-640x480-arabic-light-16px.ttf",
+    }
+    x = 16
+    baseline = 168
+    x = draw_run(logical, fonts["latin"], LINE_SAMPLES["latin"], x, baseline, 16)
+    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
+    x = draw_run(logical, fonts["j"], LINE_SAMPLES["cjk_j"], x, baseline, 16)
+    x = draw_run(logical, fonts["ck"], LINE_SAMPLES["cjk_c"] + LINE_SAMPLES["cjk_k"], x, baseline, 16, lang="ko")
+    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
+    x = draw_run(logical, fonts["thai"], LINE_SAMPLES["thai"], x, baseline, 16, lang="th")
+    x = draw_separator(logical, fonts["latin"], x, baseline, 16)
+    draw_run(logical, fonts["arabic"], LINE_SAMPLES["arabic"], x, baseline, 16, lang="ar", direction="rtl")
+
+
+def replace_k64_band_with_manual_baseline(
+    path: Path,
+    logical_size: tuple[int, int],
+    scale: int,
+    band: tuple[int, int],
+    draw_line,
+) -> None:
+    logical = Image.new("RGB", logical_size, "white")
+    draw_line(logical)
+    layer = upscale(logical, scale)
+    img = Image.open(path).convert("RGB")
+    y0, y1 = band[0] * scale, band[1] * scale
+    img.paste(layer.crop((0, y0, layer.width, y1)), (0, y0))
+    img.save(path)
+
+
 def render_640_with_chrome(out: Path) -> bool:
     chrome = find_chrome()
     if chrome is None:
@@ -316,7 +378,6 @@ html, body {{
   <div class="guide" style="top:86px"></div>
   <div class="guide" style="top:156px"></div>
   <div class="run default-line" style="top:58px">{e(LINE_SAMPLES['latin'])} / {e(LINE_SAMPLES['cjk_j'] + LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])} / {e(LINE_SAMPLES['thai'])} / <span class="default-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
-  <div class="run k64-line" style="top:126px"><span class="k64-latin">{e(LINE_SAMPLES['latin'])}</span><span class="sep">/</span><span class="k64-j">{e(LINE_SAMPLES['cjk_j'])}</span><span class="k64-ck">{e(LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])}</span><span class="sep">/</span><span class="k64-thai" lang="th">{e(LINE_SAMPLES['thai'])}</span><span class="sep">/</span><span class="k64-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
 </div>
 </body>
 </html>
@@ -341,6 +402,13 @@ html, body {{
     ok = result.returncode == 0 and out.exists()
     if ok:
         normalize_chrome_screenshot(out)
+        replace_k64_band_with_manual_baseline(
+            out,
+            (320, 240),
+            4,
+            (118, 155),
+            draw_manual_320_k64_line,
+        )
     return ok
 
 
@@ -415,7 +483,6 @@ html, body {{
   <div class="guide" style="top:104px"></div>
   <div class="guide" style="top:188px"></div>
   <div class="run default-line" style="top:68px">{e(LINE_SAMPLES['latin'])} / {e(LINE_SAMPLES['cjk_j'] + LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])} / {e(LINE_SAMPLES['thai'])} / <span class="default-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
-  <div class="run k64-line" style="top:152px"><span class="k64-latin">{e(LINE_SAMPLES['latin'])}</span><span class="sep">/</span><span class="k64-j">{e(LINE_SAMPLES['cjk_j'])}</span><span class="k64-ck">{e(LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])}</span><span class="sep">/</span><span class="k64-thai" lang="th">{e(LINE_SAMPLES['thai'])}</span><span class="sep">/</span><span class="k64-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
 </div>
 </body>
 </html>
@@ -440,6 +507,13 @@ html, body {{
     ok = result.returncode == 0 and out.exists()
     if ok:
         normalize_chrome_screenshot(out)
+        replace_k64_band_with_manual_baseline(
+            out,
+            (640, 480),
+            2,
+            (145, 187),
+            draw_manual_640x480_k64_line,
+        )
     return ok
 
 
