@@ -1,0 +1,13 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+
+config/name="k64-fonts Godot Preview"
+run/main_scene="res://godot/preview.tscn"
+config/features=PackedStringArray("4.4", "GL Compatibility")
+
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=540
