@@ -39,7 +39,7 @@
         "j": "web/k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2"
       },
       "game": {
-        "thai": "game/k64-thai-pixel-12w-or12-y1-prop.ttf",
+        "thai": "game/k64-thai-pixel-12w-or12-y2x-prop_x2w.ttf",
         "arabic": "game/k64-arabic-sans-medium-pixel-20px-thin-y1.ttf",
         "k64f": "game/komm64Fantasy_v1.37_16px_bitmap_x2w.fnt",
         "ck": "src/unifont-16px_12px_or1.ttf",
