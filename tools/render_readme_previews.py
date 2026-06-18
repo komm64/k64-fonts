@@ -26,7 +26,7 @@ from bake_320x240_fonts import FT_FLAGS, bitmap_rows, shape_gids  # noqa: E402
 from bake_web_fonts import apply_y2x_or_scanline_to_glyph  # noqa: E402
 
 SAMPLES = {
-    "latin": "HP 0123 / MENU",
+    "latin": "HP 0123",
     "cjk_j": "日本語 ",
     "cjk_c": "你好 ",
     "cjk_k": "한국어",
@@ -333,7 +333,7 @@ def render_320() -> Path:
     }
     base = GAME / "320x240"
     k64 = {
-        "latin": base / "k64-320-k64f-12px.ttf",
+        "latin": SRC / "komm64Fantasy.ttf",
         "j": base / "k64-320-j-shinonome-mincho-12px.ttf",
         "ck": base / "k64-320-ck-unifont-12px.ttf",
         "thai": base / "k64-320-thai-light-12px-mark16-max2.ttf",
@@ -344,7 +344,7 @@ def render_320() -> Path:
         draw.line((8, baseline + 12, 312, baseline + 12), fill=(210, 235, 255))
 
     draw_run(img, defaults["latin"], SAMPLES["latin"], 8, rows[0][1], 12)
-    draw_run(img, k64["latin"], SAMPLES["latin"], 168, rows[0][1], 12)
+    draw_run(img, k64["latin"], SAMPLES["latin"], 168, rows[0][1], 16)
 
     draw_sequence(
         img,

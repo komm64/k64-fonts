@@ -37,7 +37,6 @@ from the existing 640x240 Reecho `y1`/`y2x` fonts.
 
 | File | Source | Notes |
 |------|--------|-------|
-| `k64-320-k64f-12px.ttf` / `.woff2` | komm64Fantasy | 16px K64F grid converted to a 6x12 square-dot font for the 320x240 target. |
 | `k64-320-j-shinonome-mincho-12px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 12px | Embedded 12px bitmap kept intact; baseline metrics fixed to `ascent=12px / descent=0px`. |
 | `k64-320-ck-unifont-12px.ttf` / `.woff2` | GNU Unifont 16px | 16px -> 12px `drop-bridge` conversion for the CK role. |
 | `k64-320-thai-light-12px-mark16-max2.ttf` / `.woff2` | Noto Sans Thai Light | 12px base glyphs; Thai marks are rendered at 16px, aligned to the 12px mark position, then only colliding upper marks are raised by up to 2px. |
@@ -50,7 +49,8 @@ Distribution paths:
 | Game / Godot / Reecho-style runtime | `game/320x240/*.ttf` |
 | Web / CDN | `web/320x240/*.woff2` |
 
-Use the 320x240 fonts at `font-size: 12px` on a square-dot 320x240 surface.
+Use the 320x240 J/CK/Thai/Arabic fonts at `font-size: 12px` on a square-dot 320x240 surface.
+K64F stays dot-by-dot at its native `font-size: 16px` grid.
 The 640x240 `y1`/`y2x` fonts remain in the existing `game/` and `web/` root
 paths for the tall-dot Reecho target.
 
@@ -106,7 +106,7 @@ Pin a specific release tag for stability: `cdn.jsdelivr.net/gh/komm64/k64-fonts@
 ```css
 @font-face {
   font-family: 'K64 320 K64F';
-  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/320x240/k64-320-k64f-12px.woff2') format('woff2');
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-fantasy.woff2') format('woff2');
 }
 @font-face {
   font-family: 'K64 320 J';
@@ -130,16 +130,22 @@ Pin a specific release tag for stability: `cdn.jsdelivr.net/gh/komm64/k64-fonts@
 body {
   font-size: 12px;
   line-height: 1;
-  font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 K64F', 'K64 320 CK', 'K64 320 J', monospace;
+  font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 CK', 'K64 320 J', monospace;
 }
-:lang(ja) { font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 K64F', 'K64 320 J', 'K64 320 CK', monospace; }
+:lang(ja) { font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 J', 'K64 320 CK', monospace; }
 :lang(zh), :lang(zh-Hans), :lang(zh-Hant), :lang(ko) {
-  font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 K64F', 'K64 320 CK', 'K64 320 J', monospace;
+  font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 CK', 'K64 320 J', monospace;
 }
-:lang(th) { font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 K64F', 'K64 320 CK', 'K64 320 J', monospace; }
+:lang(th) { font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 CK', 'K64 320 J', monospace; }
 :lang(ar) {
-  font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 K64F', 'K64 320 CK', 'K64 320 J', monospace;
+  font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 CK', 'K64 320 J', monospace;
   direction: rtl;
+}
+
+.k64-320-ui {
+  font-family: 'K64 320 K64F', monospace;
+  font-size: 16px;  /* K64F is rendered dot-by-dot at its native 8x16 grid. */
+  line-height: 1;
 }
 ```
 
@@ -201,7 +207,6 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | File | Notes |
 |------|-------|
 | `komm64Fantasy_v1.37_16px_bitmap_x2w.fnt` + `_0.png` | Reecho-compatible K64F primary face. Generated as BMFont to avoid FreeType outline rasterization drift at 16ppem; horizontally 2x-wide for the 640x240 CRT signal path. |
-| `320x240/k64-320-k64f-12px.ttf` | 320x240 K64F face: 16px K64F grid converted to 6x12 square-dot glyphs. |
 | `320x240/k64-320-j-shinonome-mincho-12px.ttf` | 320x240 Japanese face: Shinonome Mincho 12px with baseline fixed to the 12px square-dot cell. |
 | `320x240/k64-320-ck-unifont-12px.ttf` | 320x240 CK face: Unifont-derived 12px drop-bridge Chinese/Korean face. |
 | `320x240/k64-320-thai-light-12px-mark16-max2.ttf` | 320x240 Thai face: Noto Sans Thai Light pixelized at 12px with 16px marks and collision-aware mark lift. |
