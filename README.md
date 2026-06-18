@@ -30,8 +30,8 @@ the Japanese stack use the same role set, but swap the CK/J priority:
 
 | Stack | Order |
 |-------|-------|
-| Default | Thai -> Arabic -> K64F -> CK (Unifont) -> J (Shinonome) |
-| Japanese text | Thai -> Arabic -> K64F -> J (Shinonome) -> CK (Unifont) |
+| Default | K64F -> Arabic -> Thai -> CK (Unifont) -> J (Shinonome) |
+| Japanese text | K64F -> Arabic -> Thai -> J (Shinonome) -> CK (Unifont) |
 
 ## 320x240 / 12px font set
 
@@ -41,6 +41,7 @@ from the existing 640x240 Reecho `y1`/`y2x` fonts.
 
 | File | Source | Notes |
 |------|--------|-------|
+| `k64-320-k64f-visual16-12px.ttf` / `.woff2` | komm64Fantasy | 16px K64F outlines and advances scaled into the 12px target UPM, so it participates in a 12px fallback stack while keeping the visual 8x16 K64F size. |
 | `k64-320-j-shinonome-mincho-12px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 12px | Embedded 12px bitmap kept intact; baseline metrics fixed to `ascent=12px / descent=0px`. |
 | `k64-320-ck-unifont-12px.ttf` / `.woff2` | GNU Unifont 16px | 16px -> 12px `drop-bridge` conversion for the CK role. |
 | `k64-320-thai-light-12px-mark16-max2.ttf` / `.woff2` | Noto Sans Thai Light | 12px base glyphs; Thai marks are rendered at 16px, aligned to the 12px mark position, then only colliding upper marks are raised by up to 2px. |
@@ -53,8 +54,8 @@ Distribution paths:
 | Game / Godot / Reecho-style runtime | `game/320x240/*.ttf` |
 | Web / CDN | `web/320x240/*.woff2` |
 
-Use the 320x240 J/CK/Thai/Arabic fonts at `font-size: 12px` on a square-dot 320x240 surface.
-K64F stays dot-by-dot at its native `font-size: 16px` grid.
+Use the 320x240 K64F/J/CK/Thai/Arabic fonts at `font-size: 12px` on a square-dot 320x240 surface. The K64F wrapper keeps the same visual 8x16 glyph size that normal K64F has at `font-size: 16px`.
+The root `k64-fantasy.woff2` still targets `font-size: 16px`; use the 320x240 wrapper for mixed 12px fallback stacks.
 The 640x240 `y1`/`y2x` fonts remain in the existing `game/` and `web/` root
 paths for the tall-dot Reecho target.
 
@@ -104,15 +105,15 @@ Reference fonts from this repo via jsDelivr CDN. Example CSS:
 
 body {
   font-size: 32px;
-  font-family: 'K64 Thai', 'K64 Arabic', 'K64 Fantasy', 'K64 CK', 'K64 J', monospace;
+  font-family: 'K64 Fantasy', 'K64 Arabic', 'K64 Thai', 'K64 CK', 'K64 J', monospace;
 }
-:lang(ja) { font-family: 'K64 Thai', 'K64 Arabic', 'K64 Fantasy', 'K64 J', 'K64 CK', monospace; }
+:lang(ja) { font-family: 'K64 Fantasy', 'K64 Arabic', 'K64 Thai', 'K64 J', 'K64 CK', monospace; }
 :lang(zh), :lang(zh-Hans), :lang(zh-Hant), :lang(ko) {
-  font-family: 'K64 Thai', 'K64 Arabic', 'K64 Fantasy', 'K64 CK', 'K64 J', monospace;
+  font-family: 'K64 Fantasy', 'K64 Arabic', 'K64 Thai', 'K64 CK', 'K64 J', monospace;
 }
-:lang(th) { font-family: 'K64 Thai', 'K64 Arabic', 'K64 Fantasy', 'K64 CK', 'K64 J', monospace; }
+:lang(th) { font-family: 'K64 Fantasy', 'K64 Arabic', 'K64 Thai', 'K64 CK', 'K64 J', monospace; }
 :lang(ar) {
-  font-family: 'K64 Thai', 'K64 Arabic', 'K64 Fantasy', 'K64 CK', 'K64 J', monospace;
+  font-family: 'K64 Fantasy', 'K64 Arabic', 'K64 Thai', 'K64 CK', 'K64 J', monospace;
   direction: rtl;
   font-size: 1.25em;   /* 20px source on a 16px/x2 rhythm */
   line-height: 0.8;    /* keep the line box on the original 32px rhythm */
@@ -126,7 +127,7 @@ Pin a specific release tag for stability: `cdn.jsdelivr.net/gh/komm64/k64-fonts@
 ```css
 @font-face {
   font-family: 'K64 320 K64F';
-  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-fantasy.woff2') format('woff2');
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/320x240/k64-320-k64f-visual16-12px.woff2') format('woff2');
 }
 @font-face {
   font-family: 'K64 320 J';
@@ -149,23 +150,23 @@ Pin a specific release tag for stability: `cdn.jsdelivr.net/gh/komm64/k64-fonts@
 
 body {
   font-size: 12px;
-  line-height: 1;
-  font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 CK', 'K64 320 J', monospace;
+  line-height: 16px;
+  font-family: 'K64 320 K64F', 'K64 320 Arabic', 'K64 320 Thai', 'K64 320 CK', 'K64 320 J', monospace;
 }
-:lang(ja) { font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 J', 'K64 320 CK', monospace; }
+:lang(ja) { font-family: 'K64 320 K64F', 'K64 320 Arabic', 'K64 320 Thai', 'K64 320 J', 'K64 320 CK', monospace; }
 :lang(zh), :lang(zh-Hans), :lang(zh-Hant), :lang(ko) {
-  font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 CK', 'K64 320 J', monospace;
+  font-family: 'K64 320 K64F', 'K64 320 Arabic', 'K64 320 Thai', 'K64 320 CK', 'K64 320 J', monospace;
 }
-:lang(th) { font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 CK', 'K64 320 J', monospace; }
+:lang(th) { font-family: 'K64 320 K64F', 'K64 320 Arabic', 'K64 320 Thai', 'K64 320 CK', 'K64 320 J', monospace; }
 :lang(ar) {
-  font-family: 'K64 320 Thai', 'K64 320 Arabic', 'K64 320 CK', 'K64 320 J', monospace;
+  font-family: 'K64 320 K64F', 'K64 320 Arabic', 'K64 320 Thai', 'K64 320 CK', 'K64 320 J', monospace;
   direction: rtl;
 }
 
 .k64-320-ui {
   font-family: 'K64 320 K64F', monospace;
-  font-size: 16px;  /* K64F is rendered dot-by-dot at its native 8x16 grid. */
-  line-height: 1;
+  font-size: 12px;  /* Visual 8x16 K64F size through the 12px wrapper. */
+  line-height: 16px;
 }
 ```
 
@@ -198,13 +199,13 @@ body {
 body {
   font-size: 16px;
   line-height: 1;
-  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 CK', 'K64 640x480 J', monospace;
+  font-family: 'K64 640x480 K64F', 'K64 640x480 Arabic', 'K64 640x480 Thai', 'K64 640x480 CK', 'K64 640x480 J', monospace;
 }
 :lang(ja) {
-  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 J', 'K64 640x480 CK', monospace;
+  font-family: 'K64 640x480 K64F', 'K64 640x480 Arabic', 'K64 640x480 Thai', 'K64 640x480 J', 'K64 640x480 CK', monospace;
 }
 :lang(ar) {
-  font-family: 'K64 640x480 Thai', 'K64 640x480 Arabic', 'K64 640x480 CK', 'K64 640x480 J', monospace;
+  font-family: 'K64 640x480 K64F', 'K64 640x480 Arabic', 'K64 640x480 Thai', 'K64 640x480 CK', 'K64 640x480 J', monospace;
   direction: rtl;
 }
 
@@ -255,6 +256,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | File | Source | Modifications applied | Display target |
 |------|--------|----------------------|-----------------|
 | `k64-fantasy.woff2` | `komm64Fantasy.ttf` | woff2 format conversion only | `font-size: 16px` → 8px advance on a 16px line, 1×1 square dots |
+| `320x240/k64-320-k64f-visual16-12px.woff2` | `komm64Fantasy.ttf` | 16px K64F outlines and advances scaled 4/3 into the 12px target UPM | `font-size: 12px` → same visual 8x16 K64F size as `k64-fantasy.woff2` at 16px |
 | `k64-fantasy-2x.woff2` | `komm64Fantasy.ttf` | all glyph contours + metrics scaled 2× both axes | `font-size: 32px` → 16px advance on a 32px line, 2×2 square dots |
 | `k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2` | `JF-Dot-ShinonomeMin16.ttf` | OR-merge to 12 rows + Y axis 2× + Name table rewrite (RFN compliance) | `font-size: 32px` → 16×24 px, 1×2 tall rect dots |
 | `k64-unifont-16px-or12-y2x.woff2` | `unifont-16px.ttf` | same as above. Reserved Font Name "Unifont" removed from Name table per OFL §3. | same |
@@ -277,6 +279,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | File | Notes |
 |------|-------|
 | `komm64Fantasy_v1.37_16px_bitmap_x2w.fnt` + `_0.png` | Reecho-compatible K64F primary face. Generated as BMFont to avoid FreeType outline rasterization drift at 16ppem; horizontally 2x-wide for the 640x240 CRT signal path. |
+| `320x240/k64-320-k64f-visual16-12px.ttf` | 320x240 K64F wrapper: use at font size 12 to keep the visual 8x16 K64F size in a 12px fallback stack. |
 | `320x240/k64-320-j-shinonome-mincho-12px.ttf` | 320x240 Japanese face: Shinonome Mincho 12px with baseline fixed to the 12px square-dot cell. |
 | `320x240/k64-320-ck-unifont-12px.ttf` | 320x240 CK face: Unifont-derived 12px drop-bridge Chinese/Korean face. |
 | `320x240/k64-320-thai-light-12px-mark16-max2.ttf` | 320x240 Thai face: Noto Sans Thai Light pixelized at 12px with 16px marks and collision-aware mark lift. |

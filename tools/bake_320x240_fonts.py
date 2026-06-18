@@ -42,6 +42,10 @@ UPM = 1200
 FT_FLAGS = freetype.FT_LOAD_RENDER | freetype.FT_LOAD_TARGET_MONO | freetype.FT_LOAD_MONOCHROME
 
 OUT = {
+    "k64f": (
+        "k64-320-k64f-visual16-12px",
+        "K64 320 K64F Visual16 12px",
+    ),
     "j": ("k64-320-j-shinonome-mincho-12px", "K64 320 J Shinonome Mincho 12px"),
     "ck": ("k64-320-ck-unifont-12px", "K64 320 CK Unifont 12px"),
     "thai": (
@@ -126,6 +130,48 @@ def fix_shinonome_bitmap_baseline() -> tuple[Path, Path]:
                     metrics.horiBearingY = 12
     stem, family = OUT["j"]
     set_names(tt, family, "K64320JShinonomeMincho12px-Regular")
+    return save_ttf_and_woff2(tt, stem)
+
+
+def bake_k64f_visual16_at_12px() -> tuple[Path, Path]:
+    source = SRC / "komm64Fantasy.ttf"
+    tt = TTFont(source)
+    # 320x240 stacks run at 12px.  Scale the 16px K64F outlines and advances
+    # into the 12px target UPM so the visual 8x16 bitmap size is unchanged.
+    src_upm = tt["head"].unitsPerEm
+    scale = (16 * PX) / src_upm
+    glyf = tt["glyf"]
+    hmtx = tt["hmtx"].metrics
+    for glyph_name in tt.getGlyphOrder():
+        glyph = glyf[glyph_name]
+        if glyph.numberOfContours > 0:
+            coords = glyph.coordinates
+            for i, (x, y) in enumerate(coords):
+                coords[i] = (int(round(x * scale)), int(round(y * scale)))
+            glyph.recalcBounds(glyf)
+        elif glyph.numberOfContours < 0:
+            for component in glyph.components:
+                component.x = int(round(component.x * scale))
+                component.y = int(round(component.y * scale))
+            glyph.recalcBounds(glyf)
+        adv, lsb = hmtx[glyph_name]
+        hmtx[glyph_name] = (int(round(adv * scale)), int(round(lsb * scale)))
+
+    tt["head"].unitsPerEm = UPM
+    tt["head"].yMin = int(round(tt["head"].yMin * scale))
+    tt["head"].yMax = int(round(tt["head"].yMax * scale))
+    # Preserve K64F's 12px-above / 4px-below baseline at font-size 12px.
+    set_line_metrics(tt, 12 * PX, -4 * PX)
+    tt["hhea"].advanceWidthMax = max(adv for adv, _lsb in hmtx.values())
+    if "OS/2" in tt:
+        os2 = tt["OS/2"]
+        os2.xAvgCharWidth = int(round(os2.xAvgCharWidth * scale))
+        if getattr(os2, "sxHeight", 0):
+            os2.sxHeight = int(round(os2.sxHeight * scale))
+        if getattr(os2, "sCapHeight", 0):
+            os2.sCapHeight = int(round(os2.sCapHeight * scale))
+    stem, family = OUT["k64f"]
+    set_names(tt, family, "K64320K64FVisual16At12px-Regular")
     return save_ttf_and_woff2(tt, stem)
 
 
@@ -535,21 +581,27 @@ def draw_shaped_run(img: Image.Image, font_path: Path, text: str, x: int, baseli
 def make_preview(paths: dict[str, Path]) -> Path:
     DOCS.mkdir(parents=True, exist_ok=True)
     out = DOCS / "preview.png"
-    w, h = 1180, 190
+    w, h = 1180, 230
     img = Image.new("RGB", (w, h), "white")
     draw = ImageDraw.Draw(img)
     label = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 10)
     title = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 14)
     draw.text((10, 10), "K64 320x240 12px final font set", fill=(0, 0, 0), font=title)
     rows = [
-        ("J / CK", 52),
-        ("Thai mark16 collision-aware max2", 94),
-        ("Arabic Light 12px", 136),
+        ("K64F visual16 at 12px", 52),
+        ("J / CK", 94),
+        ("Thai mark16 collision-aware max2", 136),
+        ("Arabic Light 12px", 178),
     ]
     for name, base in rows:
         draw.text((10, base - 30), name, fill=(70, 70, 70), font=label)
         draw.line((10, base, w - 10, base), fill=(210, 235, 255))
     base = rows[0][1]
+    x = 24
+    x = draw_shaped_run(img, paths["k64f"], "HP 0123 / MENU / SCORE", x, base, 12) + 12
+    x = draw_shaped_run(img, paths["j"], "日本語", x, base, 12) + 12
+    draw_shaped_run(img, paths["ck"], "漢字 龍龜 你好", x, base, 12)
+    base = rows[2][1]
     x = 24
     x = draw_shaped_run(img, paths["j"], "日本語 いろはにほへと", x, base, 12) + 12
     x = draw_shaped_run(img, paths["ck"], "中国語 敏捷的白狐跳过懒狗 한국어", x, base, 12) + 12
@@ -565,7 +617,7 @@ def make_preview(paths: dict[str, Path]) -> Path:
         12,
         lang="th",
     )
-    base = rows[2][1]
+    base = rows[3][1]
     x = 24
     x = draw_shaped_run(img, paths["j"], "日本語", x, base, 12) + 12
     x = draw_shaped_run(img, paths["ck"], "天地玄黄 宇宙洪荒", x, base, 12) + 12
@@ -577,6 +629,7 @@ def make_preview(paths: dict[str, Path]) -> Path:
 
 def main() -> int:
     outputs = {
+        "k64f": bake_k64f_visual16_at_12px()[0],
         "j": fix_shinonome_bitmap_baseline()[0],
         "ck": make_ck_font()[0],
         "thai": bake_thai()[0],

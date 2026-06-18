@@ -320,7 +320,7 @@ def render_320_with_chrome(out: Path) -> bool:
     tmp_html = ROOT / "tmp" / "readme-preview-320.html"
     tmp_html.parent.mkdir(parents=True, exist_ok=True)
     font = {
-        "k64f": as_file_url(ROOT / "web" / "k64-fantasy.woff2"),
+        "k64f": as_file_url(ROOT / "web" / "320x240" / "k64-320-k64f-visual16-12px.woff2"),
         "j": as_file_url(ROOT / "web" / "320x240" / "k64-320-j-shinonome-mincho-12px.woff2"),
         "ck": as_file_url(ROOT / "web" / "320x240" / "k64-320-ck-unifont-12px.woff2"),
         "thai": as_file_url(ROOT / "web" / "320x240" / "k64-320-thai-light-12px-mark16-max2.woff2"),
@@ -356,9 +356,9 @@ html, body {{
 .guide {{ position: absolute; left: 8px; width: 304px; height: 1px; background: rgb(210,235,255); }}
 .run {{ position: absolute; left: 8px; white-space: nowrap; }}
 .default-line {{ font: 12px Arial, "Yu Gothic", "Malgun Gothic", Tahoma, sans-serif; }}
-.k64-line {{ font: 12px K64J320, K64CK320, K64Thai320, K64Arabic320, monospace; }}
+.k64-line {{ font: 12px/16px K64F320, K64Arabic320, K64Thai320, K64CK320, K64J320, monospace; }}
 .sep {{ color: rgb(120,120,120); font-family: Arial, sans-serif; padding: 0 2px; }}
-.k64-latin {{ font: 16px/16px K64F320, monospace; }}
+.k64-latin {{ font-family: K64F320; }}
 .k64-j {{ font-family: K64J320; }}
 .k64-ck {{ font-family: K64CK320; }}
 .k64-thai {{ font-family: K64Thai320; }}
@@ -638,7 +638,7 @@ def render_320() -> Path:
     }
     base = GAME / "320x240"
     k64 = {
-        "latin": SRC / "komm64Fantasy.ttf",
+        "latin": base / "k64-320-k64f-visual16-12px.ttf",
         "j": base / "k64-320-j-shinonome-mincho-12px.ttf",
         "ck": base / "k64-320-ck-unifont-12px.ttf",
         "thai": base / "k64-320-thai-light-12px-mark16-max2.ttf",
@@ -662,7 +662,7 @@ def render_320() -> Path:
     draw_inline(
         img,
         [
-            (k64["latin"], LINE_SAMPLES["latin"], 16, 1, 1, None, None, FT_FLAGS),
+            (k64["latin"], LINE_SAMPLES["latin"], 12, 1, 1, None, None, FT_FLAGS),
             (k64["j"], LINE_SAMPLES["cjk_j"], 12, 1, 1, None, None, FT_FLAGS),
             (k64["ck"], LINE_SAMPLES["cjk_c"], 12, 1, 1, None, None, FT_FLAGS),
             (k64["ck"], LINE_SAMPLES["cjk_k"], 12, 1, 1, "ko", None, FT_FLAGS),

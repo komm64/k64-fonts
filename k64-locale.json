@@ -23,8 +23,8 @@
     }
   },
   "stacks": {
-    "default": ["thai", "arabic", "k64f", "ck", "j"],
-    "ja": ["thai", "arabic", "k64f", "j", "ck"]
+    "default": ["k64f", "arabic", "thai", "ck", "j"],
+    "ja": ["k64f", "arabic", "thai", "j", "ck"]
   },
   "targets": {
     "640x240": {
@@ -52,21 +52,21 @@
       "roleFontSizePx": {
         "thai": 12,
         "arabic": 12,
-        "k64f": 16,
+        "k64f": 12,
         "ck": 12,
         "j": 12
       },
       "web": {
         "thai": "web/320x240/k64-320-thai-light-12px-mark16-max2.woff2",
         "arabic": "web/320x240/k64-320-arabic-light-12px.woff2",
-        "k64f": "web/k64-fantasy.woff2",
+        "k64f": "web/320x240/k64-320-k64f-visual16-12px.woff2",
         "ck": "web/320x240/k64-320-ck-unifont-12px.woff2",
         "j": "web/320x240/k64-320-j-shinonome-mincho-12px.woff2"
       },
       "game": {
         "thai": "game/320x240/k64-320-thai-light-12px-mark16-max2.ttf",
         "arabic": "game/320x240/k64-320-arabic-light-12px.ttf",
-        "k64f": "src/komm64Fantasy.ttf",
+        "k64f": "game/320x240/k64-320-k64f-visual16-12px.ttf",
         "ck": "game/320x240/k64-320-ck-unifont-12px.ttf",
         "j": "game/320x240/k64-320-j-shinonome-mincho-12px.ttf"
       }
