@@ -4,12 +4,20 @@ komm64 pixel font ecosystem — source TTFs + web-baked WOFF2s for CDN distribut
 
 ## Preview
 
-![K64 font browser sample](docs/sample-page.png)
+### 640x240 tall-dot target
+
+![K64 640x240 sample](docs/640x240/preview.png)
+
+### 320x240 square-dot target
+
+![K64 320x240 sample](docs/320x240/preview.png)
 
 Open the live browser sample:
 https://komm64.github.io/k64-fonts/web/sample.html
 
-The sample compares K64 Fantasy, JP/CJK fallback, Thai and Arabic pixel fonts, smooth Thai fallback, and scanline variants at the intended `font-size: 32px` display size.
+The live sample compares K64 Fantasy, JP/CJK fallback, Thai and Arabic pixel
+fonts, smooth Thai fallback, and scanline variants at the intended
+`font-size: 32px` display size.
 
 ## 320x240 / 12px font set
 
@@ -23,8 +31,6 @@ from the existing 640x240 Reecho `y1`/`y2x` fonts.
 | `k64-320-cjk-fallback-12px.ttf` / `.woff2` | GNU Unifont 16px | 16px -> 12px `drop-bridge` conversion for CJK fallback. |
 | `k64-320-thai-light-12px-mark16-max2.ttf` / `.woff2` | Noto Sans Thai Light | 12px base glyphs; Thai marks are rendered at 16px, aligned to the 12px mark position, then only colliding upper marks are raised by up to 2px. |
 | `k64-320-arabic-light-12px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 12px mono pixel render with Arabic shaping tables preserved. |
-
-Preview: `docs/320x240/preview.png`
 
 Distribution paths:
 
@@ -200,6 +206,7 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 | `render_pangrams.py` | Multi-language pangram visual QA |
 | `render_readcheck.py` | Confusable-pair visual QA (Il1, O0, rn/m, etc.) |
 | `diff_fonts.py` | Glyph + metrics diff between two TTFs |
+| `render_readme_previews.py` | Render the README preview images for the 640x240 and 320x240 targets |
 
 Regenerate web fonts:
 
@@ -249,6 +256,9 @@ python tools/bake_arabic_pixel.py --rows 24 --web-output web/k64-arabic-sans-med
 # 320x240 / 12px square-dot set.
 # Note: CJK WOFF2 compression is slow because the fallback has many glyphs.
 python tools/bake_320x240_fonts.py
+
+# README preview images for both monitor targets.
+python tools/render_readme_previews.py
 ```
 
 Local browser sample:
