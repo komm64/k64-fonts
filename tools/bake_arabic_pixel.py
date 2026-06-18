@@ -63,6 +63,21 @@ def shift_glyph_y(glyph, dy):
     glyph.coordinates = type(coords)((x, y + dy) for x, y in coords)
 
 
+def compact_hamza_below_glyph(px_y=PX_Y_WEB):
+    pen = TTGlyphPen(None)
+    for x, y in ((3, -2), (4, -2), (2, -3), (2, -4), (3, -4)):
+        x0 = x * PX_X
+        x1 = (x + 1) * PX_X
+        y0 = y * px_y
+        y1 = (y + 1) * px_y
+        pen.moveTo((x0, y0))
+        pen.lineTo((x0, y1))
+        pen.lineTo((x1, y1))
+        pen.lineTo((x1, y0))
+        pen.closePath()
+    return pen.glyph()
+
+
 def below_baseline_correction(source_box, output_box, src_upm, src_rows, px_y):
     if source_box is None or output_box is None:
         return 0
@@ -421,6 +436,10 @@ def bake(source, output, *, flavor=None, threshold=THRESHOLD, scanline="none",
         dy = below_baseline_correction(box, new_box, src_upm, src_rows, px_y)
         if dy:
             shift_glyph_y(glyf[glyph_name], dy)
+            glyf[glyph_name].recalcBounds(glyf)
+            new_box = coords_bbox(glyf[glyph_name])
+        if glyph_name == "uni0655":
+            glyf[glyph_name] = compact_hamza_below_glyph(px_y)
             glyf[glyph_name].recalcBounds(glyf)
             new_box = coords_bbox(glyf[glyph_name])
         new_lsb = new_box[0] if new_box else 0
