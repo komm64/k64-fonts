@@ -66,7 +66,7 @@ The 640x480 monitor target uses a separate 16px square-dot set under
 | File | Source | Notes |
 |------|--------|-------|
 | `k64-640x480-j-shinonome-mincho-16px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 16px | Embedded 16px bitmap kept intact; baseline metrics fixed to `ascent=16px / descent=0px`. |
-| `k64-640x480-ck-unifont-16px.ttf` / `.woff2` | GNU Unifont 16px | Original Unifont 16px glyphs with bottom-aligned line metrics. |
+| `k64-640x480-ck-unifont-16px.ttf` / `.woff2` | GNU Unifont 16px | Original 16px Unifont glyphs shifted into the 16px square-dot cell with bottom-aligned line metrics. |
 | `k64-640x480-thai-light-16px.ttf` / `.woff2` | Noto Sans Thai Light | Direct 16px mono pixel render with Thai shaping and mark positioning tables preserved. |
 | `k64-640x480-arabic-light-16px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 16px mono pixel render with Arabic shaping tables preserved. |
 
@@ -268,7 +268,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `k64-arabic-sans-medium-pixel-20px-y2x.woff2` | `NotoSansArabic-Medium.ttf` | 20-row Arabic size trial, normal threshold. | `font-size: 32px` → same line height as x2 web fonts; `font-size: 40px` → natural 20px source scale |
 | `k64-arabic-sans-medium-pixel-24px-y2x.woff2` | `NotoSansArabic-Medium.ttf` | 24-row Arabic size trial, normal threshold. | `font-size: 32px` → same line height as x2 web fonts; `font-size: 48px` → natural 24px source scale |
 | `640x480/k64-640x480-j-shinonome-mincho-16px.woff2` | `JF-Dot-ShinonomeMin16.ttf` | 16px embedded bitmap kept intact; baseline metrics fixed for a square-dot 16px cell. | `font-size: 16px` → 16px Japanese |
-| `640x480/k64-640x480-ck-unifont-16px.woff2` | `unifont-16px.ttf` | Original 16px Unifont glyphs; baseline metrics fixed for a square-dot 16px cell. | `font-size: 16px` → 16px Chinese/Korean fallback |
+| `640x480/k64-640x480-ck-unifont-16px.woff2` | `unifont-16px.ttf` | Original 16px Unifont glyphs shifted 2px up; baseline metrics fixed for a square-dot 16px cell. | `font-size: 16px` → 16px Chinese/Korean fallback |
 | `640x480/k64-640x480-thai-light-16px.woff2` | `NotoSansThai-Light.ttf` | Direct 16px mono pixel rectangles with Thai GSUB/GPOS preserved. | `font-size: 16px` → square-dot Thai |
 | `640x480/k64-640x480-arabic-light-16px.woff2` | `NotoSansArabic-Light.ttf` | Direct 16px mono pixel rectangles with Arabic GSUB/GPOS preserved. | `font-size: 16px` → square-dot Arabic |
 
@@ -282,7 +282,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `320x240/k64-320-thai-light-12px-mark16-max2.ttf` | 320x240 Thai face: Noto Sans Thai Light pixelized at 12px with 16px marks and collision-aware mark lift. |
 | `320x240/k64-320-arabic-light-12px.ttf` | 320x240 Arabic face: Noto Sans Arabic Light pixelized at 12px with shaping tables preserved. |
 | `640x480/k64-640x480-j-shinonome-mincho-16px.ttf` | 640x480 Japanese face: Shinonome Mincho 16px with baseline fixed to the 16px square-dot cell. |
-| `640x480/k64-640x480-ck-unifont-16px.ttf` | 640x480 CK face: original Unifont 16px with baseline fixed to the 16px square-dot cell. |
+| `640x480/k64-640x480-ck-unifont-16px.ttf` | 640x480 CK face: Unifont 16px shifted into the 16px square-dot cell. |
 | `640x480/k64-640x480-thai-light-16px.ttf` | 640x480 Thai face: Noto Sans Thai Light pixelized at 16px with shaping tables preserved. |
 | `640x480/k64-640x480-arabic-light-16px.ttf` | 640x480 Arabic face: Noto Sans Arabic Light pixelized at 16px with shaping tables preserved. |
 | `k64-thai-pixel-12w-or12-y1-prop.ttf` | Reecho default Thai game face. 16px source fitted to 12w, compressed with 4→3 OR merge, then converted to y1; this gives the most readable K64F-adjacent pixel look in Reecho's 640x240 internal surface. |

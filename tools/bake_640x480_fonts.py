@@ -54,6 +54,23 @@ OUT = {
 }
 
 
+def shift_glyf_y(tt: TTFont, dy: int) -> None:
+    glyf = tt["glyf"]
+    for glyph_name in tt.getGlyphOrder():
+        glyph = glyf[glyph_name]
+        if glyph.numberOfContours > 0:
+            glyph.coordinates = type(glyph.coordinates)(
+                [(x, y + dy) for x, y in glyph.coordinates]
+            )
+            glyph.recalcBounds(glyf)
+        elif glyph.numberOfContours < 0:
+            for component in glyph.components:
+                component.y += dy
+            glyph.recalcBounds(glyf)
+    tt["head"].yMin += dy
+    tt["head"].yMax += dy
+
+
 def fix_shinonome_16px() -> tuple[Path, Path]:
     source = SRC / "JF-Dot-ShinonomeMin16.ttf"
     tt = TTFont(source)
@@ -79,6 +96,7 @@ def fix_unifont_16px() -> tuple[Path, Path]:
     source = SRC / "unifont-16px.ttf"
     tt = TTFont(source)
     upm = tt["head"].unitsPerEm
+    shift_glyf_y(tt, upm // 8)
     set_line_metrics(tt, upm, 0)
     if "OS/2" in tt:
         tt["OS/2"].usWinAscent = upm
