@@ -34,6 +34,15 @@ SAMPLES = {
     "arabic": "السلام ١٢٣",
 }
 
+LINE_SAMPLES = {
+    "latin": "HP 0123",
+    "cjk_j": "日本語 ",
+    "cjk_c": "你好 ",
+    "cjk_k": "한국어",
+    "thai": "กา กิ",
+    "arabic": "السلام",
+}
+
 
 def label_font(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(str(WIN_FONTS / "arial.ttf"), size)
@@ -85,6 +94,34 @@ def draw_sequence(img: Image.Image, runs: list[tuple[Path, str, int, int, int, s
         pen_x = draw_run(
             img, font_path, text, pen_x, baseline, size,
             x_scale=x_scale, y_scale=y_scale, lang=lang, load_flags=load_flags,
+        )
+    return pen_x
+
+
+def draw_inline(
+    img: Image.Image,
+    runs: list[tuple[Path, str, int, int, int, str | None, str | None, int]],
+    x: int,
+    baseline: int,
+    separator_font: Path,
+    separator_size: int,
+) -> int:
+    pen_x = x
+    for index, (font_path, text, size, x_scale, y_scale, lang, direction, load_flags) in enumerate(runs):
+        if index:
+            pen_x = draw_run(img, separator_font, " / ", pen_x, baseline, separator_size)
+        pen_x = draw_run(
+            img,
+            font_path,
+            text,
+            pen_x,
+            baseline,
+            size,
+            x_scale=x_scale,
+            y_scale=y_scale,
+            lang=lang,
+            direction=direction,
+            load_flags=load_flags,
         )
     return pen_x
 
@@ -154,40 +191,28 @@ html, body {{
 }}
 .canvas {{ position: relative; width: 640px; height: 240px; background: white; }}
 .title {{ position: absolute; left: 16px; top: 6px; font: 11px Arial, sans-serif; }}
-.head {{ position: absolute; top: 24px; font: 8px Arial, sans-serif; color: rgb(70,70,70); }}
-.left {{ left: 16px; }}
-.right {{ left: 330px; }}
+.head {{ position: absolute; left: 16px; font: 8px Arial, sans-serif; color: rgb(70,70,70); }}
 .guide {{ position: absolute; left: 16px; width: 608px; height: 1px; background: rgb(210,235,255); }}
-.run {{ position: absolute; white-space: nowrap; }}
-.default-latin {{ font: 32px Arial, sans-serif; }}
-.default-cjk {{ font: 32px "Yu Gothic", "Malgun Gothic", sans-serif; }}
-.default-thai {{ font: 32px Tahoma, sans-serif; }}
-.default-arabic {{ font: 32px Tahoma, sans-serif; direction: rtl; text-align: right; }}
-.k64-latin {{ font: 32px K64F2X, monospace; }}
-.k64-cjk {{ font: 32px K64F2X, K64J, K64CK, monospace; }}
+.run {{ position: absolute; left: 16px; white-space: nowrap; }}
+.default-line {{ font: 32px Arial, "Yu Gothic", "Malgun Gothic", Tahoma, sans-serif; }}
+.k64-line {{ font: 32px K64F2X, K64J, K64CK, K64Thai, K64Arabic, monospace; }}
+.sep {{ color: rgb(120,120,120); font-family: Arial, sans-serif; padding: 0 5px; }}
+.k64-latin {{ font-family: K64F2X; }}
 .k64-j {{ font-family: K64J; }}
 .k64-ck {{ font-family: K64CK; }}
-.k64-thai {{ font: 32px K64Thai, monospace; }}
-.k64-arabic {{ font: 40px/32px K64Arabic, K64F2X, K64CK, K64J, monospace; direction: rtl; text-align: right; }}
+.k64-thai {{ font-family: K64Thai; }}
+.k64-arabic {{ font: 40px/32px K64Arabic, K64F2X, K64CK, K64J, monospace; }}
 </style>
 </head>
 <body>
 <div class="canvas">
   <div class="title">K64 640x240 tall-dot target</div>
-  <div class="head left">Default font</div>
-  <div class="head right">K64 target stack</div>
-  <div class="guide" style="top:78px"></div>
-  <div class="guide" style="top:124px"></div>
-  <div class="guide" style="top:168px"></div>
-  <div class="guide" style="top:224px"></div>
-  <div class="run default-latin left" style="top:33px">{e(SAMPLES['latin'])}</div>
-  <div class="run k64-latin right" style="top:36px">{e(SAMPLES['latin'])}</div>
-  <div class="run default-cjk left" style="top:79px">{e(SAMPLES['cjk_j'] + SAMPLES['cjk_c'] + SAMPLES['cjk_k'])}</div>
-  <div class="run k64-cjk right" style="top:84px"><span class="k64-j">{e(SAMPLES['cjk_j'])}</span><span class="k64-ck">{e(SAMPLES['cjk_c'] + SAMPLES['cjk_k'])}</span></div>
-  <div class="run default-thai left" lang="th" style="top:132px">{e(SAMPLES['thai'])}</div>
-  <div class="run k64-thai right" lang="th" style="top:130px">{e(SAMPLES['thai'])}</div>
-  <div class="run default-arabic" lang="ar" dir="rtl" style="top:174px; left:16px; width:294px">{e(SAMPLES['arabic'])}</div>
-  <div class="run k64-arabic" lang="ar" dir="rtl" style="top:178px; left:330px; width:294px">{e(SAMPLES['arabic'])}</div>
+  <div class="head" style="top:32px">Default font</div>
+  <div class="head" style="top:126px">K64 target stack</div>
+  <div class="guide" style="top:112px"></div>
+  <div class="guide" style="top:206px"></div>
+  <div class="run default-line" style="top:52px">{e(LINE_SAMPLES['latin'])} / {e(LINE_SAMPLES['cjk_j'] + LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])} / {e(LINE_SAMPLES['thai'])} / <span lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
+  <div class="run k64-line" style="top:146px"><span class="k64-latin">{e(LINE_SAMPLES['latin'])}</span><span class="sep">/</span><span class="k64-j">{e(LINE_SAMPLES['cjk_j'])}</span><span class="k64-ck">{e(LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])}</span><span class="sep">/</span><span class="k64-thai" lang="th">{e(LINE_SAMPLES['thai'])}</span><span class="sep">/</span><span class="k64-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
 </div>
 </body>
 </html>
@@ -251,22 +276,18 @@ def ensure_y2x_ttf(src: Path, stem: str) -> Path:
     return out
 
 
-def draw_frame(img: Image.Image, title: str, left_x: int, right_x: int,
-               header_y: int, label_size: int) -> ImageDraw.ImageDraw:
-    draw = ImageDraw.Draw(img)
-    draw.text((left_x, 6 if img.width == 640 else 5), title, fill=(0, 0, 0), font=label_font(label_size + 3))
-    draw.text((left_x, header_y), "Default font", fill=(70, 70, 70), font=label_font(label_size))
-    draw.text((right_x, header_y), "K64 target stack", fill=(70, 70, 70), font=label_font(label_size))
-    return draw
-
-
 def render_640() -> Path:
     out = DOCS / "640x240" / "preview.png"
     if render_640_with_chrome(out):
         return out
     out.parent.mkdir(parents=True, exist_ok=True)
     img = Image.new("RGB", (640, 240), "white")
-    draw = draw_frame(img, "K64 640x240 tall-dot target", 16, 330, 24, 8)
+    draw = ImageDraw.Draw(img)
+    draw.text((16, 6), "K64 640x240 tall-dot target", fill=(0, 0, 0), font=label_font(11))
+    draw.text((16, 32), "Default font", fill=(70, 70, 70), font=label_font(8))
+    draw.text((16, 126), "K64 target stack", fill=(70, 70, 70), font=label_font(8))
+    for y in (112, 206):
+        draw.line((16, y, 624, y), fill=(210, 235, 255))
     defaults = {
         "latin": WIN_FONTS / "arial.ttf",
         "cjk_j": WIN_FONTS / "YuGothR.ttc",
@@ -281,39 +302,36 @@ def render_640() -> Path:
         "thai": GAME / "k64-thai-pixel-12w-or12-y1-prop.ttf",
         "arabic": GAME / "k64-arabic-sans-medium-pixel-20px-thin-y1.ttf",
     }
-    rows = [("Latin", 64), ("J / CK", 110), ("Thai", 154), ("Arabic", 210)]
-    for _label, baseline in rows:
-        draw.line((16, baseline + 14, 624, baseline + 14), fill=(210, 235, 255))
-
-    draw_run(img, defaults["latin"], SAMPLES["latin"], 16, rows[0][1], 32)
-    draw_run(img, k64["latin"], SAMPLES["latin"], 330, rows[0][1], 16, x_scale=2, y_scale=2)
-
-    draw_sequence(
+    draw_inline(
         img,
         [
-            (defaults["cjk_j"], SAMPLES["cjk_j"], 32, 1, 1, None, FT_FLAGS),
-            (defaults["cjk_j"], SAMPLES["cjk_c"], 32, 1, 1, None, FT_FLAGS),
-            (defaults["cjk_k"], SAMPLES["cjk_k"], 32, 1, 1, "ko", FT_FLAGS),
+            (defaults["latin"], LINE_SAMPLES["latin"], 32, 1, 1, None, None, FT_FLAGS),
+            (defaults["cjk_j"], LINE_SAMPLES["cjk_j"], 32, 1, 1, None, None, FT_FLAGS),
+            (defaults["cjk_j"], LINE_SAMPLES["cjk_c"], 32, 1, 1, None, None, FT_FLAGS),
+            (defaults["cjk_k"], LINE_SAMPLES["cjk_k"], 32, 1, 1, "ko", None, FT_FLAGS),
+            (defaults["thai"], LINE_SAMPLES["thai"], 32, 1, 1, "th", None, FT_FLAGS),
+            (defaults["arabic"], LINE_SAMPLES["arabic"], 32, 1, 1, "ar", "rtl", FT_FLAGS),
         ],
         16,
-        rows[1][1],
+        92,
+        defaults["latin"],
+        32,
     )
-    draw_sequence(
+    draw_inline(
         img,
         [
-            (k64["j"], SAMPLES["cjk_j"], 32, 1, 1, None, FT_FLAGS),
-            (k64["ck"], SAMPLES["cjk_c"], 32, 1, 1, None, FT_FLAGS),
-            (k64["ck"], SAMPLES["cjk_k"], 32, 1, 1, "ko", FT_FLAGS),
+            (k64["latin"], LINE_SAMPLES["latin"], 16, 2, 2, None, None, FT_FLAGS),
+            (k64["j"], LINE_SAMPLES["cjk_j"], 32, 1, 1, None, None, FT_FLAGS),
+            (k64["ck"], LINE_SAMPLES["cjk_c"], 32, 1, 1, None, None, FT_FLAGS),
+            (k64["ck"], LINE_SAMPLES["cjk_k"], 32, 1, 1, "ko", None, FT_FLAGS),
+            (k64["thai"], LINE_SAMPLES["thai"], 16, 1, 2, "th", None, FT_FLAGS),
+            (k64["arabic"], LINE_SAMPLES["arabic"], 20, 1, 2, "ar", "rtl", FT_FLAGS),
         ],
-        330,
-        rows[1][1],
+        16,
+        186,
+        defaults["latin"],
+        32,
     )
-
-    draw_run(img, defaults["thai"], SAMPLES["thai"], 16, rows[2][1], 32, lang="th")
-    draw_run(img, k64["thai"], SAMPLES["thai"], 330, rows[2][1], 16, y_scale=2, lang="th")
-
-    draw_rtl(img, defaults["arabic"], SAMPLES["arabic"], 310, rows[3][1], 32)
-    draw_rtl(img, k64["arabic"], SAMPLES["arabic"], 624, rows[3][1], 20, y_scale=2)
 
     upscale(img, 2).save(out)
     return out
@@ -323,7 +341,12 @@ def render_320() -> Path:
     out = DOCS / "320x240" / "preview.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     img = Image.new("RGB", (320, 240), "white")
-    draw = draw_frame(img, "K64 320x240 square-dot target", 8, 168, 24, 6)
+    draw = ImageDraw.Draw(img)
+    draw.text((8, 5), "K64 320x240 square-dot target", fill=(0, 0, 0), font=label_font(9))
+    draw.text((8, 38), "Default font", fill=(70, 70, 70), font=label_font(6))
+    draw.text((8, 108), "K64 target stack", fill=(70, 70, 70), font=label_font(6))
+    for y in (86, 156):
+        draw.line((8, y, 312, y), fill=(210, 235, 255))
     defaults = {
         "latin": WIN_FONTS / "arial.ttf",
         "cjk_j": WIN_FONTS / "YuGothR.ttc",
@@ -339,39 +362,36 @@ def render_320() -> Path:
         "thai": base / "k64-320-thai-light-12px-mark16-max2.ttf",
         "arabic": base / "k64-320-arabic-light-12px.ttf",
     }
-    rows = [("Latin", 56), ("J / CK", 100), ("Thai", 144), ("Arabic", 198)]
-    for _label, baseline in rows:
-        draw.line((8, baseline + 12, 312, baseline + 12), fill=(210, 235, 255))
-
-    draw_run(img, defaults["latin"], SAMPLES["latin"], 8, rows[0][1], 12)
-    draw_run(img, k64["latin"], SAMPLES["latin"], 168, rows[0][1], 16)
-
-    draw_sequence(
+    draw_inline(
         img,
         [
-            (defaults["cjk_j"], SAMPLES["cjk_j"], 12, 1, 1, None, FT_FLAGS),
-            (defaults["cjk_j"], SAMPLES["cjk_c"], 12, 1, 1, None, FT_FLAGS),
-            (defaults["cjk_k"], SAMPLES["cjk_k"], 12, 1, 1, "ko", FT_FLAGS),
+            (defaults["latin"], LINE_SAMPLES["latin"], 12, 1, 1, None, None, FT_FLAGS),
+            (defaults["cjk_j"], LINE_SAMPLES["cjk_j"], 12, 1, 1, None, None, FT_FLAGS),
+            (defaults["cjk_j"], LINE_SAMPLES["cjk_c"], 12, 1, 1, None, None, FT_FLAGS),
+            (defaults["cjk_k"], LINE_SAMPLES["cjk_k"], 12, 1, 1, "ko", None, FT_FLAGS),
+            (defaults["thai"], LINE_SAMPLES["thai"], 12, 1, 1, "th", None, FT_FLAGS),
+            (defaults["arabic"], LINE_SAMPLES["arabic"], 12, 1, 1, "ar", "rtl", FT_FLAGS),
         ],
         8,
-        rows[1][1],
+        70,
+        defaults["latin"],
+        12,
     )
-    draw_sequence(
+    draw_inline(
         img,
         [
-            (k64["j"], SAMPLES["cjk_j"], 12, 1, 1, None, FT_FLAGS),
-            (k64["ck"], SAMPLES["cjk_c"], 12, 1, 1, None, FT_FLAGS),
-            (k64["ck"], SAMPLES["cjk_k"], 12, 1, 1, "ko", FT_FLAGS),
+            (k64["latin"], LINE_SAMPLES["latin"], 16, 1, 1, None, None, FT_FLAGS),
+            (k64["j"], LINE_SAMPLES["cjk_j"], 12, 1, 1, None, None, FT_FLAGS),
+            (k64["ck"], LINE_SAMPLES["cjk_c"], 12, 1, 1, None, None, FT_FLAGS),
+            (k64["ck"], LINE_SAMPLES["cjk_k"], 12, 1, 1, "ko", None, FT_FLAGS),
+            (k64["thai"], LINE_SAMPLES["thai"], 12, 1, 1, "th", None, FT_FLAGS),
+            (k64["arabic"], LINE_SAMPLES["arabic"], 12, 1, 1, "ar", "rtl", FT_FLAGS),
         ],
-        168,
-        rows[1][1],
+        8,
+        140,
+        defaults["latin"],
+        12,
     )
-
-    draw_run(img, defaults["thai"], SAMPLES["thai"], 8, rows[2][1], 12, lang="th")
-    draw_run(img, k64["thai"], SAMPLES["thai"], 168, rows[2][1], 12, lang="th")
-
-    draw_rtl(img, defaults["arabic"], SAMPLES["arabic"], 152, rows[3][1], 12)
-    draw_rtl(img, k64["arabic"], SAMPLES["arabic"], 312, rows[3][1], 12)
 
     upscale(img, 4).save(out)
     return out
