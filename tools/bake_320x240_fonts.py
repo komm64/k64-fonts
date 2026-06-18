@@ -205,6 +205,15 @@ def emit_bitmap_glyph(r: RenderedGlyph, x_shift=0.0, y_shift=0.0) -> TtGlyph:
     return pen.glyph() if has_ink else empty_glyph()
 
 
+def glyph_bbox(glyph: TtGlyph) -> tuple[int, int, int, int] | None:
+    coords = getattr(glyph, "coordinates", None)
+    if not coords:
+        return None
+    xs = [pt[0] for pt in coords]
+    ys = [pt[1] for pt in coords]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
 THAI_MARK_CPS = set([0x0E31] + list(range(0x0E34, 0x0E3B)) + list(range(0x0E47, 0x0E4F)))
 THAI_MARK_HEX = {f"{cp:04X}" for cp in THAI_MARK_CPS}
 THAI_BELOW_HEX = {f"{cp:04X}" for cp in (0x0E38, 0x0E39, 0x0E3A)}
@@ -420,9 +429,11 @@ def bake_pixel_outline_font(
                 y_shift += up_by_gid.get(gid, 0)
         else:
             x_shift = y_shift = 0
-        glyf[gname] = emit_bitmap_glyph(rendered, x_shift=x_shift, y_shift=y_shift)
+        new_glyph = emit_bitmap_glyph(rendered, x_shift=x_shift, y_shift=y_shift)
+        glyf[gname] = new_glyph
         if source_adv == 0:
-            hmtx[gname] = (0, 0)
+            box = glyph_bbox(new_glyph)
+            hmtx[gname] = (0, box[0] if box else 0)
         else:
             hmtx[gname] = (max(1, int(round(render_gid(face, gid, 12).advance * PX))), 0)
 
