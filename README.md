@@ -11,6 +11,21 @@ https://komm64.github.io/k64-fonts/web/sample.html
 
 The sample compares K64 Fantasy, JP/CJK fallback, Thai and Arabic pixel fonts, smooth Thai fallback, and scanline variants at the intended `font-size: 32px` display size.
 
+## 320x240 / 12px font set
+
+The 320x240 monitor target uses a separate 12px square-dot set under
+`game/320x240/` and `web/320x240/`.  These files are intentionally separate
+from the existing 640x240 Reecho `y1`/`y2x` fonts.
+
+| File | Source | Notes |
+|------|--------|-------|
+| `k64-320-j-shinonome-mincho-12px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 12px | Embedded 12px bitmap kept intact; baseline metrics fixed to `ascent=12px / descent=0px`. |
+| `k64-320-cjk-fallback-12px.ttf` / `.woff2` | GNU Unifont 16px | 16px -> 12px `drop-bridge` conversion for CJK fallback. |
+| `k64-320-thai-light-12px-mark16-max2.ttf` / `.woff2` | Noto Sans Thai Light | 12px base glyphs; Thai marks are rendered at 16px, aligned to the 12px mark position, then only colliding upper marks are raised by up to 2px. |
+| `k64-320-arabic-light-12px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 12px mono pixel render with Arabic shaping tables preserved. |
+
+Preview: `docs/320x240/preview.png`
+
 ## Quick start (web)
 
 Reference fonts from this repo via jsDelivr CDN. Example CSS:
@@ -71,10 +86,13 @@ Reecho game target: text is rendered into the internal 640x240 surface at `font-
 | File | Source / Author | License | Notes |
 |------|----------------|---------|-------|
 | `komm64Fantasy.ttf` | komm64 (this repo) | CC-BY-NC 4.0 | latest version, history via git tags. Metrics are 8px advance on a 16px em at `font-size: 16px`. |
+| `JF-Dot-ShinonomeMin12.ttf` | 自由工房 (Jiyukoubou) | Public Domain | unmodified 12px Shinonome Mincho source |
 | `JF-Dot-ShinonomeMin16.ttf` | 自由工房 (Jiyukoubou) | Public Domain | unmodified |
 | `unifont-16px.ttf` | Roman Czyborra, Paul Hardy et al. (unifoundry.com) | SIL OFL 1.1 | unmodified |
 | `NotoSansThai-Regular.ttf` | Google LLC | SIL OFL 1.1 | unmodified |
+| `NotoSansThai-Light.ttf` | Google LLC | SIL OFL 1.1 | unmodified Light source for 320x240 Thai |
 | `NotoSansArabic-Medium.ttf` | Google LLC / Noto Fonts | SIL OFL 1.1 | unmodified Noto Sans Arabic Medium source |
+| `NotoSansArabic-Light.ttf` | Google LLC / Noto Fonts | SIL OFL 1.1 | unmodified Light source for 320x240 Arabic |
 
 Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step):
 
@@ -129,6 +147,8 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 | Script | Purpose |
 |--------|---------|
 | `bake_web_fonts.py` | Main bake: source TTFs → web/*.woff2. Uses Reecho's `gen_font.py`-produced or12 intermediates as input |
+| `bake_320x240_fonts.py` | Final 320x240 / 12px square-dot set bake |
+| `bake_unifont_12px_drop.py` | Unifont 16px → 12px CJK fallback converter used by the 320x240 bake |
 | `bake_thai_pixel.py` | Thai pixelization — rasterize NotoSansThai → pixel-rect contours, preserve GPOS |
 | `bake_arabic_pixel.py` | Arabic pixelization — rasterize Noto Sans Arabic by glyph name, preserve GSUB/GPOS shaping, emit web y2x WOFF2 + game y1 TTF |
 | `compress_y2x_to_y1.py` | Reecho game conversion — halve Y coordinates/metrics/GPOS Y values so y2x TTFs render correctly into the internal 640x240 surface |
@@ -183,6 +203,10 @@ python tools/bake_arabic_pixel.py
 python tools/bake_arabic_pixel.py --rows 20 --web-output web/k64-arabic-sans-medium-pixel-20px-y2x.woff2 --game-output game/k64-arabic-sans-medium-pixel-20px-y1.ttf --preview-output game/k64-arabic-sans-medium-pixel-20px-y1.preview.png
 python tools/bake_arabic_pixel.py --rows 20 --metric-rows 16 --metric-ascent-rows 12 --threshold 144 --name-suffix Thin --web-output web/k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2 --game-output game/k64-arabic-sans-medium-pixel-20px-thin-y1.ttf --preview-output game/k64-arabic-sans-medium-pixel-20px-thin-y1.preview.png
 python tools/bake_arabic_pixel.py --rows 24 --web-output web/k64-arabic-sans-medium-pixel-24px-y2x.woff2 --game-output game/k64-arabic-sans-medium-pixel-24px-y1.ttf --preview-output game/k64-arabic-sans-medium-pixel-24px-y1.preview.png
+
+# 320x240 / 12px square-dot set.
+# Note: CJK WOFF2 compression is slow because the fallback has many glyphs.
+python tools/bake_320x240_fonts.py
 ```
 
 Local browser sample:
