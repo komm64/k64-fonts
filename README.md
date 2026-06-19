@@ -74,6 +74,7 @@ Distribution paths:
 
 Use the 320x240 K64F/J/CK/Thai/Arabic fonts at `font-size: 12px` on a square-dot 320x240 surface. The K64F wrapper keeps the same visual 8x16 glyph size that normal K64F has at `font-size: 16px`.
 The root `k64-fantasy.woff2` still targets `font-size: 16px`; use the 320x240 wrapper for mixed 12px fallback stacks.
+The base 320x240 font assets should stay binary pixel fonts, but runtime synthetic italics on this target may use intermediate colors/antialiasing when slanted. The current ToriStory Godot port handles `<i>` / `[k64i]` in project-local dialogue code by shearing rendered text segments; k64-fonts only supplies upright font assets. CJK emphasis dots should be encoded explicitly by game markup such as `<e>`, not inferred from locale or italic styling.
 The 640x240 `y1`/`y2x` fonts remain in the existing `game/` and `web/` root
 paths for the tall-dot Reecho target.
 
