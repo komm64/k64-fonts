@@ -184,11 +184,11 @@ func draw_wide_240(mode: Dictionary) -> void:
 	add_label(mode["title"], fonts["k64f"], sizes["k64f"], Vector2(18, 10), Vector2(604, 18), INK)
 	add_label("K64F   HP 0123 / MENU / SCORE", fonts["k64f"], sizes["k64f"], Vector2(18, 52), Vector2(604, 20), INK)
 	add_label("J      こんにちは世界 0123", fonts["j"], sizes["j"], Vector2(18, 78), Vector2(604, 20), INK)
-	add_label("CK     漢字 龍龜 你好 안녕", fonts["ck"], sizes["ck"], Vector2(18, 104), Vector2(604, 20), INK)
+	add_label("CK     ! ！ 漢字 龍龜 你好 안녕", fonts["ck"], sizes["ck"], Vector2(18, 104), Vector2(604, 20), INK)
 	add_label("TH     กี้ กํ่า เก้า น้ำ", fonts["thai"], sizes["thai"], Vector2(18, 132), Vector2(300, 22), INK)
 	add_label("السلام عليكم ١٢٣٤", fonts["arabic"], sizes["arabic"], Vector2(326, 128), Vector2(296, 26), INK, true)
 	add_label("ا أ إ آ ٠١٢٣٤٥٦٧٨٩", fonts["arabic"], sizes["arabic"], Vector2(326, 164), Vector2(296, 26), INK, true)
-	add_label("SEGMENTED GAME-FONT RUN", fonts["k64f"], sizes["k64f"], Vector2(18, 194), Vector2(280, 18), MUTED)
+	add_label("SEGMENTED GAME-FONT RUN", fonts["k64f"], sizes["k64f"], Vector2(18, 194), Vector2(604, 18), MUTED)
 
 
 func draw_small_240(mode: Dictionary) -> void:
@@ -199,7 +199,7 @@ func draw_small_240(mode: Dictionary) -> void:
 	add_label("320x240 -> 640x480", fonts["k64f"], sizes["k64f"], Vector2(10, 8), Vector2(300, 16), INK)
 	add_label("K64F HP 0123 / MENU", fonts["k64f"], sizes["k64f"], Vector2(10, 44), Vector2(300, 16), INK)
 	add_label("J    こんにちは世界 0123", fonts["j"], sizes["j"], Vector2(10, 68), Vector2(300, 16), INK)
-	add_label("CK   漢字 龍龜 你好", fonts["ck"], sizes["ck"], Vector2(10, 92), Vector2(300, 16), INK)
+	add_label("CK   ! ！ 漢字 龍龜 你好", fonts["ck"], sizes["ck"], Vector2(10, 92), Vector2(300, 16), INK)
 	add_label("TH   กี้ กํ่า เก้า น้ำ", fonts["thai"], sizes["thai"], Vector2(10, 116), Vector2(300, 16), INK)
 	add_label("السلام عليكم ١٢٣٤", fonts["arabic"], sizes["arabic"], Vector2(10, 154), Vector2(300, 18), INK, true)
 	add_label("ا أ إ آ ٠١٢٣٤٥٦٧٨٩", fonts["arabic"], sizes["arabic"], Vector2(10, 184), Vector2(300, 18), INK, true)
@@ -213,7 +213,7 @@ func draw_wide_480(mode: Dictionary) -> void:
 	add_label(mode["title"], fonts["k64f"], sizes["k64f"], Vector2(24, 24), Vector2(592, 22), INK)
 	add_label("K64F   HP 0123 / MENU / SCORE", fonts["k64f"], sizes["k64f"], Vector2(24, 92), Vector2(592, 24), INK)
 	add_label("J      こんにちは世界 0123", fonts["j"], sizes["j"], Vector2(24, 132), Vector2(592, 24), INK)
-	add_label("CK     漢字 龍龜 你好 안녕", fonts["ck"], sizes["ck"], Vector2(24, 172), Vector2(592, 24), INK)
+	add_label("CK     ! ！ 漢字 龍龜 你好 안녕", fonts["ck"], sizes["ck"], Vector2(24, 172), Vector2(592, 24), INK)
 	add_label("TH     กี้ กํ่า เก้า น้ำ", fonts["thai"], sizes["thai"], Vector2(24, 212), Vector2(592, 24), INK)
 	add_label("السلام عليكم ١٢٣٤", fonts["arabic"], sizes["arabic"], Vector2(24, 282), Vector2(592, 26), INK, true)
 	add_label("ا أ إ آ ٠١٢٣٤٥٦٧٨٩", fonts["arabic"], sizes["arabic"], Vector2(24, 334), Vector2(592, 26), INK, true)

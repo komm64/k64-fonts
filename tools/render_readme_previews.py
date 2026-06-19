@@ -43,6 +43,8 @@ LINE_SAMPLES = {
     "arabic": "السلام",
 }
 
+LINE_SAMPLES_640 = dict(LINE_SAMPLES, thai="กี้ กํ่า เก้า น้ำ")
+
 
 def label_font(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(str(WIN_FONTS / "arial.ttf"), size)
@@ -235,6 +237,7 @@ def render_640_with_chrome(out: Path) -> bool:
     def e(text: str) -> str:
         return html.escape(text, quote=True)
 
+    samples = LINE_SAMPLES_640
     tmp_html.write_text(f"""<!doctype html>
 <html>
 <head>
@@ -260,7 +263,7 @@ html, body {{
 .head {{ position: absolute; left: 16px; font: 8px Arial, sans-serif; color: rgb(70,70,70); }}
 .guide {{ position: absolute; left: 16px; width: 608px; height: 1px; background: rgb(210,235,255); }}
 .run {{ position: absolute; left: 16px; white-space: nowrap; }}
-.default-line {{ font: 32px Arial, "Yu Gothic", "Malgun Gothic", Tahoma, sans-serif; }}
+.default-line {{ font: 26px Arial, "Yu Gothic", "Malgun Gothic", Tahoma, sans-serif; }}
 .k64-line {{ font: 32px K64F2X, K64J, K64CK, K64Thai, K64Arabic, monospace; }}
 .sep {{ color: rgb(120,120,120); font-family: Arial, sans-serif; padding: 0 5px; }}
 .k64-latin {{ font-family: K64F2X; }}
@@ -282,8 +285,8 @@ html, body {{
   <div class="head" style="top:126px">K64 target stack</div>
   <div class="guide" style="top:112px"></div>
   <div class="guide" style="top:206px"></div>
-  <div class="run default-line" style="top:52px">{e(LINE_SAMPLES['latin'])} / {e(LINE_SAMPLES['cjk_j'] + LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])} / {e(LINE_SAMPLES['thai'])} / <span class="default-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
-  <div class="run k64-line" style="top:146px"><span class="k64-latin">{e(LINE_SAMPLES['latin'])}</span><span class="sep">/</span><span class="k64-j">{e(LINE_SAMPLES['cjk_j'])}</span><span class="k64-ck">{e(LINE_SAMPLES['cjk_c'] + LINE_SAMPLES['cjk_k'])}</span><span class="sep">/</span><span class="k64-thai" lang="th">{e(LINE_SAMPLES['thai'])}</span><span class="sep">/</span><span class="k64-arabic" lang="ar" dir="rtl">{e(LINE_SAMPLES['arabic'])}</span></div>
+  <div class="run default-line" style="top:52px">{e(samples['latin'])} / {e(samples['cjk_j'] + samples['cjk_c'] + samples['cjk_k'])} / {e(samples['thai'])} / <span class="default-arabic" lang="ar" dir="rtl">{e(samples['arabic'])}</span></div>
+  <div class="run k64-line" style="top:146px"><span class="k64-latin">{e(samples['latin'])}</span><span class="sep">/</span><span class="k64-j">{e(samples['cjk_j'])}</span><span class="k64-ck">{e(samples['cjk_c'] + samples['cjk_k'])}</span><span class="sep">/</span><span class="k64-thai" lang="th">{e(samples['thai'])}</span><span class="sep">/</span><span class="k64-arabic" lang="ar" dir="rtl">{e(samples['arabic'])}</span></div>
 </div>
 </body>
 </html>
@@ -560,6 +563,7 @@ def render_640() -> Path:
     out = DOCS / "640x240" / "preview.png"
     if render_640_with_chrome(out):
         return out
+    samples = LINE_SAMPLES_640
     out.parent.mkdir(parents=True, exist_ok=True)
     img = Image.new("RGB", (640, 240), "white")
     draw = ImageDraw.Draw(img)
@@ -585,12 +589,12 @@ def render_640() -> Path:
     draw_inline(
         img,
         [
-            (defaults["latin"], LINE_SAMPLES["latin"], 32, 1, 1, None, None, FT_FLAGS),
-            (defaults["cjk_j"], LINE_SAMPLES["cjk_j"], 32, 1, 1, None, None, FT_FLAGS),
-            (defaults["cjk_j"], LINE_SAMPLES["cjk_c"], 32, 1, 1, None, None, FT_FLAGS),
-            (defaults["cjk_k"], LINE_SAMPLES["cjk_k"], 32, 1, 1, "ko", None, FT_FLAGS),
-            (defaults["thai"], LINE_SAMPLES["thai"], 32, 1, 1, "th", None, FT_FLAGS),
-            (defaults["arabic"], LINE_SAMPLES["arabic"], 32, 1, 1, "ar", "rtl", FT_FLAGS),
+            (defaults["latin"], samples["latin"], 32, 1, 1, None, None, FT_FLAGS),
+            (defaults["cjk_j"], samples["cjk_j"], 32, 1, 1, None, None, FT_FLAGS),
+            (defaults["cjk_j"], samples["cjk_c"], 32, 1, 1, None, None, FT_FLAGS),
+            (defaults["cjk_k"], samples["cjk_k"], 32, 1, 1, "ko", None, FT_FLAGS),
+            (defaults["thai"], samples["thai"], 32, 1, 1, "th", None, FT_FLAGS),
+            (defaults["arabic"], samples["arabic"], 32, 1, 1, "ar", "rtl", FT_FLAGS),
         ],
         16,
         92,
@@ -600,12 +604,12 @@ def render_640() -> Path:
     draw_inline(
         img,
         [
-            (k64["latin"], LINE_SAMPLES["latin"], 16, 2, 2, None, None, FT_FLAGS),
-            (k64["j"], LINE_SAMPLES["cjk_j"], 32, 1, 1, None, None, FT_FLAGS),
-            (k64["ck"], LINE_SAMPLES["cjk_c"], 32, 1, 1, None, None, FT_FLAGS),
-            (k64["ck"], LINE_SAMPLES["cjk_k"], 32, 1, 1, "ko", None, FT_FLAGS),
-            (k64["thai"], LINE_SAMPLES["thai"], 16, 1, 2, "th", None, FT_FLAGS),
-            (k64["arabic"], LINE_SAMPLES["arabic"], 20, 1, 2, "ar", "rtl", FT_FLAGS),
+            (k64["latin"], samples["latin"], 16, 2, 2, None, None, FT_FLAGS),
+            (k64["j"], samples["cjk_j"], 32, 1, 1, None, None, FT_FLAGS),
+            (k64["ck"], samples["cjk_c"], 32, 1, 1, None, None, FT_FLAGS),
+            (k64["ck"], samples["cjk_k"], 32, 1, 1, "ko", None, FT_FLAGS),
+            (k64["thai"], samples["thai"], 16, 1, 2, "th", None, FT_FLAGS),
+            (k64["arabic"], samples["arabic"], 20, 1, 2, "ar", "rtl", FT_FLAGS),
         ],
         16,
         186,

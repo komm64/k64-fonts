@@ -62,7 +62,7 @@ from the existing 640x240 Reecho `y1`/`y2x` fonts.
 | `k64-320-k64f-visual16-12px.ttf` / `.woff2` | komm64Fantasy | 16px K64F outlines and advances scaled into the 12px target UPM, so it participates in a 12px fallback stack while keeping the visual 8x16 K64F size. |
 | `k64-320-j-shinonome-mincho-12px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 12px | Embedded 12px bitmap kept intact; baseline metrics fixed to `ascent=12px / descent=0px`. |
 | `k64-320-ck-unifont-12px.ttf` / `.woff2` | GNU Unifont 16px | 16px -> 12px `drop-bridge` conversion for the CK role. |
-| `k64-320-thai-light-12px-mark16-max2.ttf` / `.woff2` | Noto Sans Thai Light | 12px base glyphs; Thai marks are rendered at 16px, aligned to the 12px mark position, then only colliding upper marks are raised by up to 2px. |
+| `k64-320-thai-light-12px-mark16-max2.ttf` / `.woff2` | Noto Sans Thai Light | 12px base glyphs; Thai marks are rendered at 16px, aligned to the 12px mark position, then only colliding upper marks are raised by up to 2px. Mark offsets are snapped to the integer pixel grid; tone marks keep their 3-row shape and are biased 1px upward so stacked marks keep a visible gap inside the 12px ascent. |
 | `k64-320-arabic-light-12px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 12px mono pixel render with Arabic shaping tables preserved. |
 
 Distribution paths:
@@ -300,7 +300,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `320x240/k64-320-k64f-visual16-12px.ttf` | 320x240 K64F wrapper: use at font size 12 to keep the visual 8x16 K64F size in a 12px fallback stack. |
 | `320x240/k64-320-j-shinonome-mincho-12px.ttf` | 320x240 Japanese face: Shinonome Mincho 12px with baseline fixed to the 12px square-dot cell. |
 | `320x240/k64-320-ck-unifont-12px.ttf` | 320x240 CK face: Unifont-derived 12px drop-bridge Chinese/Korean face. |
-| `320x240/k64-320-thai-light-12px-mark16-max2.ttf` | 320x240 Thai face: Noto Sans Thai Light pixelized at 12px with 16px marks and collision-aware mark lift. |
+| `320x240/k64-320-thai-light-12px-mark16-max2.ttf` | 320x240 Thai face: Noto Sans Thai Light pixelized at 12px with 16px marks, integer-grid mark offsets, 3-row upward-biased tone marks, and collision-aware mark lift clamped inside the 12px ascent. |
 | `320x240/k64-320-arabic-light-12px.ttf` | 320x240 Arabic face: Noto Sans Arabic Light pixelized at 12px with shaping tables preserved. |
 | `640x480/k64-640x480-j-shinonome-mincho-16px.ttf` | 640x480 Japanese face: Shinonome Mincho 16px with baseline fixed to the 16px square-dot cell. |
 | `640x480/k64-640x480-ck-unifont-16px.ttf` | 640x480 CK face: Unifont 16px shifted into the 16px square-dot cell. |

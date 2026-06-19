@@ -18,6 +18,7 @@ Final choices:
 from __future__ import annotations
 
 import sys
+import math
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -197,8 +198,51 @@ def make_ck_font() -> tuple[Path, Path]:
     if "OS/2" in tt:
         tt["OS/2"].usWinAscent = UPM
         tt["OS/2"].usWinDescent = 0
+    patch_ck_exclamation_marks(tt)
     set_names(tt, family, "K64320CKUnifont12px-Regular")
     return save_ttf_and_woff2(tt, stem, transform_tables=False)
+
+
+def make_cell_glyph(cells: set[tuple[int, int]]) -> TtGlyph:
+    pen = TTGlyphPen(None)
+    for x, y in sorted(cells):
+        x0 = x * PX
+        x1 = (x + 1) * PX
+        y0 = y * PX
+        y1 = (y + 1) * PX
+        pen.moveTo((x0, y0))
+        pen.lineTo((x0, y1))
+        pen.lineTo((x1, y1))
+        pen.lineTo((x1, y0))
+        pen.closePath()
+    return pen.glyph() if cells else empty_glyph()
+
+
+def patch_ck_exclamation_marks(tt: TTFont) -> None:
+    """Unifont's exclamation marks are bar-like at 12px; patch the CK face.
+
+    ASCII punctuation normally falls through to K64F, but the direct CK sample
+    and fullwidth punctuation should still look like exclamation marks.
+    """
+    k64f = TTFont(GAME / "k64-320-k64f-visual16-12px.ttf")
+    k64f_cmap = k64f.getBestCmap()
+    ck_cmap = tt.getBestCmap()
+    glyf = tt["glyf"]
+    hmtx = tt["hmtx"].metrics
+
+    ascii_name = ck_cmap.get(0x0021)
+    k64f_name = k64f_cmap.get(0x0021)
+    if ascii_name and k64f_name:
+        glyf[ascii_name] = k64f["glyf"][k64f_name]
+        hmtx[ascii_name] = k64f["hmtx"].metrics[k64f_name]
+
+    fullwidth_name = ck_cmap.get(0xFF01)
+    if fullwidth_name:
+        cells = {(5, y) for y in range(5, 10)}
+        cells.update({(6, y) for y in range(5, 10)})
+        cells.update({(5, 1), (6, 1), (5, 2), (6, 2)})
+        glyf[fullwidth_name] = make_cell_glyph(cells)
+        hmtx[fullwidth_name] = (12 * PX, 5 * PX)
 
 
 def bitmap_rows(bitmap) -> list[list[int]]:
@@ -273,6 +317,7 @@ def glyph_bbox(glyph: TtGlyph) -> tuple[int, int, int, int] | None:
 THAI_MARK_CPS = set([0x0E31] + list(range(0x0E34, 0x0E3B)) + list(range(0x0E47, 0x0E4F)))
 THAI_MARK_HEX = {f"{cp:04X}" for cp in THAI_MARK_CPS}
 THAI_BELOW_HEX = {f"{cp:04X}" for cp in (0x0E38, 0x0E39, 0x0E3A)}
+THAI_TONE_HEX = {f"{cp:04X}" for cp in range(0x0E48, 0x0E4C)}
 
 
 def glyph_name_marks(gname: str) -> tuple[bool, bool]:
@@ -280,6 +325,11 @@ def glyph_name_marks(gname: str) -> tuple[bool, bool]:
     is_mark = any(h in name for h in THAI_MARK_HEX)
     is_below = any(h in name for h in THAI_BELOW_HEX)
     return is_mark, is_below
+
+
+def is_thai_tone_mark(gname: str) -> bool:
+    name = gname.upper()
+    return any(h in name for h in THAI_TONE_HEX)
 
 
 def scale_gpos(tt: TTFont, scale_x: float, scale_y: float) -> None:
@@ -406,6 +456,16 @@ def mark_aligned_shift(ref: RenderedGlyph, mark: RenderedGlyph, is_below: bool) 
     return x_shift, y_shift
 
 
+def snap_mark_shift(value: float) -> int:
+    """Keep pixel-outline Thai marks on the integer pixel grid.
+
+    The 16px mark bitmap is often one pixel wider than the 12px reference mark,
+    so center alignment can produce x.5 offsets.  Ties round up: that preserves
+    the 12px mark's left edge and puts the extra 16px width on the right.
+    """
+    return math.floor(value + 0.5)
+
+
 def thai_collision_up_by_gid(
     font_path: Path,
     glyph_order: list[str],
@@ -503,8 +563,18 @@ def bake_pixel_outline_font(
         if thai_mark16 and is_mark:
             ref = render_gid(face, gid, base_size)
             x_shift, y_shift = mark_aligned_shift(ref, rendered, is_below)
+            x_shift = snap_mark_shift(x_shift)
+            y_shift = snap_mark_shift(y_shift)
             if not is_below:
                 y_shift += up_by_gid.get(gid, 0)
+                ascent_px = upm // PX
+                if is_thai_tone_mark(gname):
+                    # Tone marks are the second upper mark in stacked clusters;
+                    # bias their integer placement upward to keep a 1px gap.
+                    y_shift += 1
+                top_px = rendered.top + y_shift
+                if top_px > ascent_px:
+                    y_shift -= top_px - ascent_px
         else:
             x_shift = y_shift = 0
         new_glyph = emit_bitmap_glyph(rendered, x_shift=x_shift, y_shift=y_shift)
@@ -601,11 +671,11 @@ def make_preview(paths: dict[str, Path]) -> Path:
     x = draw_shaped_run(img, paths["k64f"], "HP 0123 / MENU / SCORE", x, base, 12) + 12
     x = draw_shaped_run(img, paths["j"], "日本語", x, base, 12) + 12
     draw_shaped_run(img, paths["ck"], "漢字 龍龜 你好", x, base, 12)
-    base = rows[2][1]
+    base = rows[1][1]
     x = 24
     x = draw_shaped_run(img, paths["j"], "日本語 いろはにほへと", x, base, 12) + 12
     x = draw_shaped_run(img, paths["ck"], "中国語 敏捷的白狐跳过懒狗 한국어", x, base, 12) + 12
-    base = rows[1][1]
+    base = rows[2][1]
     x = 24
     x = draw_shaped_run(img, paths["j"], "日本語", x, base, 12) + 12
     draw_shaped_run(
