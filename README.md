@@ -38,7 +38,7 @@ The main scene is `godot/preview.tscn`. It renders the game fonts into a fixed
 - `2`: draw into a 320x240 surface, then scale to 640x480.
 - `3`: draw directly into a 640x480 surface.
 
-The 320x240 mode uses `game/320x240/k64-320-k64f-visual16-12px.ttf`, so K64F can
+The 320x240 mode uses `game/320x240/k64-320-k64f-visual16-12px.fnt`, so K64F can
 be rendered at `font-size: 12px` while keeping the visual 8x16 K64F size.
 
 ## Locale font stacks
@@ -59,7 +59,7 @@ from the existing 640x240 Reecho `y1`/`y2x` fonts.
 
 | File | Source | Notes |
 |------|--------|-------|
-| `k64-320-k64f-visual16-12px.ttf` / `.woff2` | komm64Fantasy | 16px K64F outlines and advances scaled into the 12px target UPM, so it participates in a 12px fallback stack while keeping the visual 8x16 K64F size. |
+| `k64-320-k64f-visual16-12px.fnt` + `_0.png` / `.woff2` | komm64Fantasy | 16px K64F outlines and advances scaled into the 12px target UPM, then baked to a folder-local BMFont page for the Godot sample. It keeps the visual 8x16 K64F size in the 12px target. |
 | `k64-320-j-shinonome-mincho-12px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 12px | Embedded 12px bitmap kept intact; baseline metrics fixed to `ascent=12px / descent=0px`. |
 | `k64-320-ck-unifont-12px.ttf` / `.woff2` | GNU Unifont 16px | 16px -> 12px `drop-bridge` conversion for the CK role. |
 | `k64-320-thai-light-12px-mark16-max2.ttf` / `.woff2` | Noto Sans Thai Light | 12px base glyphs; Thai marks are rendered at 16px, aligned to the 12px mark position, then only colliding upper marks are raised by up to 2px. Mark offsets are snapped to the integer pixel grid; tone marks keep their 3-row shape and are biased 1px upward so stacked marks keep a visible gap inside the 12px ascent. |
@@ -69,13 +69,14 @@ Distribution paths:
 
 | Target | Files |
 |--------|-------|
-| Game / Godot / Reecho-style runtime | `game/320x240/*.ttf` |
+| Game / Godot / Reecho-style runtime | `game/320x240/*` |
 | Web / CDN | `web/320x240/*.woff2` |
 
 Use the 320x240 K64F/J/CK/Thai/Arabic fonts at `font-size: 12px` on a square-dot 320x240 surface. The K64F wrapper keeps the same visual 8x16 glyph size that normal K64F has at `font-size: 16px`.
 The root `k64-fantasy.woff2` still targets `font-size: 16px`; use the 320x240 wrapper for mixed 12px fallback stacks.
-The 640x240 `y1`/`y2x` fonts remain in the existing `game/` and `web/` root
-paths for the tall-dot Reecho target.
+The 640x240 game runtime fonts live under `game/640x240/`, including the K64F
+BMFont page image. Legacy root copies remain for compatibility, and the
+640x240 web `y2x` files remain in `web/`.
 
 ## 640x480 / 16px font set
 
@@ -86,12 +87,13 @@ The 640x480 monitor target uses a separate 16px square-dot set under
 |------|--------|-------|
 | `k64-640x480-j-shinonome-mincho-16px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 16px | Embedded 16px bitmap kept intact; baseline metrics fixed to `ascent=16px / descent=0px`. |
 | `k64-640x480-ck-unifont-16px.ttf` / `.woff2` | GNU Unifont 16px | Original 16px Unifont glyphs shifted into the 16px square-dot cell with bottom-aligned line metrics. |
+| `k64-640x480-k64f-16px.fnt` + `_0.png` / `.woff2` | komm64Fantasy | K64F baked to a folder-local BMFont page at native 16px square-dot size for the Godot sample. |
 | `k64-640x480-thai-light-16px.ttf` / `.woff2` | Noto Sans Thai Light | Direct 16px mono pixel render with Thai shaping and mark positioning tables preserved. |
 | `k64-640x480-arabic-light-16px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 16px mono pixel render with Arabic shaping tables preserved. |
 
-Use the 640x480 J/CK/Thai/Arabic fonts at `font-size: 16px` on a square-dot
-640x480 surface. K64F also stays dot-by-dot at its native `font-size: 16px`
-grid for this target.
+Use the 640x480 K64F/J/CK/Thai/Arabic fonts at `font-size: 16px` on a
+square-dot 640x480 surface. K64F stays dot-by-dot at its native 16px grid for
+this target.
 
 ## Quick start (web)
 
@@ -246,7 +248,7 @@ body {
 
 Web target display: `font-size: 32px` with K64F 2x and CK/J or12+y2x sharing a 32px-tall line. K64F 2x advances 16px per monospace glyph on that 32px line, with source design pixels rendered as 2×2 square dots. CK/J or12+y2x also advances 16px, with 24px-tall OR-merged ink on the same line.
 
-Reecho game target: text is rendered into the internal 640x240 surface at `font-size: 16px`, then the final display path makes those pixels vertically tall. Game TTFs therefore use `y1` outlines, not baked-in `y2x` outlines.
+Reecho game target: text is rendered into the internal 640x240 surface at `font-size: 16px`, then the final display path makes those pixels vertically tall. The 640x240 game files are grouped under `game/640x240/`; K64F uses a folder-local BMFont pair.
 
 ## Source fonts (src/) — unmodified originals
 
@@ -292,12 +294,17 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `640x480/k64-640x480-thai-light-16px.woff2` | `NotoSansThai-Light.ttf` | Direct 16px mono pixel rectangles with Thai GSUB/GPOS preserved. | `font-size: 16px` → square-dot Thai |
 | `640x480/k64-640x480-arabic-light-16px.woff2` | `NotoSansArabic-Light.ttf` | Direct 16px mono pixel rectangles with Arabic GSUB/GPOS preserved. | `font-size: 16px` → square-dot Arabic |
 
-## Game fonts (game/) — TTF outputs
+## Game fonts (game/)
 
 | File | Notes |
 |------|-------|
-| `komm64Fantasy_v1.37_16px_bitmap_x2w.fnt` + `_0.png` | Reecho-compatible K64F primary face. Generated as BMFont to avoid FreeType outline rasterization drift at 16ppem; horizontally 2x-wide for the 640x240 CRT signal path. |
-| `320x240/k64-320-k64f-visual16-12px.ttf` | 320x240 K64F wrapper: use at font size 12 to keep the visual 8x16 K64F size in a 12px fallback stack. |
+| `640x240/k64-640x240-k64f-16px-x2w.fnt` + `_0.png` | Reecho-compatible K64F primary face. Generated as BMFont to avoid FreeType outline rasterization drift at 16ppem; horizontally 2x-wide for the 640x240 CRT signal path. |
+| `640x240/k64-640x240-j-shinonome-mincho-16px-or12.ttf` | 640x240 Japanese face: Shinonome Mincho 16px OR-merged to 12 rows for the tall-dot path. |
+| `640x240/k64-640x240-ck-unifont-16px-or12.ttf` | 640x240 CK face: Unifont 16px OR-merged to 12 rows for the tall-dot path. |
+| `640x240/k64-640x240-thai-pixel-12w-or12-y2x-prop-x2w.ttf` | 640x240 Thai game face used by the Godot sample and locale manifest. |
+| `640x240/k64-640x240-arabic-sans-medium-pixel-20px-thin-y1.ttf` | 640x240 Arabic game face: 20px thinner Arabic trial for Reecho game rendering. |
+| `320x240/k64-320-k64f-visual16-12px.fnt` + `_0.png` | 320x240 K64F BMFont page baked from the visual16-at-12px wrapper. |
+| `320x240/k64-320-k64f-visual16-12px.ttf` | Compatibility TTF wrapper: use at font size 12 to keep the visual 8x16 K64F size in a 12px fallback stack. |
 | `320x240/k64-320-j-shinonome-mincho-12px.ttf` | 320x240 Japanese face: Shinonome Mincho 12px with baseline fixed to the 12px square-dot cell. |
 | `320x240/k64-320-ck-unifont-12px.ttf` | 320x240 CK face: Unifont-derived 12px drop-bridge Chinese/Korean face. |
 | `320x240/k64-320-thai-light-12px-mark16-max2.ttf` | 320x240 Thai face: Noto Sans Thai Light pixelized at 12px with 16px marks, integer-grid mark offsets, 3-row upward-biased tone marks, and collision-aware mark lift clamped inside the 12px ascent. |
@@ -306,7 +313,8 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `640x480/k64-640x480-ck-unifont-16px.ttf` | 640x480 CK face: Unifont 16px shifted into the 16px square-dot cell. |
 | `640x480/k64-640x480-thai-light-16px.ttf` | 640x480 Thai face: Noto Sans Thai Light pixelized at 16px with shaping tables preserved. |
 | `640x480/k64-640x480-arabic-light-16px.ttf` | 640x480 Arabic face: Noto Sans Arabic Light pixelized at 16px with shaping tables preserved. |
-| `k64-thai-pixel-12w-or12-y1-prop.ttf` | Reecho default Thai game face. 16px source fitted to 12w, compressed with 4→3 OR merge, then converted to y1; this gives the most readable K64F-adjacent pixel look in Reecho's 640x240 internal surface. |
+| `640x480/k64-640x480-k64f-16px.fnt` + `_0.png` | 640x480 K64F BMFont page baked at native 16px square-dot size. |
+| `k64-thai-pixel-12w-or12-y1-prop.ttf` | Legacy root Thai game face. 16px source fitted to 12w, compressed with 4→3 OR merge, then converted to y1. |
 | `k64-thai-pixel-native12px-y1-prop.ttf` | Natural alternate Thai game face. Rasterized directly at 12px, then compressed from y2x to y1 with proportional advances preserved; smoother and less K64F-like than the Reecho default. |
 | `k64-arabic-sans-medium-pixel-y1.ttf` | Arabic pixel font: Noto Sans Arabic Medium rasterized with GSUB/GPOS preserved, then compressed from y2x to y1 for Reecho's internal surface. |
 | `k64-arabic-sans-medium-pixel-20px-y1.ttf` | 20px Arabic size trial for Reecho game rendering. |
@@ -394,6 +402,11 @@ python tools/bake_320x240_fonts.py
 # 640x480 / 16px square-dot set.
 # Note: CK WOFF2 compression is slow because the font has many glyphs.
 python tools/bake_640x480_fonts.py
+
+# Folder-local K64F BMFont pages for the Godot/runtime samples.
+python tools/gen_font.py src/komm64Fantasy.ttf --no-merge --hscale 2 --output-dir game/640x240 --output-name k64-640x240-k64f-16px-x2w
+python tools/gen_font.py game/320x240/k64-320-k64f-visual16-12px.ttf --no-merge --font-size 12 --cell-height 16 --output-dir game/320x240 --output-name k64-320-k64f-visual16-12px
+python tools/gen_font.py src/komm64Fantasy.ttf --no-merge --output-dir game/640x480 --output-name k64-640x480-k64f-16px
 
 # README preview images for all monitor targets.
 python tools/render_readme_previews.py

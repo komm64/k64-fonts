@@ -39,11 +39,11 @@
         "j": "web/k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2"
       },
       "game": {
-        "thai": "game/k64-thai-pixel-12w-or12-y2x-prop_x2w.ttf",
-        "arabic": "game/k64-arabic-sans-medium-pixel-20px-thin-y1.ttf",
-        "k64f": "game/komm64Fantasy_v1.37_16px_bitmap_x2w.fnt",
-        "ck": "src/unifont-16px_12px_or1.ttf",
-        "j": "src/JF-Dot-ShinonomeMin16_12px_or1.ttf"
+        "thai": "game/640x240/k64-640x240-thai-pixel-12w-or12-y2x-prop-x2w.ttf",
+        "arabic": "game/640x240/k64-640x240-arabic-sans-medium-pixel-20px-thin-y1.ttf",
+        "k64f": "game/640x240/k64-640x240-k64f-16px-x2w.fnt",
+        "ck": "game/640x240/k64-640x240-ck-unifont-16px-or12.ttf",
+        "j": "game/640x240/k64-640x240-j-shinonome-mincho-16px-or12.ttf"
       }
     },
     "320x240": {
@@ -66,7 +66,7 @@
       "game": {
         "thai": "game/320x240/k64-320-thai-light-12px-mark16-max2.ttf",
         "arabic": "game/320x240/k64-320-arabic-light-12px.ttf",
-        "k64f": "game/320x240/k64-320-k64f-visual16-12px.ttf",
+        "k64f": "game/320x240/k64-320-k64f-visual16-12px.fnt",
         "ck": "game/320x240/k64-320-ck-unifont-12px.ttf",
         "j": "game/320x240/k64-320-j-shinonome-mincho-12px.ttf"
       }
@@ -91,7 +91,7 @@
       "game": {
         "thai": "game/640x480/k64-640x480-thai-light-16px.ttf",
         "arabic": "game/640x480/k64-640x480-arabic-light-16px.ttf",
-        "k64f": "src/komm64Fantasy.ttf",
+        "k64f": "game/640x480/k64-640x480-k64f-16px.fnt",
         "ck": "game/640x480/k64-640x480-ck-unifont-16px.ttf",
         "j": "game/640x480/k64-640x480-j-shinonome-mincho-16px.ttf"
       }

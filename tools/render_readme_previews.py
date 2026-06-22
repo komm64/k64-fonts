@@ -581,10 +581,10 @@ def render_640() -> Path:
     }
     k64 = {
         "latin": SRC / "komm64Fantasy.ttf",
-        "j": ensure_y2x_ttf(SRC / "JF-Dot-ShinonomeMin16_12px_or1.ttf", "k64-JF-Dot-ShinonomeMin16-or12-y2x"),
-        "ck": ensure_y2x_ttf(SRC / "unifont-16px_12px_or1.ttf", "k64-unifont-16px-or12-y2x"),
-        "thai": GAME / "k64-thai-pixel-12w-or12-y1-prop.ttf",
-        "arabic": GAME / "k64-arabic-sans-medium-pixel-20px-thin-y1.ttf",
+        "j": ensure_y2x_ttf(GAME / "640x240" / "k64-640x240-j-shinonome-mincho-16px-or12.ttf", "k64-JF-Dot-ShinonomeMin16-or12-y2x"),
+        "ck": ensure_y2x_ttf(GAME / "640x240" / "k64-640x240-ck-unifont-16px-or12.ttf", "k64-unifont-16px-or12-y2x"),
+        "thai": GAME / "640x240" / "k64-640x240-thai-pixel-12w-or12-y2x-prop-x2w.ttf",
+        "arabic": GAME / "640x240" / "k64-640x240-arabic-sans-medium-pixel-20px-thin-y1.ttf",
     }
     draw_inline(
         img,

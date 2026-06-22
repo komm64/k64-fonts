@@ -99,15 +99,20 @@ def _nn_scale(src):
     return dst
 
 
-def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False, hscale=1, cp_min=None, cp_max=None):
+def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False, hscale=1,
+             cp_min=None, cp_max=None, output_name=None, font_size=SRC_H, cell_height=None):
     name = os.path.splitext(os.path.basename(input_path))[0]
     # glyph_h: actual pixel rows of ink (12 if OR-merged, 16 if no-merge)
     # cell_h:  atlas row height, always SRC_H=16 so font_size=16 needs no scaling
-    glyph_h = SRC_H if no_merge else DST_H
-    cell_h  = SRC_H
+    glyph_h = font_size if no_merge else DST_H
+    cell_h = cell_height if cell_height is not None else SRC_H
+    if not no_merge and font_size != SRC_H:
+        print(f"\nERROR: OR-merge bitmap output expects --font-size {SRC_H}", file=sys.stderr)
+        return
     yoffset = cell_h - glyph_h  # bottom-align compressed glyphs within the cell
-    hscale_tag = f"_x{hscale}w" if hscale != 1 else ""
-    output_name = f"{name}_{glyph_h}px" + ("" if no_merge else f"_or{or_pair}") + hscale_tag
+    if output_name is None:
+        hscale_tag = f"_x{hscale}w" if hscale != 1 else ""
+        output_name = f"{name}_{glyph_h}px" + ("" if no_merge else f"_or{or_pair}") + hscale_tag
     print(f"[{name}] {'no-merge' if no_merge else 'or_pair=' + str(or_pair)}{' hscale=' + str(hscale) if hscale != 1 else ''}", end="", flush=True)
 
     tt = TTLibFont(input_path)
@@ -124,10 +129,11 @@ def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False, hs
         codepoints = codepoints[:max_chars]
     print(f"  {len(codepoints)} glyphs", end="", flush=True)
 
-    pil_font = ImageFont.truetype(input_path, SRC_H)
+    pil_font = ImageFont.truetype(input_path, font_size)
     ascent, _descent = pil_font.getmetrics()
 
     glyphs = []
+    empty_glyphs = []
     for cp in codepoints:
         char = chr(cp)
         try:
@@ -135,7 +141,10 @@ def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False, hs
             advance = int(round(pil_font.getlength(char)))
         except Exception:
             continue
-        if bbox is None or advance <= 0:
+        if advance <= 0:
+            continue
+        if bbox is None:
+            empty_glyphs.append((cp, advance))
             continue
         cell_w = max(advance, 1)
         glyphs.append((cp, char, cell_w, advance))
@@ -154,9 +163,14 @@ def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False, hs
 
     # render: place glyph at bottom of its 16px cell slot
     sheet = np.zeros((sheet_h, SHEET_W), dtype=np.uint8)
+    empty_position_cps = set()
     for cp, char, sx, sy, cell_w, _adv in positions:
-        src = _rasterize(pil_font, char, cell_w)
+        src = _rasterize(pil_font, char, cell_w, font_size)
         dst = src if no_merge else _or_merge(src, or_pair)
+        if not dst.any():
+            empty_glyphs.append((cp, _adv))
+            empty_position_cps.add(cp)
+            continue
         if hscale != 1:
             dst = np.repeat(dst, hscale, axis=1)
         sheet[sy + yoffset:sy + yoffset + glyph_h, sx:sx + cell_w * hscale] = dst * 255
@@ -172,12 +186,16 @@ def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False, hs
     fnt_path = os.path.join(output_dir, f"{output_name}.fnt")
     # base: distance from cell top to baseline; scale proportionally then add top padding
     base = ascent if no_merge else round(ascent * glyph_h / SRC_H) + yoffset
-    with open(fnt_path, 'w', encoding='utf-8') as f:
-        f.write(f'info face="{name}" size={cell_h} bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=0 aa=0 padding=0,0,0,0 spacing=0,0\n')
+    with open(fnt_path, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(f'info face="{name}" size={font_size} bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=0 aa=0 padding=0,0,0,0 spacing=0,0\n')
         f.write(f'common lineHeight={cell_h} base={base} scaleW={SHEET_W} scaleH={sheet_h} pages=1 packed=0\n')
         f.write(f'page id=0 file="{png_name}"\n')
-        f.write(f'chars count={len(positions)}\n')
+        f.write(f'chars count={len(positions) - len(empty_position_cps) + len(empty_glyphs)}\n')
+        for cp, adv in empty_glyphs:
+            f.write(f'char id={cp} x=0 y=0 width=0 height=0 xoffset=0 yoffset=0 xadvance={adv * hscale} page=0 chnl=15\n')
         for cp, _char, sx, sy, cell_w, adv in positions:
+            if cp in empty_position_cps:
+                continue
             f.write(f'char id={cp} x={sx} y={sy + yoffset} width={cell_w * hscale} height={glyph_h} xoffset=0 yoffset={yoffset} xadvance={adv * hscale} page=0 chnl=15\n')
 
     print(f"  → {output_name}.fnt + .png  (sheet {SHEET_W}×{sheet_h}, cell={cell_h}px glyph={glyph_h}px)")
@@ -355,7 +373,11 @@ def main():
     ap.add_argument('--format', choices=['bitmap', 'ttf'], default='bitmap',
                     help='output format: bitmap (.fnt+.png) or ttf (OR-merged pixel outlines, shaping tables preserved)')
     ap.add_argument('--output-name', default=None,
-                    help='override output filename stem (ttf format only; useful when generating range-filtered subsets)')
+                    help='override output filename stem')
+    ap.add_argument('--font-size', type=int, default=SRC_H,
+                    help='FreeType pixel size for bitmap output')
+    ap.add_argument('--cell-height', type=int, default=None,
+                    help='line height / atlas cell height for bitmap output')
     ap.add_argument('--cp-exclude-ranges', default=None,
                     help='comma-separated ranges to strip from cmap (e.g. 0x3000-0x303F,0xFF00-0xFFEF)')
     ap.add_argument('--no-merge-ttf', action='store_true',
@@ -382,7 +404,8 @@ def main():
                          no_merge=args.no_merge_ttf, hscale=args.hscale_ttf)
         else:
             gen_font(path, args.or_pair, args.output_dir, args.max_chars, no_merge=args.no_merge, hscale=args.hscale,
-                     cp_min=args.cp_min, cp_max=args.cp_max)
+                     cp_min=args.cp_min, cp_max=args.cp_max, output_name=args.output_name,
+                     font_size=args.font_size, cell_height=args.cell_height)
 
 
 if __name__ == '__main__':

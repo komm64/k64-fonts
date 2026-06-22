@@ -9,15 +9,15 @@ const OSD_BG := Color(0.04, 0.05, 0.06, 0.80)
 const OSD_INK := Color(0.93, 0.96, 0.96)
 
 const FONTS_640X240 := {
-	"k64f": "res://game/komm64Fantasy_v1.37_16px_bitmap_x2w.fnt",
-	"j": "res://src/JF-Dot-ShinonomeMin16_12px_or1.ttf",
-	"ck": "res://src/unifont-16px_12px_or1.ttf",
-	"thai": "res://game/k64-thai-pixel-12w-or12-y2x-prop_x2w.ttf",
-	"arabic": "res://game/k64-arabic-sans-medium-pixel-20px-thin-y1.ttf",
+	"k64f": "res://game/640x240/k64-640x240-k64f-16px-x2w.fnt",
+	"j": "res://game/640x240/k64-640x240-j-shinonome-mincho-16px-or12.ttf",
+	"ck": "res://game/640x240/k64-640x240-ck-unifont-16px-or12.ttf",
+	"thai": "res://game/640x240/k64-640x240-thai-pixel-12w-or12-y2x-prop-x2w.ttf",
+	"arabic": "res://game/640x240/k64-640x240-arabic-sans-medium-pixel-20px-thin-y1.ttf",
 }
 
 const FONTS_320X240 := {
-	"k64f": "res://game/320x240/k64-320-k64f-visual16-12px.ttf",
+	"k64f": "res://game/320x240/k64-320-k64f-visual16-12px.fnt",
 	"j": "res://game/320x240/k64-320-j-shinonome-mincho-12px.ttf",
 	"ck": "res://game/320x240/k64-320-ck-unifont-12px.ttf",
 	"thai": "res://game/320x240/k64-320-thai-light-12px-mark16-max2.ttf",
@@ -25,7 +25,7 @@ const FONTS_320X240 := {
 }
 
 const FONTS_640X480 := {
-	"k64f": "res://src/komm64Fantasy.ttf",
+	"k64f": "res://game/640x480/k64-640x480-k64f-16px.fnt",
 	"j": "res://game/640x480/k64-640x480-j-shinonome-mincho-16px.ttf",
 	"ck": "res://game/640x480/k64-640x480-ck-unifont-16px.ttf",
 	"thai": "res://game/640x480/k64-640x480-thai-light-16px.ttf",
