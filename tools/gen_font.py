@@ -148,10 +148,16 @@ def _nn_scale(src):
 def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False, hscale=1,
              cp_min=None, cp_max=None, output_name=None, font_size=SRC_H, cell_height=None):
     name = os.path.splitext(os.path.basename(input_path))[0]
-    # glyph_h: actual pixel rows of ink (12 if OR-merged, 16 if no-merge)
-    # cell_h:  atlas row height, always SRC_H=16 so font_size=16 needs no scaling
-    glyph_h = font_size if no_merge else DST_H
+    # glyph_h: actual raster rows stored for each glyph. An explicit cell height
+    # also defines the raster height in no-merge mode, allowing a 12px face with
+    # 12px ascent + 4px descent to retain its full 16px bitmap.
     cell_h = cell_height if cell_height is not None else SRC_H
+    glyph_h = (
+        cell_h if no_merge and cell_height is not None
+        else font_size if no_merge
+        else DST_H
+    )
+    raster_h = glyph_h if no_merge else font_size
     if not no_merge and font_size != SRC_H:
         print(f"\nERROR: OR-merge bitmap output expects --font-size {SRC_H}", file=sys.stderr)
         return
@@ -211,7 +217,7 @@ def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False, hs
     sheet = np.zeros((sheet_h, SHEET_W), dtype=np.uint8)
     empty_position_cps = set()
     for cp, char, sx, sy, cell_w, _adv in positions:
-        src = _rasterize(pil_font, char, cell_w, font_size)
+        src = _rasterize(pil_font, char, cell_w, raster_h)
         dst = src if no_merge else _or_merge(src, or_pair)
         if not dst.any():
             empty_glyphs.append((cp, _adv))
@@ -423,7 +429,7 @@ def main():
     ap.add_argument('--font-size', type=int, default=SRC_H,
                     help='FreeType pixel size for bitmap output')
     ap.add_argument('--cell-height', type=int, default=None,
-                    help='line height / atlas cell height for bitmap output')
+                    help='line/atlas height; with --no-merge, also preserves this many raster rows')
     ap.add_argument('--cp-exclude-ranges', default=None,
                     help='comma-separated ranges to strip from cmap (e.g. 0x3000-0x303F,0xFF00-0xFFEF)')
     ap.add_argument('--no-merge-ttf', action='store_true',

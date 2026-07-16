@@ -346,6 +346,7 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 | `stretch_ttf_x2w.py` | Reecho's horizontal 2× scaler (preserves GPOS anchors) |
 | `inspect_font.py` | Probe glyph coverage, metrics, OFL compliance |
 | `render_pangrams.py` | Multi-language pangram visual QA |
+| `render_social_specimens.py` | Pixel-exact 320x240 / 640x480 K64F language cards plus integer-scaled SNS copies |
 | `render_readcheck.py` | Confusable-pair visual QA (Il1, O0, rn/m, etc.) |
 | `diff_fonts.py` | Glyph + metrics diff between two TTFs |
 | `render_readme_previews.py` | Render the README preview images for the 640x240, 320x240, and 640x480 targets |
