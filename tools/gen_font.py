@@ -11,8 +11,8 @@ OR-merge: each group of 4 source rows produces 3 output rows.
   1: row0, OR(row1,row2), row3       ← merges middle (default)
   2: row0, row1, OR(row2,row3)       ← merges bottom of each group
 
-Dependencies: Pillow, numpy, fontTools
-  pip install Pillow numpy fonttools
+Dependencies: Pillow, numpy, fontTools, freetype-py
+  pip install Pillow numpy fonttools freetype-py
 
 Usage:
   python tools/gen_font.py tmp/fonts/JF-Dot-ShinonomeMin16.ttf --or-pair 1
@@ -25,13 +25,59 @@ import io
 import os
 import sys
 import math
+import freetype
 import numpy as np
-from PIL import Image, ImageFont
+from PIL import Image
 from fontTools.ttLib import TTFont as TTLibFont
 
 SRC_H = 16
 DST_H = 12
 SHEET_W = 1024
+
+# Unhinted mono rendering: the pixel fonts this tool consumes are exactly
+# grid-aligned, so hinting can only move ink. FreeType >= 2.14 (bundled in
+# Pillow >= 12) autohints diacritics with a vertical-separation adjustment
+# that splits grid-aligned marks and pushes them above the ascender.
+FT_FLAGS = (freetype.FT_LOAD_RENDER | freetype.FT_LOAD_TARGET_MONO |
+            freetype.FT_LOAD_MONOCHROME | freetype.FT_LOAD_NO_HINTING |
+            freetype.FT_LOAD_NO_AUTOHINT)
+
+
+class PixelFont:
+    """ImageFont-shaped facade over unhinted FreeType mono rendering."""
+
+    def __init__(self, path, size):
+        self._face = freetype.Face(path)
+        self._face.set_pixel_sizes(0, size)
+
+    def getmetrics(self):
+        m = self._face.size
+        return m.ascender >> 6, -(m.descender >> 6)
+
+    def _load(self, char):
+        self._face.load_char(char, FT_FLAGS)
+        return self._face.glyph
+
+    def getlength(self, char):
+        return self._load(char).advance.x / 64.0
+
+    def getbbox(self, char):
+        """Ink bbox in cell coordinates (y=0 at ascender, downward). None if blank."""
+        g = self._load(char)
+        if g.bitmap.rows == 0 or g.bitmap.width == 0:
+            return None
+        ascent, _ = self.getmetrics()
+        x0 = g.bitmap_left
+        y0 = ascent - g.bitmap_top
+        return (x0, y0, x0 + g.bitmap.width, y0 + g.bitmap.rows)
+
+    def bitmap(self, char):
+        """Glyph ink as a binary uint8 array (rows × width)."""
+        bmp = self._load(char).bitmap
+        if bmp.rows == 0 or bmp.width == 0:
+            return np.zeros((0, 0), dtype=np.uint8)
+        data = np.frombuffer(bytes(bmp.buffer), dtype=np.uint8).reshape(bmp.rows, abs(bmp.pitch))
+        return np.unpackbits(data, axis=1)[:, :bmp.width]
 
 
 def _or_merge(src, or_pair):
@@ -57,26 +103,26 @@ def _or_merge(src, or_pair):
     return dst
 
 
-def _rasterize(pil_font, char, cell_w, src_h=None):
-    """Rasterize one character into a src_h×cell_w binary uint8 array."""
+def _rasterize(font, char, cell_w, src_h=None):
+    """Rasterize one character into a src_h×cell_w binary uint8 array.
+
+    Ink outside the cell is clipped in place — negative offsets crop the
+    source instead of shifting the whole glyph into the cell."""
     if src_h is None:
         src_h = SRC_H
     cell = np.zeros((src_h, cell_w), dtype=np.uint8)
     try:
-        mask = pil_font.getmask(char, mode='L')
-        mw, mh = mask.size
-        if mw == 0 or mh == 0:
-            return cell
-        arr = (np.array(mask, dtype=np.uint8).reshape(mh, mw) > 127).astype(np.uint8)
-        bbox = pil_font.getbbox(char)
+        bbox = font.getbbox(char)
         if bbox is None:
             return cell
-        x0 = max(0, bbox[0])
-        y0 = max(0, bbox[1])
-        y1 = min(src_h, y0 + mh)
-        x1 = min(cell_w, x0 + mw)
-        if y1 > y0 and x1 > x0:
-            cell[y0:y1, x0:x1] = arr[:y1-y0, :x1-x0]
+        arr = font.bitmap(char)
+        x0, y0 = bbox[0], bbox[1]
+        sy, sx = max(0, -y0), max(0, -x0)
+        dy, dx = max(0, y0), max(0, x0)
+        h = min(src_h - dy, arr.shape[0] - sy)
+        w = min(cell_w - dx, arr.shape[1] - sx)
+        if h > 0 and w > 0:
+            cell[dy:dy+h, dx:dx+w] = arr[sy:sy+h, sx:sx+w]
     except Exception:
         pass
     return cell
@@ -129,7 +175,7 @@ def gen_font(input_path, or_pair, output_dir, max_chars=None, no_merge=False, hs
         codepoints = codepoints[:max_chars]
     print(f"  {len(codepoints)} glyphs", end="", flush=True)
 
-    pil_font = ImageFont.truetype(input_path, font_size)
+    pil_font = PixelFont(input_path, font_size)
     ascent, _descent = pil_font.getmetrics()
 
     glyphs = []
@@ -229,7 +275,7 @@ def gen_font_ttf(input_path, or_pair, output_dir, max_chars=None, cp_min=None, c
     if max_chars: codepoints = codepoints[:max_chars]
     print(f"  {len(codepoints)} glyphs", end="", flush=True)
 
-    pil_font = ImageFont.truetype(input_path, SRC_H)
+    pil_font = PixelFont(input_path, SRC_H)
     pil_ascent, _ = pil_font.getmetrics()
 
     # UPM=1600: 1 canvas pixel = 100 font units at font_size=16
