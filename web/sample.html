@@ -31,37 +31,37 @@
 
     @font-face {
       font-family: "K64 J";
-      src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2") format("woff2");
+      src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2?v=cjk-baseline-3") format("woff2");
       font-display: swap;
     }
 
     @font-face {
       font-family: "K64 CK";
-      src: url("./k64-unifont-16px-or12-y2x.woff2") format("woff2");
+      src: url("./k64-unifont-16px-or12-y2x.woff2?v=cjk-baseline-3") format("woff2");
       font-display: swap;
     }
 
     @font-face {
       font-family: "K64 CK Scan Upper";
-      src: url("./k64-unifont-16px-or12-y2x-scan-erase-upper.woff2") format("woff2");
+      src: url("./k64-unifont-16px-or12-y2x-scan-erase-upper.woff2?v=cjk-baseline-3") format("woff2");
       font-display: swap;
     }
 
     @font-face {
       font-family: "K64 CK Scan Lower";
-      src: url("./k64-unifont-16px-or12-y2x-scan-erase-lower.woff2") format("woff2");
+      src: url("./k64-unifont-16px-or12-y2x-scan-erase-lower.woff2?v=cjk-baseline-3") format("woff2");
       font-display: swap;
     }
 
     @font-face {
       font-family: "K64 J Scan Upper";
-      src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x-scan-erase-upper.woff2") format("woff2");
+      src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x-scan-erase-upper.woff2?v=cjk-baseline-3") format("woff2");
       font-display: swap;
     }
 
     @font-face {
       font-family: "K64 J Scan Lower";
-      src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x-scan-erase-lower.woff2") format("woff2");
+      src: url("./k64-JF-Dot-ShinonomeMin16-or12-y2x-scan-erase-lower.woff2?v=cjk-baseline-3") format("woff2");
       font-display: swap;
     }
 
@@ -123,7 +123,7 @@
 
     @font-face {
       font-family: "K64 320 J";
-      src: url("./320x240/k64-320-j-shinonome-mincho-12px.woff2") format("woff2");
+      src: url("./320x240/k64-320-j-shinonome-mincho-12px.woff2?v=cjk-up-1") format("woff2");
       font-display: swap;
     }
 
@@ -135,7 +135,7 @@
 
     @font-face {
       font-family: "K64 320 CK";
-      src: url("./320x240/k64-320-ck-unifont-12px.woff2") format("woff2");
+      src: url("./320x240/k64-320-ck-unifont-12px.woff2?v=cjk-up-1") format("woff2");
       font-display: swap;
     }
 
@@ -155,13 +155,13 @@
 
     @font-face {
       font-family: "K64 640x480 J";
-      src: url("./640x480/k64-640x480-j-shinonome-mincho-16px.woff2") format("woff2");
+      src: url("./640x480/k64-640x480-j-shinonome-mincho-16px.woff2?v=cjk-baseline-2") format("woff2");
       font-display: swap;
     }
 
     @font-face {
       font-family: "K64 640x480 CK";
-      src: url("./640x480/k64-640x480-ck-unifont-16px.woff2") format("woff2");
+      src: url("./640x480/k64-640x480-ck-unifont-16px.woff2?v=cjk-baseline-2") format("woff2");
       font-display: swap;
     }
 
@@ -462,9 +462,11 @@
     }
 
     .target-320 {
+      --stack-default: "K64 320 K64F", "K64 320 Arabic", "K64 320 Thai", "K64 320 CK", "K64 320 J", monospace;
+      --stack-ja: "K64 320 K64F", "K64 320 Arabic", "K64 320 Thai", "K64 320 J", "K64 320 CK", monospace;
       font-size: 12px;
       line-height: 16px;
-      font-family: "K64 320 K64F", "K64 320 Arabic", "K64 320 Thai", "K64 320 CK", "K64 320 J", monospace;
+      font-family: var(--stack-default);
     }
 
     .target-320 .latin {
@@ -474,57 +476,55 @@
     }
 
     .target-320 .j {
-      font-family: "K64 320 J", "K64 320 CK", monospace;
+      font-family: var(--stack-ja);
     }
 
-    .target-320 .ck {
-      font-family: "K64 320 CK", "K64 320 J", monospace;
-    }
-
+    .target-320 .ck,
     .target-320 .thai {
-      font-family: "K64 320 Thai", monospace;
+      font-family: var(--stack-default);
     }
 
     .target-320 .arabic-run {
-      font-family: "K64 320 Arabic", monospace;
+      font-family: var(--stack-default);
       font-size: 12px;
       line-height: 1;
     }
 
     .target-640 {
+      --stack-default: "K64 Fantasy", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 CK", "K64 640x480 J", monospace;
+      --stack-ja: "K64 Fantasy", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 J", "K64 640x480 CK", monospace;
       font-size: 16px;
-      line-height: 1;
-      font-family: "K64 Fantasy", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 CK", "K64 640x480 J", monospace;
+      line-height: 16px;
+      font-family: var(--stack-default);
     }
 
     .target-640 .latin {
       font-family: "K64 Fantasy", monospace;
       font-size: 16px;
-      line-height: 1;
+      line-height: 16px;
     }
 
     .target-640 .j {
-      font-family: "K64 640x480 J", "K64 640x480 CK", monospace;
+      font-family: var(--stack-ja);
     }
 
-    .target-640 .ck {
-      font-family: "K64 640x480 CK", "K64 640x480 J", monospace;
-    }
-
+    .target-640 .ck,
     .target-640 .thai {
-      font-family: "K64 640x480 Thai", monospace;
+      font-family: var(--stack-default);
     }
 
     .target-640 .arabic-run {
-      font-family: "K64 640x480 Arabic", monospace;
+      font-family: var(--stack-default);
       font-size: 16px;
-      line-height: 1;
+      line-height: 16px;
     }
 
     .target-reecho {
+      --stack-default: "K64 Fantasy 2X", "K64 Arabic Sans Medium Pixel", "K64 Thai 12W Prop", "K64 CK", "K64 J", monospace;
+      --stack-ja: "K64 Fantasy 2X", "K64 Arabic Sans Medium Pixel", "K64 Thai 12W Prop", "K64 J", "K64 CK", monospace;
       font-size: 32px;
       line-height: 1;
-      font-family: "K64 Fantasy 2X", "K64 Arabic Sans Medium Pixel", "K64 Thai 12W Prop", "K64 CK", "K64 J", monospace;
+      font-family: var(--stack-default);
     }
 
     .target-reecho .latin {
@@ -532,15 +532,12 @@
     }
 
     .target-reecho .j {
-      font-family: "K64 J", "K64 CK", monospace;
+      font-family: var(--stack-ja);
     }
 
-    .target-reecho .ck {
-      font-family: "K64 CK", "K64 J", monospace;
-    }
-
+    .target-reecho .ck,
     .target-reecho .thai {
-      font-family: "K64 Thai 12W Prop", monospace;
+      font-family: var(--stack-default);
     }
 
     .target-reecho .arabic-run {
@@ -553,6 +550,258 @@
       direction: rtl;
       text-align: right;
       unicode-bidi: plaintext;
+    }
+
+    .social-specimen-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .specimen-page-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+      align-items: start;
+    }
+
+    .pages-320 {
+      grid-template-columns: minmax(0, 322px);
+    }
+
+    .pages-640 {
+      grid-template-columns: minmax(0, 642px);
+    }
+
+    .specimen-page {
+      min-width: 0;
+    }
+
+    .specimen-page-title {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .specimen-scroll {
+      overflow: auto;
+      border: 1px solid var(--line);
+      background: #07101d;
+    }
+
+    .social-specimen {
+      position: relative;
+      flex: none;
+      background: #07101d;
+      color: #eff3e8;
+      font-synthesis: none;
+      text-rendering: auto;
+      -webkit-font-smoothing: none;
+      font-smooth: never;
+    }
+
+    html.specimen-capture,
+    html.specimen-capture body {
+      width: max-content;
+      min-width: 0;
+      height: max-content;
+      min-height: 0;
+      overflow: hidden;
+      background: #07101d;
+    }
+
+    html.specimen-capture .social-specimen {
+      margin: 0;
+      box-shadow: none;
+    }
+
+    .social-320 {
+      --stack-default: "K64 320 K64F", "K64 320 Arabic", "K64 320 Thai", "K64 320 CK", "K64 320 J", monospace;
+      --stack-ja: "K64 320 K64F", "K64 320 Arabic", "K64 320 Thai", "K64 320 J", "K64 320 CK", monospace;
+      width: 320px;
+      height: 512px;
+      font-family: var(--stack-default);
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    .social-240 {
+      --stack-default: "K64 Fantasy 2X", "K64 Arabic Sans Medium Pixel", "K64 Thai 12W Prop", "K64 CK", "K64 J", monospace;
+      --stack-ja: "K64 Fantasy 2X", "K64 Arabic Sans Medium Pixel", "K64 Thai 12W Prop", "K64 J", "K64 CK", monospace;
+      width: 640px;
+      height: 1104px;
+      font-family: var(--stack-default);
+      font-size: 32px;
+      line-height: 32px;
+    }
+
+    .social-640 {
+      --stack-default: "K64 Fantasy", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 CK", "K64 640x480 J", monospace;
+      --stack-ja: "K64 Fantasy", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 J", "K64 640x480 CK", monospace;
+      width: 640px;
+      height: 568px;
+      font-family: var(--stack-default);
+      font-size: 16px;
+      line-height: 16px;
+    }
+
+    .social-320 .role-k64f {
+      font-family: "K64 320 K64F", monospace;
+    }
+
+    .social-320 .role-ck {
+      font-family: var(--stack-default);
+    }
+
+    .social-320 .role-j {
+      font-family: var(--stack-ja);
+    }
+
+    .social-320 .role-arabic,
+    .social-320 .role-thai {
+      font-family: var(--stack-default);
+    }
+
+    .social-240 .role-k64f {
+      font-family: "K64 Fantasy 2X", monospace;
+    }
+
+    .social-240 .role-ck {
+      font-family: var(--stack-default);
+    }
+
+    .social-240 .role-j {
+      font-family: var(--stack-ja);
+    }
+
+    .social-240 .role-arabic,
+    .social-240 .role-thai {
+      font-family: var(--stack-default);
+    }
+
+    .social-240 .role-arabic {
+      font-size: 40px;
+      line-height: 32px;
+    }
+
+    .social-640 .role-k64f {
+      font-family: "K64 Fantasy", monospace;
+    }
+
+    .social-640 .role-ck {
+      font-family: var(--stack-default);
+    }
+
+    .social-640 .role-j {
+      font-family: var(--stack-ja);
+    }
+
+    .social-640 .role-arabic,
+    .social-640 .role-thai {
+      font-family: var(--stack-default);
+    }
+
+    .specimen-heading,
+    .specimen-footer {
+      position: absolute;
+      left: 8px;
+      color: #ffcf5c;
+      white-space: nowrap;
+    }
+
+    .social-320 .specimen-heading {
+      top: 0;
+    }
+
+    .social-240 .specimen-heading,
+    .social-640 .specimen-heading {
+      top: 8px;
+    }
+
+    .specimen-rule {
+      position: absolute;
+      top: 31px;
+      left: 8px;
+      width: 624px;
+      height: 1px;
+      background: #234352;
+    }
+
+    .social-240 .specimen-rule {
+      top: 47px;
+    }
+
+    .specimen-lines {
+      position: absolute;
+      left: 0;
+      width: 100%;
+    }
+
+    .social-320 .specimen-lines {
+      top: 16px;
+    }
+
+    .social-240 .specimen-lines {
+      top: 64px;
+    }
+
+    .social-640 .specimen-lines {
+      top: 40px;
+    }
+
+    .specimen-row {
+      display: grid;
+      height: 16px;
+      align-items: start;
+      white-space: nowrap;
+    }
+
+    .social-320 .specimen-row {
+      grid-template-columns: 56px minmax(0, 1fr);
+      column-gap: 8px;
+    }
+
+    .social-240 .specimen-row {
+      grid-template-columns: 112px minmax(0, 1fr);
+      column-gap: 16px;
+      height: 32px;
+    }
+
+    .social-640 .specimen-row {
+      grid-template-columns: 56px minmax(0, 1fr);
+      column-gap: 8px;
+      height: 16px;
+    }
+
+    .specimen-label {
+      color: #54d6c0;
+    }
+
+    .specimen-label,
+    .specimen-text {
+      line-height: 16px;
+    }
+
+    .social-640 .specimen-label,
+    .social-640 .specimen-text {
+      line-height: 16px;
+    }
+
+    .social-240 .specimen-label,
+    .social-240 .specimen-text {
+      line-height: 32px;
+    }
+
+    .specimen-text {
+      white-space: pre;
+    }
+
+    .social-640 .specimen-footer {
+      top: 544px;
+    }
+
+    .social-240 .specimen-footer {
+      top: 1064px;
     }
 
     .font-card-grid {
@@ -643,7 +892,10 @@
 
       .controls,
       .font-card-grid,
-      .target-grid {
+      .target-grid,
+      .social-specimen-grid,
+      .pages-320,
+      .pages-640 {
         grid-template-columns: 1fr;
       }
 
@@ -794,8 +1046,8 @@
             <strong>640x240 / Reecho x2</strong>
             <div class="target-screen target-reecho">
               <div class="target-line latin">HP 0123 / MENU / SCORE</div>
-              <div class="target-line j">こんにちは世界 0123</div>
-              <div class="target-line ck">漢字 龍龜 你好 안녕</div>
+              <div class="target-line j">MENU 日本語 jq 0123</div>
+              <div class="target-line ck">SCORE 漢字 你好 안녕 pq</div>
               <div class="target-line thai" lang="th">กี้ กํ่า เก้า น้ำ</div>
               <div class="target-line arabic-run" lang="ar" dir="rtl">السلام عليكم ١٢٣٤</div>
               <div class="target-line arabic-run" lang="ar" dir="rtl">ا أ إ آ ٠١٢٣٤٥٦٧٨٩</div>
@@ -806,8 +1058,8 @@
             <strong>320x240 square dot</strong>
             <div class="target-screen target-320">
               <div class="target-line latin">HP 0123 / MENU / SCORE</div>
-              <div class="target-line j">こんにちは世界 0123</div>
-              <div class="target-line ck">漢字 龍龜 你好 안녕</div>
+              <div class="target-line j">MENU 日本語 jq 0123</div>
+              <div class="target-line ck">SCORE 漢字 你好 안녕 pq</div>
               <div class="target-line thai" lang="th">กี้ กํ่า เก้า น้ำ</div>
               <div class="target-line arabic-run" lang="ar" dir="rtl">السلام عليكم ١٢٣٤</div>
               <div class="target-line arabic-run" lang="ar" dir="rtl">ا أ إ آ ٠١٢٣٤٥٦٧٨٩</div>
@@ -818,12 +1070,35 @@
             <strong>640x480 square dot</strong>
             <div class="target-screen target-640">
               <div class="target-line latin">HP 0123 / MENU / SCORE</div>
-              <div class="target-line j">こんにちは世界 0123</div>
-              <div class="target-line ck">漢字 龍龜 你好 안녕</div>
+              <div class="target-line j">MENU 日本語 jq 0123</div>
+              <div class="target-line ck">SCORE 漢字 你好 안녕 pq</div>
               <div class="target-line thai" lang="th">กี้ กํ่า เก้า น้ำ</div>
               <div class="target-line arabic-run" lang="ar" dir="rtl">السلام عليكم ١٢٣٤</div>
               <div class="target-line arabic-run" lang="ar" dir="rtl">ا أ إ آ ٠١٢٣٤٥٦٧٨٩</div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>k64-locale 31-language read check</h2>
+          <p class="note">Conventional pangrams and type specimens. Canonical order: Esperanto first, then Steam user share.</p>
+        </div>
+        <div class="social-specimen-grid">
+          <div class="font-card">
+            <strong>320x240 fonts / continuous 31-row sheet</strong>
+            <div id="localePages320" class="specimen-page-grid pages-320"></div>
+          </div>
+
+          <div class="font-card">
+            <strong>640x240 fonts / continuous 31-row tall-dot sheet</strong>
+            <div id="localePages240" class="specimen-page-grid pages-640"></div>
+          </div>
+
+          <div class="font-card">
+            <strong>640x480 fonts / continuous 31-row sheet</strong>
+            <div id="localePages640" class="specimen-page-grid pages-640"></div>
           </div>
         </div>
       </section>
@@ -930,6 +1205,183 @@ MENU SCORE</div>
   </div>
 
   <script>
+    // Canonical order: k64-locale/LANGUAGES.md (2026-04 Steam HW Survey).
+    const localeSamples = [
+      {"code":"eo","native":"Esperanto","role":"k64f","short":"Ĉu vi ŝatas ĵaŭdojn?","long":"Eĥoŝanĝo ĉiuĵaŭde — ĉu vi ŝatas pli ĵaŭdojn aŭ vendrojn?"},
+      {"code":"en","native":"English","role":"k64f","short":"Quick fox jumps over lazy dog.","long":"The quick brown fox jumps over the lazy dog."},
+      {"code":"zh-Hans","native":"中文 (简体)","role":"ck","short":"简体字：汉门车龙马云风。","long":"简体字：汉门车龙马云风。\n天地玄黄，宇宙洪荒。\n日月盈昃，辰宿列张。"},
+      {"code":"ru","native":"Русский","role":"k64f","short":"Съешь булок, выпей чаю.","long":"Съешь же ещё этих мягких французских булок, да выпей чаю."},
+      {"code":"es-ES","native":"Español (España)","role":"k64f","short":"El murciélago comía kiwi.","long":"El veloz murciélago hindú comía feliz cardillo y kiwi."},
+      {"code":"pt-BR","native":"Português (Brasil)","role":"k64f","short":"Luís argüia à Júlia.","long":"Luís argüia à Júlia que «brações, fé, chá,\nóxido, pôr» eram do português."},
+      {"code":"de","native":"Deutsch","role":"k64f","short":"Übung quält größeren Zwerg.","long":"Falsches Üben von Xylophonmusik quält jeden größeren Zwerg."},
+      {"code":"ko","native":"한국어","role":"ck","short":"다람쥐 헌 쳇바퀴에 타고파.","long":"다람쥐 헌 쳇바퀴에 타고파."},
+      {"code":"ja","native":"日本語","role":"j","short":"日本語の漢字とカタカナを表示します。","long":"色は匂へど 散りぬるを\n我が世誰ぞ 常ならむ\n有為の奥山 今日越えて\n浅き夢見じ 酔ひもせず"},
+      {"code":"fr","native":"Français","role":"k64f","short":"Le vieux château brille à Noël.","long":"Portez ce vieux whisky au juge blond qui fume."},
+      {"code":"pl","native":"Polski","role":"k64f","short":"Pchnąć w łódź jeża i fig.","long":"Pchnąć w tę łódź jeża lub ośm skrzyń fig."},
+      {"code":"zh-Hant","native":"中文 (繁體)","role":"ck","short":"繁體字：漢門車龍馬雲風。","long":"繁體字：漢門車龍馬雲風。\n天地玄黃，宇宙洪荒。\n日月盈昃，辰宿列張。"},
+      {"code":"tr","native":"Türkçe","role":"k64f","short":"Yağız şoföre güven.","long":"Pijamalı hasta yağız şoföre çabucak güvendi."},
+      {"code":"th","native":"ไทย","role":"thai","short":"เป็นมนุษย์สุดประเสริฐเลิศคุณค่า","long":"เป็นมนุษย์สุดประเสริฐเลิศคุณค่า กว่าบรรดาฝูงสัตว์เดรัจฉาน\nจงฝ่าฟันพัฒนาวิชาการ อย่าล้างผลาญฤๅเข่นฆ่าบีฑาใคร\nไม่ถือโทษโกรธแช่งซัดฮึดฮัดด่า หัดอภัยเหมือนกีฬาอัชฌาสัย\nปฏิบัติประพฤติกฎกำหนดใจ พูดจาให้จ๊ะๆ จ๋าๆ น่าฟังเอย ฯ"},
+      {"code":"es-419","native":"Español (Latinoamérica)","role":"k64f","short":"El murciélago comía kiwi.","long":"El veloz murciélago hindú comía feliz cardillo y kiwi."},
+      {"code":"uk","native":"Українська","role":"k64f","short":"Пʼять філософів біля ґанку.","long":"Жебракують філософи при ґанку церкви — пʼять років."},
+      {"code":"it","native":"Italiano","role":"k64f","short":"La volpe salta sul cane.","long":"Ma la volpe, col suo balzo, ha raggiunto il quieto Fido."},
+      {"code":"cs","native":"Čeština","role":"k64f","short":"Žluťoučký kůň úpěl.","long":"Příliš žluťoučký kůň úpěl ďábelské ódy."},
+      {"code":"hu","native":"Magyar","role":"k64f","short":"Árvíztűrő tükörfúrógép.","long":"Árvíztűrő tükörfúrógép."},
+      {"code":"sv","native":"Svenska","role":"k64f","short":"Bäckasiner söka mjuka tuvor.","long":"Flygande bäckasiner söka hwila på mjuka tuvor."},
+      {"code":"nl","native":"Nederlands","role":"k64f","short":"Pa's wijze lynx bij aquaduct.","long":"Pa's wijze lynx bezag vroom het fikse aquaduct."},
+      {"code":"vi","native":"Tiếng Việt","role":"k64f","short":"Tôi yêu tiếng nước tôi.","long":"Tôi yêu tiếng nước tôi từ khi mới ra đời người ơi."},
+      {"code":"id","native":"Bahasa Indonesia","role":"k64f","short":"Nasi goreng, ayam dan sambal.","long":"Saya makan nasi goreng dengan ayam dan sambal pedas."},
+      {"code":"ro","native":"Română","role":"k64f","short":"Muzicologă în bej vând whisky.","long":"Muzicologă în bej vând whisky și tequila, preț fix."},
+      {"code":"el","native":"Ελληνικά","role":"k64f","short":"Ξεσκεπάζω ψυχοφθόρα.","long":"Ξεσκεπάζω την ψυχοφθόρα βδελυγμία — Άά Έέ Ήή Ίί Όό Ύύ Ώώ."},
+      {"code":"pt-PT","native":"Português (Portugal)","role":"k64f","short":"Luís argüia à Júlia.","long":"Luís argüia à Júlia que «brações, fé, chá,\nóxido, pôr» eram do português."},
+      {"code":"ar","native":"العربية","role":"arabic","short":"نص حكيم له سر قاطع وذو شأن عظيم","long":"نص حكيم له سر قاطع وذو شأن عظيم\nمكتوب على ثوب أخضر ومغلف بجلد أزرق"},
+      {"code":"fi","native":"Suomi","role":"k64f","short":"Albert osti fagotin ja töräytti.","long":"Albert osti fagotin ja töräytti puhkuvan melodian."},
+      {"code":"bg","native":"Български","role":"k64f","short":"Чужд скърбен ден на изгрев.","long":"За миг бях в чужд скърбен ден на изгрев слънце."},
+      {"code":"no","native":"Norsk","role":"k64f","short":"Vår sære Zulu spilte whist.","long":"Vår sære Zulu fra badeøya spilte jo whist og quickstep."},
+      {"code":"da","native":"Dansk","role":"k64f","short":"Jordbær med fløde og klovn.","long":"Quizdeltagerne spiste jordbær med fløde, mens cirkusklovnen."}
+    ];
+
+    function getLocaleSampleText(sample, textKey) {
+      return sample[textKey] ?? sample.short;
+    }
+
+    function paginateLocaleSamples(textKey, maxRows, columnsPerPage) {
+      const columns = [];
+      let column = [];
+      let usedRows = 0;
+
+      localeSamples.forEach((sample, index) => {
+        const rowCount = getLocaleSampleText(sample, textKey).split("\n").length;
+        if (column.length > 0 && usedRows + rowCount > maxRows) {
+          columns.push(column);
+          column = [];
+          usedRows = 0;
+        }
+
+        column.push({ sample, rank: index + 1 });
+        usedRows += rowCount;
+      });
+
+      if (column.length > 0) {
+        columns.push(column);
+      }
+
+      const pages = [];
+      for (let index = 0; index < columns.length; index += columnsPerPage) {
+        pages.push(columns.slice(index, index + columnsPerPage));
+      }
+      return pages;
+    }
+
+    function renderLocalePages(containerId, target, options) {
+      const { textKey, maxRows, columnsPerPage } = options;
+      const container = document.getElementById(containerId);
+      const pages = paginateLocaleSamples(textKey, maxRows, columnsPerPage);
+      const pageCount = pages.length;
+      pages.forEach((pageColumns, pageIndex) => {
+        const pageSamples = pageColumns.flat();
+        const firstRank = pageSamples[0].rank;
+        const lastRank = pageSamples[pageSamples.length - 1].rank;
+        const page = document.createElement("div");
+        page.className = "specimen-page";
+
+        const pageTitle = document.createElement("strong");
+        pageTitle.className = "specimen-page-title";
+        pageTitle.textContent = `Page ${pageIndex + 1} / ranks ${firstRank}–${lastRank}`;
+        page.append(pageTitle);
+
+        const scroll = document.createElement("div");
+        scroll.className = "specimen-scroll";
+        const screen = document.createElement("div");
+        screen.className = `social-specimen social-${target}`;
+
+        const heading = document.createElement("div");
+        heading.className = "specimen-heading";
+        heading.textContent = target === "320"
+          ? `K64 LOCALE / 31 LANG / P${pageIndex + 1}-${pageCount}`
+          : target === "240"
+            ? `K64_LOCALE / 640x240 / 31 LANG / P${pageIndex + 1}-${pageCount}`
+            : `K64_LOCALE / 31 LANGUAGES / PAGE ${pageIndex + 1} OF ${pageCount}`;
+        screen.append(heading);
+
+        if (target !== "320") {
+          const rule = document.createElement("div");
+          rule.className = "specimen-rule";
+          screen.append(rule);
+        }
+
+        const lines = document.createElement("div");
+        lines.className = "specimen-lines";
+        pageColumns.forEach((columnSamples) => {
+          const column = document.createElement("div");
+          column.className = "specimen-column";
+          columnSamples.forEach(({ sample, rank }) => {
+            const row = document.createElement("div");
+            row.className = "specimen-row";
+
+            const label = document.createElement("span");
+            label.className = "specimen-label";
+            label.textContent = sample.code;
+            label.title = `${String(rank).padStart(2, "0")} — ${sample.native}`;
+
+            const text = document.createElement("span");
+            text.className = `specimen-text role-${sample.role}`;
+            text.lang = sample.code;
+            text.textContent = getLocaleSampleText(sample, textKey);
+            if (sample.code === "ar") {
+              text.classList.add("rtl");
+              text.dir = "rtl";
+            }
+
+            const lineCount = text.textContent.split("\n").length;
+            const rowHeight = target === "240" ? 32 : 16;
+            row.style.height = `${lineCount * rowHeight}px`;
+
+            row.append(label, text);
+            column.append(row);
+          });
+          lines.append(column);
+        });
+        screen.append(lines);
+
+        if (target !== "320") {
+          const footer = document.createElement("div");
+          footer.className = "specimen-footer";
+          footer.textContent = target === "240"
+            ? "EO FIRST / STEAM USER ORDER"
+            : "CANONICAL ORDER / EO FIRST / STEAM USER SHARE";
+          screen.append(footer);
+        }
+
+        scroll.append(screen);
+        page.append(scroll);
+        container.append(page);
+      });
+    }
+
+    function enableSpecimenCapture() {
+      const target = new URLSearchParams(window.location.search).get("specimen");
+      const containerIds = {
+        "320x240": "localePages320",
+        "640x240": "localePages240",
+        "640x480": "localePages640",
+      };
+      const containerId = containerIds[target];
+      if (!containerId) {
+        return;
+      }
+
+      const specimen = document.querySelector(`#${containerId} .social-specimen`);
+      if (!specimen) {
+        throw new Error(`Missing locale specimen for ${target}`);
+      }
+
+      document.documentElement.classList.add("specimen-capture");
+      document.body.replaceChildren(specimen);
+      document.fonts.ready.then(() => {
+        document.documentElement.dataset.captureReady = target;
+      });
+    }
+
     const root = document.documentElement;
     const sizeInput = document.getElementById("sizeInput");
     const fontSelect = document.getElementById("fontSelect");
@@ -946,8 +1398,24 @@ MENU SCORE</div>
 
     sizeInput.addEventListener("input", updateSize);
     fontSelect.addEventListener("change", updateEditorFont);
+    renderLocalePages("localePages320", "320", {
+      textKey: "short",
+      maxRows: 31,
+      columnsPerPage: 1,
+    });
+    renderLocalePages("localePages240", "240", {
+      textKey: "short",
+      maxRows: 31,
+      columnsPerPage: 1,
+    });
+    renderLocalePages("localePages640", "640", {
+      textKey: "short",
+      maxRows: 31,
+      columnsPerPage: 1,
+    });
     updateSize();
     updateEditorFont();
+    enableSpecimenCapture();
   </script>
 </body>
 </html>

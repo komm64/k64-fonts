@@ -1031,17 +1031,17 @@ def rewrite_name(font: TTFont) -> None:
 
 def update_metrics(font: TTFont, advance_width_max: int) -> None:
     font["head"].unitsPerEm = UPM
-    font["hhea"].ascent = 1100
-    font["hhea"].descent = -100
+    font["hhea"].ascent = ASC * PX
+    font["hhea"].descent = (ASC - DST_SIZE) * PX
     font["hhea"].lineGap = 0
     font["hhea"].advanceWidthMax = advance_width_max
     if "OS/2" in font:
         os2 = font["OS/2"]
-        os2.sTypoAscender = 1100
-        os2.sTypoDescender = -100
+        os2.sTypoAscender = ASC * PX
+        os2.sTypoDescender = (ASC - DST_SIZE) * PX
         os2.sTypoLineGap = 0
-        os2.usWinAscent = 1100
-        os2.usWinDescent = 100
+        os2.usWinAscent = ASC * PX
+        os2.usWinDescent = (DST_SIZE - ASC) * PX
         if hasattr(os2, "sxHeight"):
             os2.sxHeight = 0
         if hasattr(os2, "sCapHeight"):

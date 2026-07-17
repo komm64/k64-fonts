@@ -288,28 +288,40 @@ def gen_font_ttf(input_path, or_pair, output_dir, max_chars=None, cp_min=None, c
     old_upm   = tt['head'].unitsPerEm
     UPM       = SRC_H * 100         # 1600
     PX        = 100                  # font units per canvas pixel
-    glyph_h   = SRC_H if no_merge else DST_H
-    or_ascent = pil_ascent if no_merge else (glyph_h - 1)
+    glyph_h = SRC_H if no_merge else DST_H
+    # Compact CJK keeps the shared 12/4 line metrics, but the 640x240
+    # ideographic cell ends on the roman baseline: 12px above / 0px below.
+    glyph_ascent = pil_ascent if no_merge else glyph_h
+    line_ascent = pil_ascent if no_merge else 12
+    line_descent = (pil_ascent - glyph_h) if no_merge else -4
+    line_gap = 0
     upm_scale = UPM / old_upm
 
-    # Clone font via serialize/reload — preserves all shaping tables intact
+    # Clone font via serialize/reload — preserves all shaping tables intact.
+    # Embedded bitmap strikes describe the original source glyphs, however,
+    # and become stale as soon as the outlines are replaced below.  Leaving a
+    # matching ppem strike in the generated TTF makes FreeType/Godot render the
+    # old bitmap instead of the new OR-merged outlines.
     buf = io.BytesIO()
     tt.save(buf)
     buf.seek(0)
     new_tt = TTLibFont(buf)
+    for table in ('EBDT', 'EBLC'):
+        if table in new_tt:
+            del new_tt[table]
 
     # Update font-level metrics
     new_tt['head'].unitsPerEm = UPM
-    new_tt['hhea'].ascent    = or_ascent * PX
-    new_tt['hhea'].descent   = (or_ascent - glyph_h) * PX
-    new_tt['hhea'].lineGap   = (SRC_H - glyph_h) * PX   # pad to 16px total line
+    new_tt['hhea'].ascent = line_ascent * PX
+    new_tt['hhea'].descent = line_descent * PX
+    new_tt['hhea'].lineGap = line_gap * PX
     if 'OS/2' in new_tt:
         os2 = new_tt['OS/2']
-        os2.sTypoAscender  = or_ascent * PX
-        os2.sTypoDescender = (or_ascent - glyph_h) * PX
-        os2.sTypoLineGap   = (SRC_H - glyph_h) * PX
-        os2.usWinAscent    = or_ascent * PX
-        os2.usWinDescent   = max(0, glyph_h - or_ascent) * PX
+        os2.sTypoAscender = line_ascent * PX
+        os2.sTypoDescender = line_descent * PX
+        os2.sTypoLineGap = line_gap * PX
+        os2.usWinAscent = line_ascent * PX
+        os2.usWinDescent = max(0, -line_descent) * PX
 
     glyf_tbl = new_tt['glyf']
     hmtx     = new_tt['hmtx'].metrics   # gname → (adv_fu, lsb)
@@ -360,10 +372,10 @@ def gen_font_ttf(input_path, or_pair, output_dir, max_chars=None, cp_min=None, c
                 has_ink = True
                 x0, x1 = x * PX * hscale, (x + 1) * PX * hscale
                 # Run spans bitmap rows [y, y_end]. In font units:
-                # top (= top of row y) = (or_ascent - y) * PX
-                # bot (= bottom of row y_end) = (or_ascent - y_end - 1) * PX
-                y_top   = (or_ascent - y)         * PX
-                y_bot   = (or_ascent - y_end - 1) * PX
+                # top (= top of row y) = (glyph_ascent - y) * PX
+                # bot (= bottom of row y_end) = (glyph_ascent - y_end - 1) * PX
+                y_top = (glyph_ascent - y) * PX
+                y_bot = (glyph_ascent - y_end - 1) * PX
                 pen.moveTo((x0, y_bot))
                 pen.lineTo((x0, y_top))
                 pen.lineTo((x1, y_top))

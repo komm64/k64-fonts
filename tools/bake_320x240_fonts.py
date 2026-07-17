@@ -9,7 +9,7 @@ script writes the 320x240-specific square-dot fonts under:
   docs/320x240/preview.png
 
 Final choices:
-  - Japanese: Shinonome Mincho 12px, embedded bitmap baseline fixed to 12/0
+  - Japanese: Shinonome Mincho 12px 1bpp strike -> pixel-square outlines
   - CK: Unifont 16px -> 12px drop-bridge repair for Chinese/Korean
   - Thai: Noto Sans Thai Light, 12px base glyphs with 16px upper/lower marks;
           upper marks use collision-aware max-up 2px per mark glyph
@@ -19,7 +19,9 @@ from __future__ import annotations
 
 import sys
 import math
+from array import array
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -28,9 +30,13 @@ import freetype
 import numpy as np
 import uharfbuzz as hb
 from fontTools.pens.ttGlyphPen import TTGlyphPen
-from fontTools.ttLib import TTFont, woff2
+from fontTools.ttLib import TTFont, newTable, woff2
+from fontTools.ttLib.scaleUpem import scale_upem
 from fontTools.ttLib.tables._g_l_y_f import Glyph as TtGlyph
+from fontTools.ttLib.tables.ttProgram import Program
 from PIL import Image, ImageDraw, ImageFont
+
+from k64f_web_hint import save_hinted_woff2
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
@@ -89,11 +95,28 @@ def set_line_metrics(tt: TTFont, ascent: int, descent: int) -> None:
         os2.usWinDescent = max(-descent, 0)
 
 
+def shift_embedded_bitmap_y(tt: TTFont, pixels: int) -> None:
+    """Move embedded horizontal bitmap strikes without changing their pixels."""
+    if "EBLC" not in tt or pixels == 0:
+        return
+    for strike in tt["EBLC"].strikes:
+        hori = strike.bitmapSizeTable.hori
+        hori.ascender += pixels
+        hori.descender += pixels
+        hori.maxBeforeBL += pixels
+        hori.minAfterBL += pixels
+        for subtable in strike.indexSubTables:
+            metrics = getattr(subtable, "metrics", None)
+            if metrics is not None and hasattr(metrics, "horiBearingY"):
+                metrics.horiBearingY += pixels
+
+
 def save_ttf_and_woff2(
     tt: TTFont,
     stem: str,
     *,
     transform_tables: bool = True,
+    hint_k64f_web: bool = False,
     game_dir: Path = GAME,
     web_dir: Path = WEB,
 ) -> tuple[Path, Path]:
@@ -102,7 +125,9 @@ def save_ttf_and_woff2(
     ttf_path = game_dir / f"{stem}.ttf"
     woff_path = web_dir / f"{stem}.woff2"
     tt.save(ttf_path)
-    if transform_tables:
+    if hint_k64f_web:
+        save_hinted_woff2(TTFont(ttf_path), woff_path, transform_tables=transform_tables)
+    elif transform_tables:
         woff = TTFont(ttf_path)
         woff.flavor = "woff2"
         woff.save(woff_path)
@@ -111,27 +136,88 @@ def save_ttf_and_woff2(
     return ttf_path, woff_path
 
 
-def fix_shinonome_bitmap_baseline() -> tuple[Path, Path]:
+def bake_shinonome_12px() -> tuple[Path, Path]:
     source = SRC / "JF-Dot-ShinonomeMin12.ttf"
     if not source.exists():
         raise FileNotFoundError(source)
-    tt = TTFont(source)
-    upm = tt["head"].unitsPerEm
-    set_line_metrics(tt, upm, 0)
-    if "EBLC" in tt:
-        for strike in tt["EBLC"].strikes:
-            hori = strike.bitmapSizeTable.hori
-            hori.ascender = 12
-            hori.descender = 0
-            hori.maxBeforeBL = 12
-            hori.minAfterBL = 0
-            for sub in strike.indexSubTables:
-                metrics = getattr(sub, "metrics", None)
-                if metrics is not None and getattr(metrics, "height", None) == 12:
-                    metrics.horiBearingY = 12
+
     stem, family = OUT["j"]
-    set_names(tt, family, "K64320JShinonomeMincho12px-Regular")
-    return save_ttf_and_woff2(tt, stem)
+
+    # FreeType/Godot can use the source's 1bpp strike directly.  Raise its
+    # native 10/-2 cell by one pixel to 11/-1 while keeping K64F's shared
+    # 12/4 line box.
+    game_tt = TTFont(source)
+    game_upm = game_tt["head"].unitsPerEm
+    set_line_metrics(game_tt, game_upm, -round(game_upm * 4 / 12))
+    shift_embedded_bitmap_y(game_tt, 1)
+    set_names(game_tt, family, "K64320JShinonomeMincho12px-Regular")
+    game_tt["head"].modified = game_tt["head"].created
+    game_tt.recalcTimestamp = False
+    game_path = GAME / f"{stem}.ttf"
+    game_tt.save(game_path)
+
+    # Chromium's web-font path does not reliably expose Shinonome's 1bpp
+    # EBDT format-5 strike.  Rebuild glyf from that canonical 12px strike so
+    # every ON bitmap pixel becomes one 1px square outline at font-size 12px.
+    face = freetype.Face(str(source))
+    tt = TTFont(source)
+    scale_upem(tt, UPM)
+    glyph_order = tt.getGlyphOrder()
+    glyf = tt["glyf"]
+    hmtx = tt["hmtx"].metrics
+
+    for table in ["fpgm", "prep", "cvt ", "EBDT", "EBLC"]:
+        if table in tt:
+            del tt[table]
+
+    # Disable dropout control without moving points.  The presence of the
+    # minimal native hint tables also prevents FreeType/Skia from selecting
+    # an auto-hinter that would thicken the 1px strokes.
+    pixel_hint_program = [0xB0, 0x00, 0x85, 0x00]  # PUSHB 0; SCANCTRL; SVTCA[y]
+    for tag, bytecode in [("prep", pixel_hint_program)]:
+        table = newTable(tag)
+        table.program = Program()
+        table.program.fromBytecode(bytecode)
+        tt[tag] = table
+    cvt = newTable("cvt ")
+    cvt.values = array("h", [0])
+    tt["cvt "] = cvt
+
+    for gid, glyph_name in enumerate(glyph_order):
+        rendered = render_gid(face, gid, 12)
+        # Match the game strike's 11/-1 placement inside the shared 12/4 box.
+        glyph = emit_bitmap_glyph(rendered, y_shift=1)
+        # This native program changes no points; it only disables dropout.
+        glyph.program = Program()
+        glyph.program.fromBytecode(pixel_hint_program)
+        glyf[glyph_name] = glyph
+        box = glyph_bbox(glyph)
+        hmtx[glyph_name] = (
+            max(0, int(round(rendered.advance * PX))),
+            box[0] if box else 0,
+        )
+
+    tt["head"].unitsPerEm = UPM
+    tt["head"].yMin = -4 * PX
+    tt["head"].yMax = 12 * PX
+    tt["hhea"].advanceWidthMax = max(advance for advance, _lsb in hmtx.values())
+    set_line_metrics(tt, 12 * PX, -4 * PX)
+    if "maxp" in tt:
+        maxp = tt["maxp"]
+        maxp.maxZones = 1
+        maxp.maxTwilightPoints = 0
+        maxp.maxStorage = 0
+        maxp.maxFunctionDefs = 0
+        maxp.maxInstructionDefs = 0
+        maxp.maxStackElements = 1
+        maxp.maxSizeOfInstructions = len(pixel_hint_program)
+    set_names(tt, family, "K64320JShinonomeMincho12pxPixel-Regular")
+    tt["head"].modified = tt["head"].created
+    tt.recalcTimestamp = False
+    tt.flavor = "woff2"
+    web_path = WEB / f"{stem}.woff2"
+    tt.save(web_path)
+    return game_path, web_path
 
 
 def bake_k64f_visual16_at_12px() -> tuple[Path, Path]:
@@ -173,31 +259,44 @@ def bake_k64f_visual16_at_12px() -> tuple[Path, Path]:
             os2.sCapHeight = int(round(os2.sCapHeight * scale))
     stem, family = OUT["k64f"]
     set_names(tt, family, "K64320K64FVisual16At12px-Regular")
-    return save_ttf_and_woff2(tt, stem)
+    return save_ttf_and_woff2(tt, stem, hint_k64f_web=True)
 
 
 def make_ck_font() -> tuple[Path, Path]:
     stem, family = OUT["ck"]
-    source = SRC / "k64-ck-unifont-12px-drop-bridge-asc1200-trial.ttf"
-    if not source.exists():
-        import bake_unifont_12px_drop as drop
+    import bake_unifont_12px_drop as drop
 
-        source = GAME / "_tmp-k64-320-ck-unifont-12px.ttf"
-        # The generic lab script defaults to ASC=11.  The final 320x240 CK
-        # face is bottom-aligned: 12 ink rows above the baseline, no descent.
-        drop.ASC = 12
+    # Match the raised Shinonome placement: 11px above and 1px below the
+    # shared roman baseline.  Generate from the canonical Unifont source so
+    # repeated bakes never accumulate Y shifts.
+    drop.ASC = 11
+    with TemporaryDirectory(prefix="k64-ck-") as temp_dir:
+        source = Path(temp_dir) / "k64-ck-unifont-12px.ttf"
         drop.bake(
             SRC / "unifont-16px.ttf",
             source,
+            tie_bias=drop.DEFAULT_TIE_BIAS,
+            block_lut_4x4=False,
+            similar_pair_local=False,
             drop_bridge_repair=True,
+            merge_cost_bridge_repair=False,
+            similar_pair_bridge_repair=False,
+            merge_lost_local=False,
+            merge_lost_local_diagonal=False,
+            merge_lost_local_add_only=False,
+            merge_cost_preselect_axes=False,
+            merge_cost_preselect_rows_first=False,
+            merge_cost_local=False,
+            merge_cost_local_diagonal=False,
+            max_chars=None,
         )
-    tt = TTFont(source)
-    set_line_metrics(tt, UPM, 0)
+        tt = TTFont(source, lazy=False)
+    set_line_metrics(tt, UPM, -4 * PX)
     if "head" in tt:
         tt["head"].unitsPerEm = UPM
     if "OS/2" in tt:
         tt["OS/2"].usWinAscent = UPM
-        tt["OS/2"].usWinDescent = 0
+        tt["OS/2"].usWinDescent = 4 * PX
     patch_ck_exclamation_marks(tt)
     set_names(tt, family, "K64320CKUnifont12px-Regular")
     return save_ttf_and_woff2(tt, stem, transform_tables=False)
@@ -238,9 +337,9 @@ def patch_ck_exclamation_marks(tt: TTFont) -> None:
 
     fullwidth_name = ck_cmap.get(0xFF01)
     if fullwidth_name:
-        cells = {(5, y) for y in range(5, 10)}
-        cells.update({(6, y) for y in range(5, 10)})
-        cells.update({(5, 1), (6, 1), (5, 2), (6, 2)})
+        cells = {(5, y) for y in range(4, 9)}
+        cells.update({(6, y) for y in range(4, 9)})
+        cells.update({(5, 0), (6, 0), (5, 1), (6, 1)})
         glyf[fullwidth_name] = make_cell_glyph(cells)
         hmtx[fullwidth_name] = (12 * PX, 5 * PX)
 
@@ -529,7 +628,7 @@ def bake_pixel_outline_font(
     mark_size: int = 16,
     upm: int = UPM,
     thai_mark16=False,
-    descent=-300,
+    descent=-400,
     game_dir: Path = GAME,
     web_dir: Path = WEB,
 ) -> tuple[Path, Path]:
@@ -609,7 +708,7 @@ def bake_thai() -> tuple[Path, Path]:
         family,
         "K64320ThaiLight12pxMark16Max2-Regular",
         thai_mark16=True,
-        descent=-300,
+        descent=-400,
     )
 
 
@@ -621,7 +720,7 @@ def bake_arabic() -> tuple[Path, Path]:
         family,
         "K64320ArabicLight12px-Regular",
         thai_mark16=False,
-        descent=-300,
+        descent=-400,
     )
 
 
@@ -700,7 +799,7 @@ def make_preview(paths: dict[str, Path]) -> Path:
 def main() -> int:
     outputs = {
         "k64f": bake_k64f_visual16_at_12px()[0],
-        "j": fix_shinonome_bitmap_baseline()[0],
+        "j": bake_shinonome_12px()[0],
         "ck": make_ck_font()[0],
         "thai": bake_thai()[0],
         "arabic": bake_arabic()[0],

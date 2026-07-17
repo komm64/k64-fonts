@@ -537,10 +537,9 @@ def ensure_y2x_ttf(src: Path, stem: str) -> Path:
     for gname in glyf.keys():
         apply_y2x_or_scanline_to_glyph(glyf[gname], dot_units, "none")
 
-    margin = 200
-    new_asc = tt["hhea"].ascent * 2 + margin
-    new_desc = tt["hhea"].descent * 2 - margin
-    new_line_gap = max(0, new_upm - (new_asc - new_desc))
+    new_asc = tt["hhea"].ascent * 2
+    new_desc = tt["hhea"].descent * 2
+    new_line_gap = tt["hhea"].lineGap * 2
 
     tt["head"].unitsPerEm = new_upm
     tt["head"].yMin = tt["head"].yMin * 2

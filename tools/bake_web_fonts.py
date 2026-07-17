@@ -12,7 +12,7 @@ Outputs (to web/):
 
 All baked fonts target font-size: 32px on the web, with em = 32 display px.
   - K64F 2x: 16w x 32h glyph fills the em (square dots 2x2 px)
-  - or12+y2x: 16w x 24h glyph (tall rect dots 1x2 px), sits at top of 32px line with 8px gap below
+  - or12+y2x: 16w x 24h glyph (tall rect dots 1x2 px), placed 20px above / 4px below baseline
 
 Name table for OFL-derived fonts is rewritten to OFL-safe names (no 'Unifont'/'Noto' brand).
 """
@@ -31,6 +31,8 @@ from fontTools.ttLib import TTFont, woff2
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib.tables._g_l_y_f import Glyph as TtGlyph
 from PIL import Image, ImageDraw, ImageFont
+
+from k64f_web_hint import save_hinted_woff2
 
 # ---------- paths ----------
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,7 +60,7 @@ SCANLINE_SUFFIX = {
 # Output metrics for "32px line" web display:
 # - 1 display pixel = 64 font units (so UPM aligns with K64F's 1024 scale)
 # - K64F 2x: glyph 32 disp px tall × 16 disp px wide, fills em (UPM=2048)
-# - or12+y2x: glyph 24 disp px tall × 16 disp px wide, top-aligned in 32 px line box
+# - or12+y2x: glyph 24 disp px tall × 16 disp px wide, at 20/-4 around baseline
 PX_X = 64           # font units per X display pixel
 PX_Y = 64           # font units per Y display pixel (square)
 UPM_OUT = 2048      # 32 display px * 64 units/px
@@ -291,20 +293,7 @@ def bake_k64f_2x(src_path: Path, out_path: Path, scanline: str = "none"):
                  full=f"{family} Regular", postscript=f"K64Fantasy2X{ps_suffix}-Regular",
                  unique=f"K64Fantasy2X{ps_suffix}-{src_upm}")
 
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    # Save TTF → reload → save woff2 to avoid woff2 glyf corruption after mutation
-    tmp_ttf = out_path.with_suffix(".ttf")
-    new_tt.save(str(tmp_ttf))
-    if scanline == "none":
-        tt2 = TTFont(str(tmp_ttf))
-        tt2.flavor = "woff2"
-        tt2.save(str(out_path))
-    else:
-        # The glyf transform is very slow for large bitmap-outline fonts
-        # such as Unifont. WOFF2 without table transforms is still valid and
-        # keeps scanline variants practical to generate.
-        woff2.compress(str(tmp_ttf), str(out_path), transform_tables=set())
-    tmp_ttf.unlink()
+    save_hinted_woff2(new_tt, out_path, transform_tables=scanline == "none")
     print(f"  → {out_path.name}")
 
 
@@ -325,27 +314,27 @@ def bake_thai_from_reecho_x2w(src_path: Path, out_path: Path,
 
 # ---------- bake: K64F source-as-woff2 (1x, no transformation) ----------
 def bake_k64f_1x(src_path: Path, out_path: Path):
-    """Just compress K64F source to woff2, no glyph changes."""
+    """Compress K64F source to hinted WOFF2 without changing its outlines."""
     print(f"[k64f-1x] reading {src_path.name}")
     tt = TTFont(str(src_path))
     rewrite_name(tt, family="K64 Fantasy", style="Regular",
                  full="K64 Fantasy Regular", postscript="K64Fantasy-Regular",
                  unique="K64Fantasy-1x")
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    tt.flavor = "woff2"
-    tt.save(str(out_path))
+    save_hinted_woff2(tt, out_path)
     print(f"  → {out_path.name}")
 
 
 # ---------- bake: y2x from Reecho-pre-merged TTF ----------
 def bake_y2x_from_reecho_merged(src_path: Path, out_path: Path,
                                 family: str, postscript: str,
-                                scanline: str = "none"):
+                                scanline: str = "none",
+                                transform_tables: bool = True):
     """Take Reecho's already-OR-merged TTF (UPM=1600, 12 tall glyph, 100 units/design-px)
     and apply Y-2x scaling. Result: 1 source design pixel becomes 1 disp px wide × 2 disp px tall.
 
     Math:
-      - Source: UPM=1600, asc=1100, desc=-100, lineGap=400. 100 units = 1 design pixel.
+      - Source: UPM=1600, line metrics 1200/-400, glyph cell 1200/0.
+        100 units = 1 design pixel.
       - At target font-size 32px, target line = 32 disp px.
       - To make X stay at 1 disp px per source design px AND Y at 2 disp px per source design px:
         - Y2X scale: multiply all Y coords by 2
@@ -359,6 +348,13 @@ def bake_y2x_from_reecho_merged(src_path: Path, out_path: Path,
     print(f"  source: UPM={src_upm}  asc={tt['hhea'].ascent}  desc={tt['hhea'].descent}  lineGap={tt['hhea'].lineGap}")
     print(f"  scanline: {scanline}")
 
+    # The source TTF's outlines are the OR-merged face.  Any embedded strike
+    # still represents the original 16px source and must not survive into the
+    # transformed web font.
+    for table in ('EBDT', 'EBLC'):
+        if table in tt:
+            del tt[table]
+
     # Scale Y only. UPM doubles to preserve X-per-disp-px at font-size 32.
     new_upm = src_upm * 2   # 1600 → 3200
 
@@ -369,19 +365,11 @@ def bake_y2x_from_reecho_merged(src_path: Path, out_path: Path,
     for gname in glyf.keys():
         apply_y2x_or_scanline_to_glyph(glyf[gname], dot_units, scanline)
 
-    # Update metrics: add 2-disp-px margin between glyph edges and asc/desc.
-    # Without margin (asc == glyph yMax), FreeType anti-aliases the top edge,
-    # rendering it as a 1-disp-px row instead of the full 2-disp-px-tall dot.
-    # This breaks the "1×2 tall rect dot" invariant.
-    # Source: asc=1100, desc=-100 (glyph top/bot at edges). After y2x without margin
-    # would be asc=2200, desc=-200. With +200 margin each side: asc=2400, desc=-400.
-    MARGIN = 200   # 2 disp px = 200 units (in UPM=3200, font-size=32 → 100 u/px)
-    new_asc  = tt['hhea'].ascent  * 2 + MARGIN     # e.g. 1100*2 + 200 = 2400
-    new_desc = tt['hhea'].descent * 2 - MARGIN     # e.g. -100*2 - 200 = -400
-    # lineGap pads to total line height of UPM (= K64F 2x line at font-size 32)
-    new_lineGap = new_upm - (new_asc - new_desc)   # e.g. 3200 - 2400 - 400 = 400
-    if new_lineGap < 0:
-        new_lineGap = 0
+    # Double the shared 12/4 line contract to K64F 2x's 24/8 contract.
+    # The glyph cell independently becomes 24px above / 0px below baseline.
+    new_asc = tt['hhea'].ascent * 2
+    new_desc = tt['hhea'].descent * 2
+    new_lineGap = tt['hhea'].lineGap * 2
 
     tt['head'].unitsPerEm = new_upm
     tt['hhea'].ascent  = new_asc
@@ -407,9 +395,15 @@ def bake_y2x_from_reecho_merged(src_path: Path, out_path: Path,
     # corrupts the glyf stream when contours were mutated in memory).
     tmp_ttf = out_path.with_suffix(".ttf")
     tt.save(str(tmp_ttf))
-    tt2 = TTFont(str(tmp_ttf))
-    tt2.flavor = "woff2"
-    tt2.save(str(out_path))
+    if transform_tables:
+        tt2 = TTFont(str(tmp_ttf))
+        tt2.flavor = "woff2"
+        tt2.save(str(out_path))
+    else:
+        # The glyf transform is pathologically slow for Unifont's ~57k
+        # rectangle-heavy glyphs.  Untransformed WOFF2 is equivalent at render
+        # time and is also the established path for the 640x480 CK output.
+        woff2.compress(str(tmp_ttf), str(out_path), transform_tables=set())
     tmp_ttf.unlink()
     print(f"  → {out_path.name}  (new UPM={new_upm})")
 
@@ -597,7 +591,7 @@ def main(argv=None):
         bake_y2x_from_reecho_merged(SRC_UNI_OR12,
             OUT_DIR / f"k64-unifont-16px-or12-y2x{ck_suffix}.woff2",
             family="K64 CK", postscript=f"K64CK-OR12-Y2X{scan_suffix}",
-            scanline=args.scanline)
+            scanline=args.scanline, transform_tables=False)
     else:
         print("[unifont] skipped; pass --include-unifont to regenerate the large CK font")
 

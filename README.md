@@ -16,6 +16,26 @@ komm64 pixel font ecosystem — source TTFs + web-baked WOFF2s for CDN distribut
 
 ![K64 640x480 sample](docs/640x480/preview.png)
 
+### 31-language locale specimens
+
+These continuous sheets use the canonical `k64-locale` order: Esperanto first,
+then Steam user share. Each language stays on one row; the sheets extend beyond
+the physical monitor height so all 31 languages remain visible at native target
+spacing. The labels are the canonical BCP 47 locale codes from
+`k64-locale/LANGUAGES.md`.
+
+#### 320x240 / 12px square-dot stack
+
+![K64 320x240 31-language locale specimen](docs/locale-specimens/320x240-31-languages.png)
+
+#### 640x240 / 2x tall-dot stack
+
+![K64 640x240 31-language locale specimen](docs/locale-specimens/640x240-31-languages.png)
+
+#### 640x480 / 16px square-dot stack
+
+![K64 640x480 31-language locale specimen](docs/locale-specimens/640x480-31-languages.png)
+
 Open the live browser sample:
 https://komm64.github.io/k64-fonts/web/sample.html
 
@@ -60,8 +80,8 @@ from the existing 640x240 Reecho `y1`/`y2x` fonts.
 | File | Source | Notes |
 |------|--------|-------|
 | `k64-320-k64f-visual16-12px.fnt` + `_0.png` / `.woff2` | komm64Fantasy | 16px K64F outlines and advances scaled into the 12px target UPM, then baked to a folder-local BMFont page for the Godot sample. It keeps the visual 8x16 K64F size in the 12px target. |
-| `k64-320-j-shinonome-mincho-12px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 12px | Embedded 12px bitmap kept intact; baseline metrics fixed to `ascent=12px / descent=0px`. |
-| `k64-320-ck-unifont-12px.ttf` / `.woff2` | GNU Unifont 16px | 16px -> 12px `drop-bridge` conversion for the CK role. |
+| `k64-320-j-shinonome-mincho-12px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 12px | The game TTF retains the canonical 12px 1bpp strike. For Web, that strike is converted pixel-for-pixel into square outlines so rasterizers cannot fall back to the smooth source outlines; minimal native hints suppress shape-changing auto-hinting. Both outputs use shared `ascent=12px / descent=4px` line metrics with the ideographic cell raised to 11px above / 1px below the roman baseline. |
+| `k64-320-ck-unifont-12px.ttf` / `.woff2` | GNU Unifont 16px | 16px -> 12px `drop-bridge` conversion for the CK role, placed 11px above / 1px below the roman baseline inside the shared 12/4 line box. |
 | `k64-320-thai-light-12px-mark16-max2.ttf` / `.woff2` | Noto Sans Thai Light | 12px base glyphs; Thai marks are rendered at 16px, aligned to the 12px mark position, then only colliding upper marks are raised by up to 2px. Mark offsets are snapped to the integer pixel grid; tone marks keep their 3-row shape and are biased 1px upward so stacked marks keep a visible gap inside the 12px ascent. |
 | `k64-320-arabic-light-12px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 12px mono pixel render with Arabic shaping tables preserved. |
 
@@ -72,7 +92,7 @@ Distribution paths:
 | Game / Godot / Reecho-style runtime | `game/320x240/*` |
 | Web / CDN | `web/320x240/*.woff2` |
 
-Use the 320x240 K64F/J/CK/Thai/Arabic fonts at `font-size: 12px` on a square-dot 320x240 surface. The K64F wrapper keeps the same visual 8x16 glyph size that normal K64F has at `font-size: 16px`.
+Use the 320x240 K64F/J/CK/Thai/Arabic fonts at `font-size: 12px` on a square-dot 320x240 surface. All five roles expose `ascent=12px / descent=4px` line metrics. The K64F wrapper keeps the same visual 8x16 glyph size that normal K64F has at `font-size: 16px`.
 The root `k64-fantasy.woff2` still targets `font-size: 16px`; use the 320x240 wrapper for mixed 12px fallback stacks.
 The 640x240 game runtime fonts live under `game/640x240/`, including the K64F
 BMFont page image. Legacy root copies remain for compatibility, and the
@@ -85,15 +105,17 @@ The 640x480 monitor target uses a separate 16px square-dot set under
 
 | File | Source | Notes |
 |------|--------|-------|
-| `k64-640x480-j-shinonome-mincho-16px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 16px | Embedded 16px bitmap kept intact; baseline metrics fixed to `ascent=16px / descent=0px`. |
-| `k64-640x480-ck-unifont-16px.ttf` / `.woff2` | GNU Unifont 16px | Original 16px Unifont glyphs shifted into the 16px square-dot cell with bottom-aligned line metrics. |
+| `k64-640x480-j-shinonome-mincho-16px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 16px | Native 16px 1bpp strike, placed 14px above / 2px below the roman baseline. The web face rebuilds the same strike as square outlines. Use a 16px row for the target layout. |
+| `k64-640x480-ck-unifont-16px.ttf` / `.woff2` | GNU Unifont 16px | Native 16px square-dot outlines, placed 14px above / 2px below the same roman baseline as the Japanese face. Use a 16px row for the target layout. |
 | `k64-640x480-k64f-16px.fnt` + `_0.png` / `.woff2` | komm64Fantasy | K64F baked to a folder-local BMFont page at native 16px square-dot size for the Godot sample. |
 | `k64-640x480-thai-light-16px.ttf` / `.woff2` | Noto Sans Thai Light | Direct 16px mono pixel render with Thai shaping and mark positioning tables preserved. |
 | `k64-640x480-arabic-light-16px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 16px mono pixel render with Arabic shaping tables preserved. |
 
-Use the 640x480 K64F/J/CK/Thai/Arabic fonts at `font-size: 16px` on a
-square-dot 640x480 surface. K64F stays dot-by-dot at its native 16px grid for
-this target.
+Use the 640x480 K64F/J/CK/Thai/Arabic wrappers at `font-size: 16px` on a
+square-dot 640x480 surface. K64F stays dot-by-dot at its native 16px grid;
+J and CK retain their native 16px ideographic cells at 14px above / 2px below
+the roman baseline. Use a 16px row so adjacent CJK lines meet at the row
+boundary without clipping or overlap.
 
 ## Quick start (web)
 
@@ -275,11 +297,11 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 
 | File | Source | Modifications applied | Display target |
 |------|--------|----------------------|-----------------|
-| `k64-fantasy.woff2` | `komm64Fantasy.ttf` | woff2 format conversion only | `font-size: 16px` → 8px advance on a 16px line, 1×1 square dots |
-| `320x240/k64-320-k64f-visual16-12px.woff2` | `komm64Fantasy.ttf` | 16px K64F outlines and advances scaled 4/3 into the 12px target UPM | `font-size: 12px` → same visual 8x16 K64F size as `k64-fantasy.woff2` at 16px |
-| `k64-fantasy-2x.woff2` | `komm64Fantasy.ttf` | all glyph contours + metrics scaled 2× both axes | `font-size: 32px` → 16px advance on a 32px line, 2×2 square dots |
-| `k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2` | `JF-Dot-ShinonomeMin16.ttf` | OR-merge to 12 rows + Y axis 2× + Name table rewrite (RFN compliance) | `font-size: 32px` → 16×24 px, 1×2 tall rect dots |
-| `k64-unifont-16px-or12-y2x.woff2` | `unifont-16px.ttf` | same as above. Reserved Font Name "Unifont" removed from Name table per OFL §3. | same |
+| `k64-fantasy.woff2` | `komm64Fantasy.ttf` | WOFF2 conversion plus native TrueType hints that preserve the pixel grid | `font-size: 16px` → 8px advance on a 16px line, 1×1 square dots |
+| `320x240/k64-320-k64f-visual16-12px.woff2` | `komm64Fantasy.ttf` | 16px K64F outlines and advances scaled 4/3 into the 12px target UPM, then pixel-grid hints | `font-size: 12px` → same visual 8x16 K64F size as `k64-fantasy.woff2` at 16px |
+| `k64-fantasy-2x.woff2` | `komm64Fantasy.ttf` | all glyph contours + metrics scaled 2× both axes, then pixel-grid hints | `font-size: 32px` → 16px advance on a 32px line, 2×2 square dots |
+| `k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2` | `JF-Dot-ShinonomeMin16.ttf` | OR-merge to 12 rows + Y axis 2× + Name table rewrite (RFN compliance) | `font-size: 32px` → 16×24 px, glyph cell 24/0 and K64F-compatible 24/8 line metrics |
+| `k64-unifont-16px-or12-y2x.woff2` | `unifont-16px.ttf` | Same geometry and metrics as the Japanese face. Reserved Font Name "Unifont" removed from Name table per OFL §3. | same |
 | `k64-thai-pixel-16w-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Rasterized at 16px, fitted so `ก` advances 16px, emitted as 1×2 tall pixel rectangles, preserving GSUB/GPOS mark positioning. RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → pixel-art Thai with stacked tone marks |
 | `k64-thai-pixel-12w-16h-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Same pipeline as 16w, fitted so `ก` advances 12px while keeping the full 16px source height. Intended as the tall source for later OR-merge compression. | `font-size: 32px` → narrow, tall pixel-art Thai |
 | `k64-thai-pixel-12w-or12-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Starts from the 12w/16h raster and compresses rows with 4→3 OR merge, preserving horizontal strokes better than nearest-neighbor scaling. | `font-size: 32px` → compact 12w Thai |
@@ -289,8 +311,8 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `k64-arabic-sans-medium-pixel-y2x.woff2` | `NotoSansArabic-Medium.ttf` | Original 16-row Arabic pixel face, emitted as 1×2 tall pixel rectangles with GSUB/GPOS preserved. RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → baseline Arabic pixel font for RTL shaped text |
 | `k64-arabic-sans-medium-pixel-20px-y2x.woff2` | `NotoSansArabic-Medium.ttf` | 20-row Arabic size trial, normal threshold. | `font-size: 32px` → same line height as x2 web fonts; `font-size: 40px` → natural 20px source scale |
 | `k64-arabic-sans-medium-pixel-24px-y2x.woff2` | `NotoSansArabic-Medium.ttf` | 24-row Arabic size trial, normal threshold. | `font-size: 32px` → same line height as x2 web fonts; `font-size: 48px` → natural 24px source scale |
-| `640x480/k64-640x480-j-shinonome-mincho-16px.woff2` | `JF-Dot-ShinonomeMin16.ttf` | 16px embedded bitmap kept intact; baseline metrics fixed for a square-dot 16px cell. | `font-size: 16px` → 16px Japanese |
-| `640x480/k64-640x480-ck-unifont-16px.woff2` | `unifont-16px.ttf` | Original 16px Unifont glyphs shifted 2px up; baseline metrics fixed for a square-dot 16px cell. | `font-size: 16px` → 16px Chinese/Korean fallback |
+| `640x480/k64-640x480-j-shinonome-mincho-16px.woff2` | `JF-Dot-ShinonomeMin16.ttf` | Rebuilds the native 16px 1bpp strike as square outlines without changing its 14px-above / 2px-below placement. | `font-size: 16px; line-height: 16px` → native Japanese at target row spacing |
+| `640x480/k64-640x480-ck-unifont-16px.woff2` | `unifont-16px.ttf` | Keeps the native 16px Unifont outlines and matches Shinonome's 14px-above / 2px-below placement. | `font-size: 16px; line-height: 16px` → native Chinese/Korean fallback at target row spacing |
 | `640x480/k64-640x480-thai-light-16px.woff2` | `NotoSansThai-Light.ttf` | Direct 16px mono pixel rectangles with Thai GSUB/GPOS preserved. | `font-size: 16px` → square-dot Thai |
 | `640x480/k64-640x480-arabic-light-16px.woff2` | `NotoSansArabic-Light.ttf` | Direct 16px mono pixel rectangles with Arabic GSUB/GPOS preserved. | `font-size: 16px` → square-dot Arabic |
 
@@ -299,18 +321,18 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | File | Notes |
 |------|-------|
 | `640x240/k64-640x240-k64f-16px-x2w.fnt` + `_0.png` | Reecho-compatible K64F primary face. Generated as BMFont to avoid FreeType outline rasterization drift at 16ppem; horizontally 2x-wide for the 640x240 CRT signal path. |
-| `640x240/k64-640x240-j-shinonome-mincho-16px-or12.ttf` | 640x240 Japanese face: Shinonome Mincho 16px OR-merged to 12 rows for the tall-dot path. |
-| `640x240/k64-640x240-ck-unifont-16px-or12.ttf` | 640x240 CK face: Unifont 16px OR-merged to 12 rows for the tall-dot path. |
+| `640x240/k64-640x240-j-shinonome-mincho-16px-or12.ttf` | 640x240 Japanese face: Shinonome Mincho 16px OR-merged to a 12px-above / 0px-below cell in the shared 12/4 line box. |
+| `640x240/k64-640x240-ck-unifont-16px-or12.ttf` | 640x240 CK face: Unifont 16px OR-merged to the same 12px-above / 0px-below cell and 12/4 line metrics. |
 | `640x240/k64-640x240-thai-pixel-12w-or12-y2x-prop-x2w.ttf` | 640x240 Thai game face used by the Godot sample and locale manifest. |
 | `640x240/k64-640x240-arabic-sans-medium-pixel-20px-thin-y1.ttf` | 640x240 Arabic game face: 20px thinner Arabic trial for Reecho game rendering. |
 | `320x240/k64-320-k64f-visual16-12px.fnt` + `_0.png` | 320x240 K64F BMFont page baked from the visual16-at-12px wrapper. |
 | `320x240/k64-320-k64f-visual16-12px.ttf` | Compatibility TTF wrapper: use at font size 12 to keep the visual 8x16 K64F size in a 12px fallback stack. |
-| `320x240/k64-320-j-shinonome-mincho-12px.ttf` | 320x240 Japanese face: Shinonome Mincho 12px with baseline fixed to the 12px square-dot cell. |
+| `320x240/k64-320-j-shinonome-mincho-12px.ttf` | 320x240 Japanese game face: Shinonome Mincho's original 12px 1bpp strike with a 12/4 line box. |
 | `320x240/k64-320-ck-unifont-12px.ttf` | 320x240 CK face: Unifont-derived 12px drop-bridge Chinese/Korean face. |
 | `320x240/k64-320-thai-light-12px-mark16-max2.ttf` | 320x240 Thai face: Noto Sans Thai Light pixelized at 12px with 16px marks, integer-grid mark offsets, 3-row upward-biased tone marks, and collision-aware mark lift clamped inside the 12px ascent. |
 | `320x240/k64-320-arabic-light-12px.ttf` | 320x240 Arabic face: Noto Sans Arabic Light pixelized at 12px with shaping tables preserved. |
-| `640x480/k64-640x480-j-shinonome-mincho-16px.ttf` | 640x480 Japanese face: Shinonome Mincho 16px with baseline fixed to the 16px square-dot cell. |
-| `640x480/k64-640x480-ck-unifont-16px.ttf` | 640x480 CK face: Unifont 16px shifted into the 16px square-dot cell. |
+| `640x480/k64-640x480-j-shinonome-mincho-16px.ttf` | 640x480 Japanese face: native Shinonome 16px pixels at the shared CJK 14px-above / 2px-below placement. |
+| `640x480/k64-640x480-ck-unifont-16px.ttf` | 640x480 CK face: native Unifont 16px pixels at the shared CJK 14px-above / 2px-below placement. |
 | `640x480/k64-640x480-thai-light-16px.ttf` | 640x480 Thai face: Noto Sans Thai Light pixelized at 16px with shaping tables preserved. |
 | `640x480/k64-640x480-arabic-light-16px.ttf` | 640x480 Arabic face: Noto Sans Arabic Light pixelized at 16px with shaping tables preserved. |
 | `640x480/k64-640x480-k64f-16px.fnt` + `_0.png` | 640x480 K64F BMFont page baked at native 16px square-dot size. |
@@ -347,6 +369,8 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 | `inspect_font.py` | Probe glyph coverage, metrics, OFL compliance |
 | `render_pangrams.py` | Multi-language pangram visual QA |
 | `render_social_specimens.py` | Pixel-exact 320x240 / 640x480 K64F language cards plus integer-scaled SNS copies |
+| `render_locale_specimens.py` | Capture the README's continuous 31-language sheets from the live sample DOM for all three monitor targets |
+| `verify_k64f_targets.py` | Verify all game/Web K64F target pixels and metrics against the canonical 16px atlas |
 | `render_readcheck.py` | Confusable-pair visual QA (Il1, O0, rn/m, etc.) |
 | `diff_fonts.py` | Glyph + metrics diff between two TTFs |
 | `render_readme_previews.py` | Render the README preview images for the 640x240, 320x240, and 640x480 targets |
@@ -354,6 +378,9 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 Regenerate web fonts:
 
 ```bash
+# K64F WOFF2 bakes require native TrueType hint generation.
+pip install ttfautohint-py==0.6.1
+
 # Step 1: produce or-merge intermediates (if not present in src/)
 python tools/gen_font.py src/JF-Dot-ShinonomeMin16.ttf --or-pair 1 --format ttf --output-dir src/
 python tools/gen_font.py src/unifont-16px.ttf --or-pair 1 --format ttf --output-dir src/
@@ -411,6 +438,9 @@ python tools/gen_font.py src/komm64Fantasy.ttf --no-merge --output-dir game/640x
 
 # README preview images for all monitor targets.
 python tools/render_readme_previews.py
+
+# README 31-language sheets, captured from web/sample.html for all targets.
+python tools/render_locale_specimens.py
 ```
 
 Local browser sample:
