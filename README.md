@@ -4,18 +4,6 @@ komm64 pixel font ecosystem — source TTFs + web-baked WOFF2s for CDN distribut
 
 ## Preview
 
-### 640x240 tall-dot target
-
-![K64 640x240 sample](docs/640x240/preview.png)
-
-### 320x240 square-dot target
-
-![K64 320x240 sample](docs/320x240/preview.png)
-
-### 640x480 square-dot target
-
-![K64 640x480 sample](docs/640x480/preview.png)
-
 ### 31-language locale specimens
 
 These continuous sheets use the canonical `k64-locale` order: Esperanto first,
