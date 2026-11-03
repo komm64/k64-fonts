@@ -102,7 +102,7 @@ it exits 1 on any violation):
 | Reference glyph ink inside the line box | all roles |
 
 A target with `"alignment": {"skip": true}` in `k64-locale.json` is left as
-baked (currently 640x480, see its section).
+baked.
 
 Role sizes come from `k64-locale.json` (`fontSizePx`, `roleFontSizePx`,
 `gameFontSizePx`, `roleGameFontSizePx`). The 640x240 Arabic face is drawn on a
@@ -145,16 +145,16 @@ The 640x480 monitor target uses a separate 16px square-dot set under
 |------|--------|-------|
 | `k64-640x480-j-shinonome-mincho-16px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 16px | Native 16px 1bpp strike, placed 14px above / 2px below the roman baseline. The web face rebuilds the same strike as square outlines. Use a 16px row for the target layout. |
 | `k64-640x480-ck-unifont-16px.ttf` / `.woff2` | GNU Unifont 16px | Native 16px square-dot outlines, placed 14px above / 2px below the same roman baseline as the Japanese face. Use a 16px row for the target layout. |
-| `k64-640x480-k64f-16px.fnt` + `_0.png` / `.woff2` | komm64Fantasy | K64F baked to a folder-local BMFont page at native 16px square-dot size for the Godot sample. |
+| `k64-640x480-k64f-tall-16px.fnt` + `_0.png` / `.ttf` / `.woff2` | komm64Fantasy (16px) | Full-height K64F in PC-98-style 8x16 ANK cells: capitals 12 rows, x-height 9, descenders 2, on the same 14/2 line box as the CJK cells. Built by `tools/bake_k64f_tall.py` from the 16px K64F (per-zone row stretching plus hand-tuned K, g, y; g/y bodies sit 1px high so their hooks keep 3 rows). Preview: `docs/640x480/k64f-tall-preview.png`. This is the 640x480 K64F. |
+| `k64-640x480-k64f-16px.fnt` + `_0.png` | komm64Fantasy | K64F at its native 16px size (capitals 9 rows); the source of the tall face. |
 | `k64-640x480-thai-light-16px.ttf` / `.woff2` | Noto Sans Thai Light | Direct 16px mono pixel render with Thai shaping and mark positioning tables preserved. |
 | `k64-640x480-arabic-light-16px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 16px mono pixel render with Arabic shaping tables preserved. |
 
 Use the 640x480 K64F/J/CK/Thai/Arabic wrappers at `font-size: 16px` on a
-square-dot 640x480 surface. K64F stays dot-by-dot at its native 16px grid;
-J and CK retain their native 16px ideographic cells at 14px above / 2px below
-the roman baseline (PC-98-style 16x16 cells). K64F is smaller than those cells
-here; a full-height K64F variant (8x16 ANK proportions) is the planned fix, so
-this target is skipped by the alignment rules for now.
+square-dot 640x480 surface. J and CK retain their native 16px ideographic
+cells at 14px above / 2px below the roman baseline (PC-98-style 16x16 cells),
+and the tall K64F fills the matching 8x16 ANK cells, so every role shares the
+14/2 line box.
 
 ## Quick start (web)
 
@@ -256,7 +256,7 @@ body {
 ```css
 @font-face {
   font-family: 'K64 640x480 K64F';
-  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-fantasy.woff2') format('woff2');
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/640x480/k64-640x480-k64f-tall-16px.woff2') format('woff2');
 }
 @font-face {
   font-family: 'K64 640x480 J';
@@ -374,7 +374,8 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `640x480/k64-640x480-ck-unifont-16px.ttf` | 640x480 CK face: native Unifont 16px pixels at the shared CJK 14px-above / 2px-below placement. |
 | `640x480/k64-640x480-thai-light-16px.ttf` | 640x480 Thai face: Noto Sans Thai Light pixelized at 16px with shaping tables preserved. |
 | `640x480/k64-640x480-arabic-light-16px.ttf` | 640x480 Arabic face: Noto Sans Arabic Light pixelized at 16px with shaping tables preserved. |
-| `640x480/k64-640x480-k64f-16px.fnt` + `_0.png` | 640x480 K64F BMFont page baked at native 16px square-dot size. |
+| `640x480/k64-640x480-k64f-tall-16px.fnt` + `_0.png` / `.ttf` | 640x480 K64F: full-height 8x16 ANK cells (capitals 12 rows) on the 14/2 line box. |
+| `640x480/k64-640x480-k64f-16px.fnt` + `_0.png` | Native 16px K64F BMFont page (capitals 9 rows), the source of the tall face. |
 | `k64-thai-pixel-12w-or12-y1-prop.ttf` | Legacy root Thai game face. 16px source fitted to 12w, compressed with 4→3 OR merge, then converted to y1. |
 | `k64-thai-pixel-native12px-y1-prop.ttf` | Natural alternate Thai game face. Rasterized directly at 12px, then compressed from y2x to y1 with proportional advances preserved; smoother and less K64F-like than the Reecho default. |
 | `k64-arabic-sans-medium-pixel-y1.ttf` | Arabic pixel font: Noto Sans Arabic Medium rasterized with GSUB/GPOS preserved, then compressed from y2x to y1 for Reecho's internal surface. |
@@ -399,6 +400,7 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 | `bake_web_fonts.py` | Main bake: source TTFs → web/*.woff2. Uses Reecho's `gen_font.py`-produced or12 intermediates as input |
 | `bake_320x240_fonts.py` | Final 320x240 / 12px square-dot set bake |
 | `bake_640x480_fonts.py` | Final 640x480 / 16px square-dot set bake |
+| `bake_k64f_tall.py` | Full-height 640x480 K64F (8x16 ANK cells) from the native 16px BMFont |
 | `bake_unifont_12px_drop.py` | Unifont 16px → 12px CK converter used by the 320x240 bake |
 | `bake_thai_pixel.py` | Thai pixelization — rasterize NotoSansThai → pixel-rect contours, preserve GPOS |
 | `bake_arabic_pixel.py` | Arabic pixelization — rasterize Noto Sans Arabic by glyph name, preserve GSUB/GPOS shaping, emit web y2x WOFF2 + game y1 TTF |
@@ -480,6 +482,8 @@ python tools/check_alignment.py
 python tools/gen_font.py src/komm64Fantasy.ttf --no-merge --hscale 2 --output-dir game/640x240 --output-name k64-640x240-k64f-16px-x2w
 python tools/gen_font.py game/320x240/k64-320-k64f-visual16-12px.ttf --no-merge --font-size 12 --cell-height 16 --output-dir game/320x240 --output-name k64-320-k64f-visual16-12px
 python tools/gen_font.py src/komm64Fantasy.ttf --no-merge --output-dir game/640x480 --output-name k64-640x480-k64f-16px
+# Full-height 640x480 K64F from that page (BMFont + TTF + WOFF2 + preview).
+python tools/bake_k64f_tall.py
 
 # README preview images for all monitor targets.
 python tools/render_readme_previews.py
@@ -523,6 +527,7 @@ k64-fonts/
 
 ## Known issues
 
+- jsDelivr (`cdn.jsdelivr.net/gh/komm64/k64-fonts/...`) was seen serving a stale `k64-fantasy.woff2` and refusing the `web/640x480/` files (403) on 2026-11-04. GitHub Pages (`https://komm64.github.io/k64-fonts/web/...`) serves the current files.
 - Thai pixel font is generated from NotoSansThai at 16px, so a few complex mark variants may still need visual QA in browser text shaping. The previous smooth alternate remains available as `web/k64-NotoSansThai-Regular-x2w.woff2`.
 
 ## Versioning

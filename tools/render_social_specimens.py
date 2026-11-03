@@ -172,7 +172,7 @@ def render_320() -> Image.Image:
 
 
 def render_640() -> Image.Image:
-    font = BitmapFont(ROOT / "game" / "640x480" / "k64-640x480-k64f-16px.fnt")
+    font = BitmapFont(ROOT / "game" / "640x480" / "k64-640x480-k64f-tall-16px.fnt")
     if font.line_height != 16:
         raise ValueError(f"Unexpected 640x480 line height: {font.line_height}")
 

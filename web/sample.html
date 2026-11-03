@@ -154,6 +154,12 @@
     }
 
     @font-face {
+      font-family: "K64 640x480 K64F";
+      src: url("./640x480/k64-640x480-k64f-tall-16px.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
       font-family: "K64 640x480 J";
       src: url("./640x480/k64-640x480-j-shinonome-mincho-16px.woff2?v=cjk-baseline-2") format("woff2");
       font-display: swap;
@@ -491,15 +497,15 @@
     }
 
     .target-640 {
-      --stack-default: "K64 Fantasy", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 CK", "K64 640x480 J", monospace;
-      --stack-ja: "K64 Fantasy", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 J", "K64 640x480 CK", monospace;
+      --stack-default: "K64 640x480 K64F", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 CK", "K64 640x480 J", monospace;
+      --stack-ja: "K64 640x480 K64F", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 J", "K64 640x480 CK", monospace;
       font-size: 16px;
       line-height: 16px;
       font-family: var(--stack-default);
     }
 
     .target-640 .latin {
-      font-family: "K64 Fantasy", monospace;
+      font-family: "K64 640x480 K64F", monospace;
       font-size: 16px;
       line-height: 16px;
     }
@@ -636,8 +642,8 @@
     }
 
     .social-640 {
-      --stack-default: "K64 Fantasy", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 CK", "K64 640x480 J", monospace;
-      --stack-ja: "K64 Fantasy", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 J", "K64 640x480 CK", monospace;
+      --stack-default: "K64 640x480 K64F", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 CK", "K64 640x480 J", monospace;
+      --stack-ja: "K64 640x480 K64F", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 J", "K64 640x480 CK", monospace;
       width: 640px;
       height: 568px;
       font-family: var(--stack-default);
@@ -685,7 +691,7 @@
     }
 
     .social-640 .role-k64f {
-      font-family: "K64 Fantasy", monospace;
+      font-family: "K64 640x480 K64F", monospace;
     }
 
     .social-640 .role-ck {
