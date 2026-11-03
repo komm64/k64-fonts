@@ -184,7 +184,7 @@ def draw_manual_320_k64_line(logical: Image.Image) -> None:
 def draw_manual_640x480_k64_line(logical: Image.Image) -> None:
     base = GAME / "640x480"
     fonts = {
-        "latin": SRC / "komm64Fantasy.ttf",
+        "latin": base / "k64-640x480-k64f-tall-16px.ttf",
         "j": base / "k64-640x480-j-shinonome-mincho-16px.ttf",
         "ck": base / "k64-640x480-ck-unifont-16px.ttf",
         "thai": base / "k64-640x480-thai-light-16px.ttf",
@@ -421,7 +421,7 @@ def render_640x480_with_chrome(out: Path) -> bool:
         return False
 
     font_paths = {
-        "k64f": ROOT / "web" / "k64-fantasy.woff2",
+        "k64f": ROOT / "web" / "640x480" / "k64-640x480-k64f-tall-16px.woff2",
         "j": ROOT / "web" / "640x480" / "k64-640x480-j-shinonome-mincho-16px.woff2",
         "ck": ROOT / "web" / "640x480" / "k64-640x480-ck-unifont-16px.woff2",
         "thai": ROOT / "web" / "640x480" / "k64-640x480-thai-light-16px.woff2",

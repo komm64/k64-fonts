@@ -31,6 +31,12 @@
       "display": "tall-dot",
       "fontSizePx": 32,
       "gameFontSizePx": 16,
+      "roleFontSizePx": {
+        "arabic": 40
+      },
+      "roleGameFontSizePx": {
+        "arabic": 20
+      },
       "web": {
         "thai": "web/k64-thai-pixel-12w-or12-y2x-prop.woff2",
         "arabic": "web/k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2",
@@ -84,14 +90,14 @@
       "web": {
         "thai": "web/640x480/k64-640x480-thai-light-16px.woff2",
         "arabic": "web/640x480/k64-640x480-arabic-light-16px.woff2",
-        "k64f": "web/k64-fantasy.woff2",
+        "k64f": "web/640x480/k64-640x480-k64f-tall-16px.woff2",
         "ck": "web/640x480/k64-640x480-ck-unifont-16px.woff2",
         "j": "web/640x480/k64-640x480-j-shinonome-mincho-16px.woff2"
       },
       "game": {
         "thai": "game/640x480/k64-640x480-thai-light-16px.ttf",
         "arabic": "game/640x480/k64-640x480-arabic-light-16px.ttf",
-        "k64f": "game/640x480/k64-640x480-k64f-16px.fnt",
+        "k64f": "game/640x480/k64-640x480-k64f-tall-16px.fnt",
         "ck": "game/640x480/k64-640x480-ck-unifont-16px.ttf",
         "j": "game/640x480/k64-640x480-j-shinonome-mincho-16px.ttf"
       }
