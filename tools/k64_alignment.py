@@ -65,6 +65,7 @@ class Face:
     ascent: float = 0.0  # px above the baseline
     descent: float = 0.0  # px below (positive)
     boxes: dict[str, Box] = field(default_factory=dict)
+    bitmaps: bool = False  # measured from the embedded bitmap strike used at this size
 
 
 def manifest() -> dict:
@@ -81,11 +82,45 @@ def row_px(target: dict, kind: str) -> float:
     return 2.0 if kind == "web" and target.get("display") == "tall-dot" else 1.0
 
 
+def bitmap_strike(font: TTFont, size: float):
+    """The embedded bitmap strike a rasterizer uses at this size (FreeType prefers it to outlines)."""
+    if "EBLC" not in font:
+        return None
+    return next((strike for strike in font["EBLC"].strikes if strike.bitmapSizeTable.ppemY == round(size)), None)
+
+
+def _measure_bitmaps(face: Face, chars: str) -> None:
+    import freetype
+
+    ft = freetype.Face(str(face.path))
+    ft.set_pixel_sizes(0, round(face.size))
+    for char in chars:
+        if not ft.get_char_index(ord(char)):
+            continue
+        ft.load_char(char, freetype.FT_LOAD_RENDER | freetype.FT_LOAD_TARGET_MONO)
+        glyph, bitmap = ft.glyph, ft.glyph.bitmap
+        ink = [
+            (x, y)
+            for y in range(bitmap.rows)
+            for x in range(bitmap.width)
+            if bitmap.buffer[y * bitmap.pitch + x // 8] & (0x80 >> (x % 8))
+        ]
+        if not ink:
+            continue
+        xs = [glyph.bitmap_left + x for x, _ in ink]
+        tops = [glyph.bitmap_top - y for _, y in ink]
+        face.boxes[char] = Box(min(xs), min(tops) - 1, max(xs) + 1, max(tops), glyph.advance.x / 64)
+
+
 def _measure_ttf(face: Face, chars: str) -> None:
     font = TTFont(face.path)
+    face.bitmaps = bitmap_strike(font, face.size) is not None
     scale = face.size / font["head"].unitsPerEm
     face.ascent = font["hhea"].ascent * scale
     face.descent = -font["hhea"].descent * scale
+    if face.bitmaps:
+        _measure_bitmaps(face, chars)
+        return
     glyphs = font.getGlyphSet()
     cmap = font.getBestCmap()
     for char in chars:
@@ -144,6 +179,9 @@ def load_faces(targets: list[str] | None = None, kinds: tuple[str, ...] = ("web"
     for name, target in data["targets"].items():
         if targets and name not in targets:
             continue
+        if target.get("alignment", {}).get("skip"):
+            print(f"skip {name}: {target['alignment'].get('reason', '')}")
+            continue
         for kind in kinds:
             for role, relative in target.get(kind, {}).items():
                 face = Face(name, kind, role, ROOT / relative, role_size(target, role, kind), row_px(target, kind))
@@ -176,6 +214,19 @@ def cjk_imbalance(face: Face) -> float:
     )
 
 
+def fills_line_box(face: Face, ref: Reference) -> bool:
+    """A cell as tall as the line box can only be inside it, not also centred on the caps."""
+    top = max(box.y1 for box in face.boxes.values())
+    bottom = min(box.y0 for box in face.boxes.values())
+    inside = top <= ref.ascent + 0.01 and -bottom <= ref.descent + 0.01
+    return inside and top - bottom >= ref.ascent + ref.descent - face.row_px
+
+
+def grid_offset(face: Face) -> float:
+    """How far the ink sits off whole pixels (median over the reference glyphs), in [-0.5, 0.5)."""
+    return statistics.median(((box.y0 + 0.5) % 1.0) - 0.5 for box in face.boxes.values())
+
+
 @dataclass
 class Finding:
     face: Face
@@ -201,8 +252,11 @@ def check(faces: list[Face]) -> list[Finding]:
                 fail("inside", f"{char} ink {box.y0:g}..{box.y1:g}px leaves the K64F line box")
         if face.role in ("j", "ck") and face.boxes:
             offset = (cjk_center(face) - ref.cap / 2) / rows
-            if abs(offset) > CJK_TOLERANCE_ROWS:
+            if abs(offset) > CJK_TOLERANCE_ROWS and not fills_line_box(face, ref):
                 fail("cjk-vertical", f"ideograph centre {offset:+.1f} rows from the cap-height centre")
+            fraction = grid_offset(face)
+            if abs(fraction) >= 0.05 and not face.bitmaps:
+                fail("grid", f"ink is {fraction:+.2f}px off the pixel grid")
             imbalance = cjk_imbalance(face)
             if abs(imbalance) > CJK_TOLERANCE_PX:
                 fail("cjk-horizontal", f"ink sits {imbalance:.1f}px left of the cell centre")

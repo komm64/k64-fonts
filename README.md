@@ -87,6 +87,28 @@ face, so keep it exactly:
   of the grid; at 125%/150% Windows scaling, either pick sizes that satisfy that
   or run the page at device scale 1 (e.g. Edge `--force-device-scale-factor=1`).
 
+### Alignment rules
+
+K64F is the reference face of every target, and `tools/align_targets.py` puts
+the other roles on it after the bakes (run `tools/check_alignment.py` to verify;
+it exits 1 on any violation):
+
+| Rule | Applies to |
+|------|------------|
+| Same line box (ascent/descent) as K64F at the role size | all roles |
+| Ideograph/kana ink centred on the middle of the K64F cap height (±0.5 row), and in the middle of the advance (±1px); the whole cell moves, so punctuation keeps its place | J, CK |
+| Low consonants (ก) between x-height and cap height, tall ones (ป) at cap height (±1 row) | Thai |
+| Alef (ا) at cap height (±1 row) | Arabic |
+| Reference glyph ink inside the line box | all roles |
+
+A target with `"alignment": {"skip": true}` in `k64-locale.json` is left as
+baked (currently 640x480, see its section).
+
+Role sizes come from `k64-locale.json` (`fontSizePx`, `roleFontSizePx`,
+`gameFontSizePx`, `roleGameFontSizePx`). The 640x240 Arabic face is drawn on a
+20-row source and is used at 1.25x (40px web, 20px game); on the web, declare it
+with `size-adjust: 125%` so it can sit in the same `font-family` chain.
+
 ## 320x240 / 12px font set
 
 The 320x240 monitor target uses a separate 12px square-dot set under
@@ -130,8 +152,9 @@ The 640x480 monitor target uses a separate 16px square-dot set under
 Use the 640x480 K64F/J/CK/Thai/Arabic wrappers at `font-size: 16px` on a
 square-dot 640x480 surface. K64F stays dot-by-dot at its native 16px grid;
 J and CK retain their native 16px ideographic cells at 14px above / 2px below
-the roman baseline. Use a 16px row so adjacent CJK lines meet at the row
-boundary without clipping or overlap.
+the roman baseline (PC-98-style 16x16 cells). K64F is smaller than those cells
+here; a full-height K64F variant (8x16 ANK proportions) is the planned fix, so
+this target is skipped by the alignment rules for now.
 
 ## Quick start (web)
 
@@ -386,6 +409,8 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 | `render_pangrams.py` | Multi-language pangram visual QA |
 | `render_social_specimens.py` | Pixel-exact 320x240 / 640x480 K64F language cards plus integer-scaled SNS copies |
 | `render_locale_specimens.py` | Capture the README's continuous 31-language sheets from the live sample DOM for all three monitor targets |
+| `align_targets.py` | Put every role of every target on the K64F line box / cap height (idempotent; run after the bakes) |
+| `check_alignment.py` | Verify the cross-script alignment rules; exits 1 on a violation |
 | `verify_k64f_targets.py` | Verify all game/Web K64F target pixels and metrics against the canonical 16px atlas |
 | `render_readcheck.py` | Confusable-pair visual QA (Il1, O0, rn/m, etc.) |
 | `diff_fonts.py` | Glyph + metrics diff between two TTFs |
@@ -446,6 +471,10 @@ python tools/bake_320x240_fonts.py
 # 640x480 / 16px square-dot set.
 # Note: CK WOFF2 compression is slow because the font has many glyphs.
 python tools/bake_640x480_fonts.py
+
+# Put every role on the K64F line (after any bake), then verify.
+python tools/align_targets.py
+python tools/check_alignment.py
 
 # Folder-local K64F BMFont pages for the Godot/runtime samples.
 python tools/gen_font.py src/komm64Fantasy.ttf --no-merge --hscale 2 --output-dir game/640x240 --output-name k64-640x240-k64f-16px-x2w

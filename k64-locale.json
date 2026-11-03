@@ -31,6 +31,12 @@
       "display": "tall-dot",
       "fontSizePx": 32,
       "gameFontSizePx": 16,
+      "roleFontSizePx": {
+        "arabic": 40
+      },
+      "roleGameFontSizePx": {
+        "arabic": 20
+      },
       "web": {
         "thai": "web/k64-thai-pixel-12w-or12-y2x-prop.woff2",
         "arabic": "web/k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2",
@@ -73,6 +79,10 @@
     },
     "640x480": {
       "display": "square-dot",
+      "alignment": {
+        "skip": true,
+        "reason": "PC-98 cell layout (16x16 kanji, 8x16 ANK); waits for a full-height K64F variant instead of moving the other roles"
+      },
       "fontSizePx": 16,
       "roleFontSizePx": {
         "thai": 16,
