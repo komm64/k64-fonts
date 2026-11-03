@@ -59,6 +59,34 @@ the Japanese stack use the same role set, but swap the CK/J priority:
 | Default | K64F -> Arabic -> Thai -> CK (Unifont) -> J (Shinonome) |
 | Japanese text | K64F -> Arabic -> Thai -> J (Shinonome) -> CK (Unifont) |
 
+### Fallback rules
+
+The browser (CSS `font-family`) and Godot (`Font.fallbacks`, the `fonts` list
+of a k64-locale profile) both pick, per character, the first face in the chain
+that has the glyph. The order above is what makes each script land in its own
+face, so keep it exactly:
+
+- **K64F always comes first.** It is the only role meant for Latin, digits and
+  ASCII symbols, and it has no kana or Han, so those fall through to J/CK.
+- **Never put J or CK first.** Both faces also contain ASCII, so a chain that
+  starts with them silently renders all Latin text in Shinonome/Unifont instead
+  of K64F. Arabic and Thai contain ASCII too; on the web they are limited with
+  `unicode-range` (see the CSS below) so they can never take Latin glyphs.
+- **Japanese text puts J before CK; everything else puts CK before J.** Han
+  glyph shapes differ between Japanese and Chinese/Korean. On the web, set
+  `<html lang="ja">` (or `:lang(ja)`) and use the Japanese stack; in Godot, use
+  the `ja` stack in the locale's font profile.
+- **Take every face of a chain from one target set** (`640x240` y2x, `320x240`,
+  or `640x480`, as listed in `k64-locale.json` `targets.<target>.web` /
+  `.game`). Each set aligns its roles to a shared baseline and row, so mixing
+  sets (for example the 640x240 `y2x` J with the 640x480 K64F) produces
+  mismatched glyph sizes and baselines on the same line.
+- **Size on the target grid.** Use `fontSizePx` from `k64-locale.json` (or an
+  integer multiple) and an integer-multiple row height. On the web the result
+  is only dot-sharp when `font-size × devicePixelRatio` is also a whole multiple
+  of the grid; at 125%/150% Windows scaling, either pick sizes that satisfy that
+  or run the page at device scale 1 (e.g. Edge `--force-device-scale-factor=1`).
+
 ## 320x240 / 12px font set
 
 The 320x240 monitor target uses a separate 12px square-dot set under
