@@ -289,6 +289,10 @@ def make_ck_font() -> tuple[Path, Path]:
             merge_cost_local=False,
             merge_cost_local_diagonal=False,
             max_chars=None,
+            # Hanzi keep a 1px gap after each glyph; Hangul keeps its counters open
+            # (komm64's review of running text, 2026-11-04).
+            keep_right_gap=True,
+            hangul_joint=True,
         )
         tt = TTFont(source, lazy=False)
     set_line_metrics(tt, UPM, -4 * PX)

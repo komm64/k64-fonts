@@ -119,7 +119,7 @@ from the existing 640x240 Reecho `y1`/`y2x` fonts.
 |------|--------|-------|
 | `k64-320-k64f-visual16-12px.fnt` + `_0.png` / `.woff2` | komm64Fantasy | 16px K64F outlines and advances scaled into the 12px target UPM, then baked to a folder-local BMFont page for the Godot sample. It keeps the visual 8x16 K64F size in the 12px target. |
 | `k64-320-j-shinonome-mincho-12px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 12px | The game TTF retains the canonical 12px 1bpp strike. For Web, that strike is converted pixel-for-pixel into square outlines so rasterizers cannot fall back to the smooth source outlines; minimal native hints suppress shape-changing auto-hinting. Both outputs use shared `ascent=12px / descent=4px` line metrics with the ideographic cell raised to 11px above / 1px below the roman baseline. |
-| `k64-320-ck-unifont-12px.ttf` / `.woff2` | GNU Unifont 16px | 16px -> 12px `drop-bridge` conversion for the CK role, placed 11px above / 1px below the roman baseline inside the shared 12/4 line box. |
+| `k64-320-ck-unifont-12px.ttf` / `.woff2` | GNU Unifont 16px | 16px -> 12px conversion for the CK role, placed 11px above / 1px below the roman baseline inside the shared 12/4 line box. Hanzi and other full-width glyphs use `drop-bridge` on their 15 inked columns and keep Unifont's blank 16th column as a 1px gap, so running text does not touch; Hangul uses the counter-preserving `tools/ck12_joint.py` reduction. |
 | `k64-320-thai-light-12px-mark16-max2.ttf` / `.woff2` | Noto Sans Thai Light | 12px base glyphs; Thai marks are rendered at 16px, aligned to the 12px mark position, then only colliding upper marks are raised by up to 2px. Mark offsets are snapped to the integer pixel grid; tone marks keep their 3-row shape and are biased 1px upward so stacked marks keep a visible gap inside the 12px ascent. |
 | `k64-320-arabic-light-12px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 12px mono pixel render with Arabic shaping tables preserved. |
 
@@ -367,7 +367,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `320x240/k64-320-k64f-visual16-12px.fnt` + `_0.png` | 320x240 K64F BMFont page baked from the visual16-at-12px wrapper. |
 | `320x240/k64-320-k64f-visual16-12px.ttf` | Compatibility TTF wrapper: use at font size 12 to keep the visual 8x16 K64F size in a 12px fallback stack. |
 | `320x240/k64-320-j-shinonome-mincho-12px.ttf` | 320x240 Japanese game face: Shinonome Mincho's original 12px 1bpp strike with a 12/4 line box. |
-| `320x240/k64-320-ck-unifont-12px.ttf` | 320x240 CK face: Unifont-derived 12px drop-bridge Chinese/Korean face. |
+| `320x240/k64-320-ck-unifont-12px.ttf` | 320x240 CK face: Unifont-derived 12px Chinese/Korean face (drop-bridge with a 1px gap; Hangul via `ck12_joint`). |
 | `320x240/k64-320-thai-light-12px-mark16-max2.ttf` | 320x240 Thai face: Noto Sans Thai Light pixelized at 12px with 16px marks, integer-grid mark offsets, 3-row upward-biased tone marks, and collision-aware mark lift clamped inside the 12px ascent. |
 | `320x240/k64-320-arabic-light-12px.ttf` | 320x240 Arabic face: Noto Sans Arabic Light pixelized at 12px with shaping tables preserved. |
 | `640x480/k64-640x480-j-shinonome-mincho-16px.ttf` | 640x480 Japanese face: native Shinonome 16px pixels at the shared CJK 14px-above / 2px-below placement. |
@@ -401,7 +401,8 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 | `bake_320x240_fonts.py` | Final 320x240 / 12px square-dot set bake |
 | `bake_640x480_fonts.py` | Final 640x480 / 16px square-dot set bake |
 | `bake_k64f_tall.py` | Full-height 640x480 K64F (8x16 ANK cells) from the native 16px BMFont |
-| `bake_unifont_12px_drop.py` | Unifont 16px → 12px CK converter used by the 320x240 bake |
+| `bake_unifont_12px_drop.py` | Unifont 16px → 12px CK converter used by the 320x240 bake (`--keep-right-gap`, `--hangul-joint`) |
+| `ck12_joint.py` | Counter-preserving 16 → 12 reduction and its quality score, used for Hangul |
 | `bake_thai_pixel.py` | Thai pixelization — rasterize NotoSansThai → pixel-rect contours, preserve GPOS |
 | `bake_arabic_pixel.py` | Arabic pixelization — rasterize Noto Sans Arabic by glyph name, preserve GSUB/GPOS shaping, emit web y2x WOFF2 + game y1 TTF |
 | `compress_y2x_to_y1.py` | Reecho game conversion — halve Y coordinates/metrics/GPOS Y values so y2x TTFs render correctly into the internal 640x240 surface |

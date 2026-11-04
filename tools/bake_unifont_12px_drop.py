@@ -21,6 +21,9 @@ from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables._g_l_y_f import Glyph as TtGlyph
 from PIL import Image, ImageDraw, ImageFont
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ck12_joint  # noqa: E402
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "src" / "unifont-16px.ttf"
@@ -1090,7 +1093,15 @@ def bake(
     merge_cost_local: bool,
     merge_cost_local_diagonal: bool,
     max_chars: int | None = None,
+    keep_right_gap: bool = False,
+    hangul_joint: bool = False,
 ) -> None:
+    """keep_right_gap: a 16px glyph whose last column is blank (nearly all of Unifont's
+    full-width glyphs) is reduced from its 15 inked columns to 11 and keeps the blank
+    column, so characters do not touch in running text (drop-bridge alone drops that
+    column first as the lowest-ink one).
+    hangul_joint: Hangul uses ck12_joint.reduce(), which keeps counters open in dense
+    syllables, with the drop-bridge result as its baseline."""
     src_font = TTFont(str(source))
     if "glyf" not in src_font:
         raise RuntimeError("source must be a TrueType glyf font")
@@ -1124,7 +1135,14 @@ def bake(
         elif similar_pair_local:
             dst = drop_similar_pair_local_12(bitmap, dst_w, tie_bias)
         elif drop_bridge_repair:
-            dst = drop_balanced_bridge_repair_12(bitmap, dst_w, tie_bias)
+            if hangul_joint and ck12_joint.is_hangul(cp):
+                baseline = drop_balanced_bridge_repair_12(bitmap, dst_w, tie_bias)
+                dst = ck12_joint.reduce(bitmap, dst_w, baseline)
+            elif keep_right_gap and src_width == SRC_SIZE and dst_w > 1 and not bitmap[:, -1].any():
+                body = drop_balanced_bridge_repair_12(bitmap[:, :-1].copy(), dst_w - 1, tie_bias)
+                dst = np.hstack([body, np.zeros((body.shape[0], 1), dtype=np.uint8)])
+            else:
+                dst = drop_balanced_bridge_repair_12(bitmap, dst_w, tie_bias)
         elif merge_cost_bridge_repair:
             dst = drop_merge_cost_bridge_repair_1234_12(bitmap, dst_w, tie_bias)
         elif similar_pair_bridge_repair:
@@ -1258,6 +1276,16 @@ def main(argv=None) -> int:
         action="store_true",
         help="Drop lines chosen by similar adjacent pairs without merging, then add bridge-repair pixels.",
     )
+    parser.add_argument(
+        "--keep-right-gap",
+        action="store_true",
+        help="With --drop-bridge-repair: keep the blank 16th column as a 1px gap (15 inked columns -> 11).",
+    )
+    parser.add_argument(
+        "--hangul-joint",
+        action="store_true",
+        help="With --drop-bridge-repair: reduce Hangul with ck12_joint (keeps counters open).",
+    )
     parser.add_argument("--max-chars", type=int, default=None)
     parser.add_argument("--no-preview", action="store_true")
     args = parser.parse_args(argv)
@@ -1279,6 +1307,8 @@ def main(argv=None) -> int:
         merge_cost_local=args.merge_cost_local,
         merge_cost_local_diagonal=args.merge_cost_local_diagonal,
         max_chars=args.max_chars,
+        keep_right_gap=args.keep_right_gap,
+        hangul_joint=args.hangul_joint,
     )
     if not args.no_preview:
         make_preview(args.output, args.preview_output)
