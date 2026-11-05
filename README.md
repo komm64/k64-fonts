@@ -49,6 +49,41 @@ The main scene is `godot/preview.tscn`. It renders the game fonts into a fixed
 The 320x240 mode uses `game/320x240/k64-320-k64f-visual16-12px.fnt`, so K64F can
 be rendered at `font-size: 12px` while keeping the visual 8x16 K64F size.
 
+## Godot font stacks
+
+Each target with game files has two ready-made stacks, generated from
+`k64-locale.json` by `tools/godot_fonts.py stacks`:
+
+| File | Stack |
+|------|-------|
+| `game/<target>/k64-<target>-default.tres` | `default` (CK before J) |
+| `game/<target>/k64-<target>-ja.tres` | `ja` (J before CK) |
+
+A stack is a `FontVariation`: K64F is its base font and the other roles are its
+`fallbacks`, in stack order. Use it as the font, at the target's game size:
+
+```gdscript
+theme.default_font = load("res://fonts/k64/k64-640x240-ja.tres")
+theme.default_font_size = 16
+```
+
+### Copying a target into a game
+
+```sh
+python tools/godot_fonts.py sync 640x240 <game>/assets/fonts/k64
+```
+
+This copies the target's fonts (with BMFont page images), both stack `.tres`,
+the license texts the fonts need and a `NOTICE.txt` into the folder, and writes
+`.import` files that keep the fonts dot-sharp (no antialiasing, hinting,
+subpixel positioning, system fallback or BMFont scaling). The `.tres` refer to
+the fonts by relative path and no uid is written, so the folder can sit
+anywhere in the game project. The folder belongs to the sync: re-running it
+updates the files and removes ones that are no longer part of the target.
+
+Rendering through the imported stack is pixel-identical to building the same
+chain at runtime with `load_bitmap_font` / `load_dynamic_font`.
+
 ## Locale font stacks
 
 `k64-locale.json` is the source-of-truth stack manifest.  The normal stack and
@@ -415,6 +450,7 @@ Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= deriva
 | `align_targets.py` | Put every role of every target on the K64F line box / cap height (idempotent; run after the bakes) |
 | `check_alignment.py` | Verify the cross-script alignment rules; exits 1 on a violation |
 | `verify_k64f_targets.py` | Verify all game/Web K64F target pixels and metrics against the canonical 16px atlas |
+| `godot_fonts.py` | Godot font stacks (`stacks`) and copying one target into a game project (`sync`) |
 | `render_readcheck.py` | Confusable-pair visual QA (Il1, O0, rn/m, etc.) |
 | `diff_fonts.py` | Glyph + metrics diff between two TTFs |
 | `render_readme_previews.py` | Render the README preview images for the 640x240, 320x240, and 640x480 targets |

@@ -1,0 +1,11 @@
+[gd_resource type="FontVariation" load_steps=6 format=3]
+
+[ext_resource type="FontFile" path="k64-640x240-k64f-16px-x2w.fnt" id="1_k64f"]
+[ext_resource type="FontFile" path="k64-640x240-arabic-sans-medium-pixel-20px-thin-y1.ttf" id="2_arabic"]
+[ext_resource type="FontFile" path="k64-640x240-thai-pixel-12w-or12-y2x-prop-x2w.ttf" id="3_thai"]
+[ext_resource type="FontFile" path="k64-640x240-j-shinonome-mincho-16px-or12.ttf" id="4_j"]
+[ext_resource type="FontFile" path="k64-640x240-ck-unifont-16px-or12.ttf" id="5_ck"]
+
+[resource]
+base_font = ExtResource("1_k64f")
+fallbacks = Array[Font]([ExtResource("2_arabic"), ExtResource("3_thai"), ExtResource("4_j"), ExtResource("5_ck")])
