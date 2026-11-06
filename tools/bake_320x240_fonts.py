@@ -10,7 +10,8 @@ script writes the 320x240-specific square-dot fonts under:
 
 Final choices:
   - Japanese: Shinonome Mincho 12px 1bpp strike -> pixel-square outlines
-  - CK: Unifont 16px -> 12px drop-bridge repair for Chinese/Korean
+  - ZH: WenQuanYi Bitmap Song 12px (Song/Mincho-style hanzi), dots made whole pixels
+  - CK: Unifont 16px -> 12px drop-bridge repair for Korean and what ZH lacks
   - Thai: Noto Sans Thai Light, 12px base glyphs with 16px upper/lower marks;
           upper marks use collision-aware max-up 2px per mark glyph
   - Arabic: Noto Sans Arabic Light, direct 12px mono pixel render
@@ -54,6 +55,7 @@ OUT = {
         "K64 320 K64F Visual16 12px",
     ),
     "j": ("k64-320-j-shinonome-mincho-12px", "K64 320 J Shinonome Mincho 12px"),
+    "zh": ("k64-320-zh-wqy-song-12px", "K64 320 ZH WQY Song 12px"),
     "ck": ("k64-320-ck-unifont-12px", "K64 320 CK Unifont 12px"),
     "thai": (
         "k64-320-thai-light-12px-mark16-max2",
@@ -303,6 +305,33 @@ def make_ck_font() -> tuple[Path, Path]:
         tt["OS/2"].usWinDescent = 4 * PX
     patch_ck_exclamation_marks(tt)
     set_names(tt, family, "K64320CKUnifont12px-Regular")
+    return save_ttf_and_woff2(tt, stem, transform_tables=False)
+
+
+def make_zh_font() -> tuple[Path, Path]:
+    """WenQuanYi Bitmap Song 12px as the Chinese face (komm64's pick, 2026-11-07).
+
+    The source draws one dot as 100 units on a 1500 em (whole pixels at 15ppem). A 1200
+    em makes them whole pixels at the 12px role size without touching an outline. Hanzi
+    ink then sits 10px above / 1px below the roman baseline with a 1px gap after each
+    glyph; its centre is the K64F cap-height centre, so the cell is not moved.
+
+    GPL v2 with the font embedding exception, kept in its own file so no OFL face mixes
+    with it (LICENSE/GPL-2.0-font-exception.txt).
+    """
+    stem, family = OUT["zh"]
+    tt = TTFont(SRC / "WenQuanYi-Bitmap-Song-12px.ttf")
+    tt["head"].unitsPerEm = UPM
+    set_line_metrics(tt, UPM, -4 * PX)
+    set_names(tt, family, "K64320ZHWQYSong12px-Regular")
+    tt["name"].setName(
+        "Copyright (c) 2004-2010 The WenQuanYi Project Board of Trustees and Qianqian Fang", 0, 3, 1, 0x409
+    )
+    tt["name"].setName(
+        "GPL v2 with font embedding exception; modified by k64-fonts "
+        "(em resized so dots are whole pixels at 12px). See LICENSE/GPL-2.0-font-exception.txt.",
+        13, 3, 1, 0x409,
+    )
     return save_ttf_and_woff2(tt, stem, transform_tables=False)
 
 
@@ -762,7 +791,7 @@ def make_preview(paths: dict[str, Path]) -> Path:
     draw.text((10, 10), "K64 320x240 12px final font set", fill=(0, 0, 0), font=title)
     rows = [
         ("K64F visual16 at 12px", 52),
-        ("J / CK", 94),
+        ("J / ZH / CK", 94),
         ("Thai mark16 collision-aware max2", 136),
         ("Arabic Light 12px", 178),
     ]
@@ -773,11 +802,12 @@ def make_preview(paths: dict[str, Path]) -> Path:
     x = 24
     x = draw_shaped_run(img, paths["k64f"], "HP 0123 / MENU / SCORE", x, base, 12) + 12
     x = draw_shaped_run(img, paths["j"], "日本語", x, base, 12) + 12
-    draw_shaped_run(img, paths["ck"], "漢字 龍龜 你好", x, base, 12)
+    draw_shaped_run(img, paths["zh"], "漢字 龍龜 你好", x, base, 12)
     base = rows[1][1]
     x = 24
     x = draw_shaped_run(img, paths["j"], "日本語 いろはにほへと", x, base, 12) + 12
-    x = draw_shaped_run(img, paths["ck"], "中国語 敏捷的白狐跳过懒狗 한국어", x, base, 12) + 12
+    x = draw_shaped_run(img, paths["zh"], "中国語 敏捷的白狐跳过懒狗 ", x, base, 12)
+    x = draw_shaped_run(img, paths["ck"], "한국어", x, base, 12) + 12
     base = rows[2][1]
     x = 24
     x = draw_shaped_run(img, paths["j"], "日本語", x, base, 12) + 12
@@ -793,7 +823,7 @@ def make_preview(paths: dict[str, Path]) -> Path:
     base = rows[3][1]
     x = 24
     x = draw_shaped_run(img, paths["j"], "日本語", x, base, 12) + 12
-    x = draw_shaped_run(img, paths["ck"], "天地玄黄 宇宙洪荒", x, base, 12) + 12
+    x = draw_shaped_run(img, paths["zh"], "天地玄黄 宇宙洪荒", x, base, 12) + 12
     draw_shaped_run(img, paths["arabic"], "السلام عليكم مرحبا بالعالم ١٢٣٤", x, base, 12, lang="ar", direction="rtl")
     img = img.resize((w * 3, h * 3), Image.Resampling.NEAREST)
     img.save(out)
@@ -804,6 +834,7 @@ def main() -> int:
     outputs = {
         "k64f": bake_k64f_visual16_at_12px()[0],
         "j": bake_shinonome_12px()[0],
+        "zh": make_zh_font()[0],
         "ck": make_ck_font()[0],
         "thai": bake_thai()[0],
         "arabic": bake_arabic()[0],
