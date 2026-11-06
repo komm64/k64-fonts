@@ -165,6 +165,7 @@ def draw_manual_320_k64_line(logical: Image.Image) -> None:
     fonts = {
         "latin": SRC / "komm64Fantasy.ttf",
         "j": base / "k64-320-j-shinonome-mincho-12px.ttf",
+        "zh": base / "k64-320-zh-wqy-song-12px.ttf",
         "ck": base / "k64-320-ck-unifont-12px.ttf",
         "thai": base / "k64-320-thai-light-12px-mark16-max2.ttf",
         "arabic": base / "k64-320-arabic-light-12px.ttf",
@@ -174,7 +175,8 @@ def draw_manual_320_k64_line(logical: Image.Image) -> None:
     x = draw_run(logical, fonts["latin"], LINE_SAMPLES["latin"], x, baseline, 16)
     x = draw_separator(logical, fonts["latin"], x, baseline, 16)
     x = draw_run(logical, fonts["j"], LINE_SAMPLES["cjk_j"], x, baseline, 12)
-    x = draw_run(logical, fonts["ck"], LINE_SAMPLES["cjk_c"] + LINE_SAMPLES["cjk_k"], x, baseline, 12, lang="ko")
+    x = draw_run(logical, fonts["zh"], LINE_SAMPLES["cjk_c"], x, baseline, 12)
+    x = draw_run(logical, fonts["ck"], LINE_SAMPLES["cjk_k"], x, baseline, 12, lang="ko")
     x = draw_separator(logical, fonts["latin"], x, baseline, 16)
     x = draw_run(logical, fonts["thai"], LINE_SAMPLES["thai"], x, baseline, 12, lang="th")
     x = draw_separator(logical, fonts["latin"], x, baseline, 16)
@@ -325,6 +327,7 @@ def render_320_with_chrome(out: Path) -> bool:
     font = {
         "k64f": as_file_url(ROOT / "web" / "320x240" / "k64-320-k64f-visual16-12px.woff2"),
         "j": as_file_url(ROOT / "web" / "320x240" / "k64-320-j-shinonome-mincho-12px.woff2"),
+        "zh": as_file_url(ROOT / "web" / "320x240" / "k64-320-zh-wqy-song-12px.woff2"),
         "ck": as_file_url(ROOT / "web" / "320x240" / "k64-320-ck-unifont-12px.woff2"),
         "thai": as_file_url(ROOT / "web" / "320x240" / "k64-320-thai-light-12px-mark16-max2.woff2"),
         "arabic": as_file_url(ROOT / "web" / "320x240" / "k64-320-arabic-light-12px.woff2"),
@@ -340,6 +343,7 @@ def render_320_with_chrome(out: Path) -> bool:
 <style>
 @font-face {{ font-family: "K64F320"; src: url("{font['k64f']}") format("woff2"); }}
 @font-face {{ font-family: "K64J320"; src: url("{font['j']}") format("woff2"); }}
+@font-face {{ font-family: "K64ZH320"; src: url("{font['zh']}") format("woff2"); }}
 @font-face {{ font-family: "K64CK320"; src: url("{font['ck']}") format("woff2"); }}
 @font-face {{ font-family: "K64Thai320"; src: url("{font['thai']}") format("woff2"); }}
 @font-face {{ font-family: "K64Arabic320"; src: url("{font['arabic']}") format("woff2"); }}
@@ -359,11 +363,11 @@ html, body {{
 .guide {{ position: absolute; left: 8px; width: 304px; height: 1px; background: rgb(210,235,255); }}
 .run {{ position: absolute; left: 8px; white-space: nowrap; }}
 .default-line {{ font: 12px Arial, "Yu Gothic", "Malgun Gothic", Tahoma, sans-serif; }}
-.k64-line {{ font: 12px/16px K64F320, K64Arabic320, K64Thai320, K64CK320, K64J320, monospace; }}
+.k64-line {{ font: 12px/16px K64F320, K64Arabic320, K64Thai320, K64ZH320, K64CK320, K64J320, monospace; }}
 .sep {{ color: rgb(120,120,120); font-family: Arial, sans-serif; padding: 0 2px; }}
 .k64-latin {{ font-family: K64F320; }}
 .k64-j {{ font-family: K64J320; }}
-.k64-ck {{ font-family: K64CK320; }}
+.k64-ck {{ font-family: K64ZH320, K64CK320; }}
 .k64-thai {{ font-family: K64Thai320; }}
 .default-arabic, .k64-arabic {{
   direction: rtl;
@@ -643,6 +647,7 @@ def render_320() -> Path:
     k64 = {
         "latin": base / "k64-320-k64f-visual16-12px.ttf",
         "j": base / "k64-320-j-shinonome-mincho-12px.ttf",
+        "zh": base / "k64-320-zh-wqy-song-12px.ttf",
         "ck": base / "k64-320-ck-unifont-12px.ttf",
         "thai": base / "k64-320-thai-light-12px-mark16-max2.ttf",
         "arabic": base / "k64-320-arabic-light-12px.ttf",
@@ -667,7 +672,7 @@ def render_320() -> Path:
         [
             (k64["latin"], LINE_SAMPLES["latin"], 12, 1, 1, None, None, FT_FLAGS),
             (k64["j"], LINE_SAMPLES["cjk_j"], 12, 1, 1, None, None, FT_FLAGS),
-            (k64["ck"], LINE_SAMPLES["cjk_c"], 12, 1, 1, None, None, FT_FLAGS),
+            (k64["zh"], LINE_SAMPLES["cjk_c"], 12, 1, 1, None, None, FT_FLAGS),
             (k64["ck"], LINE_SAMPLES["cjk_k"], 12, 1, 1, "ko", None, FT_FLAGS),
             (k64["thai"], LINE_SAMPLES["thai"], 12, 1, 1, "th", None, FT_FLAGS),
             (k64["arabic"], LINE_SAMPLES["arabic"], 12, 1, 1, "ar", "rtl", FT_FLAGS),

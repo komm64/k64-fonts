@@ -11,8 +11,8 @@
         .import files that keep the fonts dot-sharp.
 
 A stack .tres is a FontVariation whose base font is the stack's first role
-(K64F) and whose fallbacks are the other roles in stack order, so a game can
-use it directly:
+(K64F) and whose fallbacks are the other roles in stack order (roles a target
+has no face for are left out), so a game can use it directly:
 
     theme.default_font = load("res://<dest>/k64-640x240-ja.tres")
 
@@ -61,6 +61,7 @@ _IMPORT = {
 _LICENSE = {
     "k64f": "CC-BY-NC-4.0.txt",
     "j": "PDS-JF-Dot.txt",
+    "zh": "GPL-2.0-font-exception.txt",
     "ck": "OFL-1.1.txt",
     "thai": "OFL-1.1.txt",
     "arabic": "OFL-1.1.txt",
@@ -80,7 +81,8 @@ def stack_name(target: str, stack: str) -> str:
 
 
 def stack_tres(game: dict, roles: list[str]) -> str:
-    """FontVariation text: base = roles[0], fallbacks = roles[1:]."""
+    """FontVariation text: base = roles[0], fallbacks = roles[1:] (those the target has)."""
+    roles = [r for r in roles if r in game]
     lines = [f'[gd_resource type="FontVariation" load_steps={len(roles) + 1} format=3]', ""]
     for i, role in enumerate(roles, 1):
         lines.append(f'[ext_resource type="FontFile" path="{Path(game[role]).name}" id="{i}_{role}"]')

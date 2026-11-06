@@ -19,6 +19,7 @@ const FONTS_640X240 := {
 const FONTS_320X240 := {
 	"k64f": "res://game/320x240/k64-320-k64f-visual16-12px.fnt",
 	"j": "res://game/320x240/k64-320-j-shinonome-mincho-12px.ttf",
+	"zh": "res://game/320x240/k64-320-zh-wqy-song-12px.ttf",
 	"ck": "res://game/320x240/k64-320-ck-unifont-12px.ttf",
 	"thai": "res://game/320x240/k64-320-thai-light-12px-mark16-max2.ttf",
 	"arabic": "res://game/320x240/k64-320-arabic-light-12px.ttf",
@@ -46,7 +47,7 @@ const MODES := [
 		"title": "320x240 surface -> 640x480 display",
 		"surface_size": Vector2i(320, 240),
 		"fonts": FONTS_320X240,
-		"sizes": {"k64f": 12, "j": 12, "ck": 12, "thai": 12, "arabic": 12},
+		"sizes": {"k64f": 12, "j": 12, "zh": 12, "ck": 12, "thai": 12, "arabic": 12},
 		"layout": "small240",
 	},
 	{
@@ -198,9 +199,10 @@ func draw_small_240(mode: Dictionary) -> void:
 	add_rule(10, 146, 300)
 	add_label("320x240 -> 640x480", fonts["k64f"], sizes["k64f"], Vector2(10, 8), Vector2(300, 16), INK)
 	add_label("K64F HP 0123 / MENU", fonts["k64f"], sizes["k64f"], Vector2(10, 44), Vector2(300, 16), INK)
-	add_label("J    こんにちは世界 0123", fonts["j"], sizes["j"], Vector2(10, 68), Vector2(300, 16), INK)
-	add_label("CK   ! ！ 漢字 龍龜 你好", fonts["ck"], sizes["ck"], Vector2(10, 92), Vector2(300, 16), INK)
-	add_label("TH   กี้ กํ่า เก้า น้ำ", fonts["thai"], sizes["thai"], Vector2(10, 116), Vector2(300, 16), INK)
+	add_label("J    こんにちは世界 0123", fonts["j"], sizes["j"], Vector2(10, 64), Vector2(300, 16), INK)
+	add_label("ZH   ! ！ 漢字 龍龜 你好", fonts["zh"], sizes["zh"], Vector2(10, 84), Vector2(300, 16), INK)
+	add_label("CK   한국어 안녕", fonts["ck"], sizes["ck"], Vector2(10, 104), Vector2(300, 16), INK)
+	add_label("TH   กี้ กํ่า เก้า น้ำ", fonts["thai"], sizes["thai"], Vector2(10, 124), Vector2(300, 16), INK)
 	add_label("السلام عليكم ١٢٣٤", fonts["arabic"], sizes["arabic"], Vector2(10, 154), Vector2(300, 18), INK, true)
 	add_label("ا أ إ آ ٠١٢٣٤٥٦٧٨٩", fonts["arabic"], sizes["arabic"], Vector2(10, 184), Vector2(300, 18), INK, true)
 

@@ -21,6 +21,7 @@ import sys
 from fontTools.ttLib import TTFont
 
 from k64_alignment import (
+    CJK_ROLES,
     CJK_TOLERANCE_PX,
     grid_offset,
     CJK_TOLERANCE_ROWS,
@@ -121,7 +122,7 @@ def main() -> int:
             continue
         ref = reference(faces, face.target, face.kind)
         dx = dy = 0
-        if face.role in ("j", "ck") and face.boxes:
+        if face.role in CJK_ROLES and face.boxes:
             # Snap to whole pixels first (some game bakes sit a fraction off), then move whole rows.
             snap = 0.0 if face.bitmaps else -grid_offset(face)
             snap = 0.0 if abs(snap) < 0.05 else snap  # unit rounding, not a real offset

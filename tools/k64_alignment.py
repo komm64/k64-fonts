@@ -7,7 +7,7 @@ per-target offsets:
 
 - metrics: every role exposes the K64F line box (ascent/descent) at its role size,
   so a fallback glyph never changes the line height.
-- cjk (J, CK): ideographs and kana are centred on the middle of the cap height,
+- cjk (J, ZH, CK): ideographs and kana are centred on the middle of the cap height,
   and their ink is centred in the advance. The whole cell moves, so punctuation
   keeps its designed position inside the cell.
 - thai: low consonants (ก) reach x-height..cap height, tall ones (ป) cap height.
@@ -34,6 +34,7 @@ from fontTools.ttLib import TTFont
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "k64-locale.json"
 
+CJK_ROLES = ("j", "zh", "ck")
 CJK_VERTICAL = "日中国漢字あいアカ한국"
 CJK_HORIZONTAL = "国漢字あアカ한"  # wide glyphs only: narrow ones (日) say nothing about the cell
 THAI_LOW, THAI_TALL = "ก", "ป"
@@ -166,8 +167,7 @@ def _measure_fnt(face: Face, chars: str) -> None:
 
 REFERENCE_CHARS = {
     "k64f": "Hx",
-    "j": CJK_VERTICAL,
-    "ck": CJK_VERTICAL,
+    **{role: CJK_VERTICAL for role in CJK_ROLES},
     "thai": THAI_LOW + THAI_TALL,
     "arabic": ARABIC_ALEF,
 }
@@ -250,7 +250,7 @@ def check(faces: list[Face]) -> list[Finding]:
         for char, box in face.boxes.items():
             if box.y1 > ref.ascent + 0.01 or -box.y0 > ref.descent + 0.01:
                 fail("inside", f"{char} ink {box.y0:g}..{box.y1:g}px leaves the K64F line box")
-        if face.role in ("j", "ck") and face.boxes:
+        if face.role in CJK_ROLES and face.boxes:
             offset = (cjk_center(face) - ref.cap / 2) / rows
             if abs(offset) > CJK_TOLERANCE_ROWS and not fills_line_box(face, ref):
                 fail("cjk-vertical", f"ideograph centre {offset:+.1f} rows from the cap-height centre")
