@@ -9,19 +9,25 @@
 #   艹 (2026-11-07): the crossbar opened between the two verticals; 291 Big5 common hanzi.
 #   辶 (2026-11-07): a second bend (one dot moved left) in the drop; 123 Big5 common hanzi.
 #   示 (2026-11-07): the middle vertical of a lower 示 ends straight, unhooked; 42 Big5 common hanzi.
+#   戶 (2026-11-07): the first stroke is a bar, not a dot (each glyph redrawn by hand); 29 Big5 common hanzi.
 #
 # Part of the source of a modified WenQuanYi Bitmap Song: GPL v2 with the font embedding
 # exception, see LICENSE/GPL-2.0-font-exception.txt.
 U+504C 偌 000 148 1ee 248 210 6fe a20 27c 2c4 344 27c 244
+U+504F 偏 000 2fc 280 2fe 282 6fe a80 2fe 2aa 2fe 3aa 286
 U+5099 備 000 248 2fc 248 3fe 640 afe 292 3fe 292 2fe 312
+U+50F1 僱 000 2fc 280 4fe 482 cfe 4a4 4be 4e4 53e 524 63e
 U+51AA 冪 000 ffe 912 bba 110 3f8 208 ffe 150 7fc a4a 258
 U+527D 剽 000 fe2 28a fea aaa fea 00a 7ca 00a fea 542 936
 U+52DF 募 000 110 fbe 110 3f8 248 288 ffe 484 bfa 108 630
 U+52F5 勵 000 fe8 948 b68 abe bea aaa fea aaa bea ab2 a66
 U+52F8 勸 000 ee8 288 ee8 abe eea 48a fea 48a 7d2 492 7e6
+U+533E 匾 000 ffe a00 bf8 a08 bf8 a00 bfc b54 dfc 954 ffe
 U+533F 匿 000 7fe 490 7dc 490 7fe 440 4f8 588 6f8 400 7fe
 U+53B2 厲 000 7fe 448 5ee 448 4fc 4a4 4fc 4a4 5fe 92a 976
 U+54CE 哎 000 048 1ee e48 a00 a48 a48 a28 e30 010 068 186
+U+5533 唳 000 0fc e80 afe a82 afe a94 e92 0fe 110 128 2c6
+U+555F 啟 000 790 410 7de 474 7d4 414 5d4 548 948 9d4 822
 U+5629 嘩 000 028 fee 928 9fe 954 9fe 954 ffe 010 07c 010
 U+5664 噤 000 048 ffe a48 aec b5a a48 efc 000 1fe 094 112
 U+5676 噶 000 1ee 048 efc a84 afc a84 afe f92 2aa 0fa 004
@@ -31,6 +37,7 @@ U+5854 塔 000 244 2ee 254 fa8 244 2ba 200 3fc e44 07c 044
 U+5893 墓 000 fbe 110 3f8 208 3f8 208 ffe 248 df6 040 7fc
 U+5922 夢 000 110 fbe 110 7fc 4a4 ffe 882 1f8 290 060 780
 U+5948 奈 000 040 ffe 110 208 df6 000 7fc 040 248 444 842
+U+5992 妒 000 20c 230 fa0 2be 2a2 4a2 53e 320 2a0 4a0 840
 U+5AD6 嫖 000 4fe 428 ffe aaa afe a00 a7c 600 2fe 554 892
 U+5B7D 孽 000 7be 208 7be 494 7be 488 7fc 010 ffe 020 0e0
 U+5B97 宗 000 040 7fe 402 9f8 000 7fe 040 248 244 444 040
@@ -50,6 +57,14 @@ U+6170 慰 000 7c4 444 7fe 404 7d4 50c d44 92c 044 52a 8f8
 U+618A 憊 000 248 3fe 448 ffe 4d4 57c 654 49c 144 52a 8f8
 U+61C2 懂 000 2ee 228 a7c b10 afe 254 27c 254 2fe 210 2fe
 U+61F5 懵 000 2ee 228 afe baa afe a82 27c 244 27c 244 27c
+U+623E 戾 000 3f8 200 3fc 204 3fc 228 224 3fc 450 488 b06
+U+623F 房 000 3f8 200 3fc 204 3fc 220 3fe 240 47c 484 918
+U+6240 所 000 186 638 420 7a0 4be 4a4 7a4 424 444 444 884
+U+6241 扁 000 3fc 200 3fe 202 3fe 200 2fe 2aa 4fe 4aa 886
+U+6247 扇 000 7fc 400 7fe 402 7fe 400 7de 54a 4c6 54a a96
+U+6248 扈 000 7fc 400 7fe 402 7fe 488 5fc 524 5fc 902 8fe
+U+6249 扉 000 7fc 400 7fe 402 7fe 450 7de 450 7de 850 990
+U+6369 捩 000 2fc 280 ffe 282 2fe 394 692 afe 2a8 2a4 f42
 U+637A 捺 000 210 27e fa8 244 2ba 300 6fc a10 254 292 f12
 U+63CF 描 000 228 2ee f28 200 27e 352 652 a7e 252 27e e42
 U+642D 搭 000 228 2ee f28 210 228 344 eba 200 27c a44 47c
@@ -80,6 +95,8 @@ U+6B0A 權 000 2ee 228 fee 2aa 2fe 348 67e bc8 27e 248 27e
 U+6B3E 款 000 110 fd0 11e 7a2 00a 788 008 fc8 554 924 142
 U+6B61 歡 000 ee8 288 eee ab2 ee8 508 fe8 488 7d4 494 7e2
 U+6DD9 淙 000 410 2fe 082 97c 500 2fe 210 c54 454 492 512
+U+6DDA 淚 000 4fc 280 0fe 882 5fe 294 292 cfe 498 526 6c2
+U+6EEC 滬 000 4fc 280 0fe 882 4fe 2a8 2fc cd4 4fc 542 63e
 U+6F02 漂 000 5fe 228 0fe 8aa 4fe 200 27c c00 5fe 454 492
 U+6F20 漠 000 448 3ee 048 8fc 484 2fc 284 dfe 430 448 586
 U+6F23 漣 000 53e 288 0be 82a 5be 2aa 33e c88 4be 548 63e
@@ -87,8 +104,10 @@ U+6FDB 濛 000 428 2ee 828 4fe 282 2fe 234 dc8 42c 5ca 432
 U+6FE9 濩 000 428 2ee 848 4fe 348 27e 248 cfe 424 418 4e6
 U+701F 瀟 000 488 3de 8a8 5fc 024 3fe 32a dee 522 5ee 62a
 U+704C 灌 000 4ee 228 8ee 4aa 2ee 250 4fe d90 4fe 490 4fe
+U+717D 煽 000 2fc 280 afe b82 afe a80 2fe 2da 5b6 4da 936
 U+71A8 熨 000 7c4 47e 7e4 514 544 92c 040 244 4a8 110 e0e
 U+71E7 燧 000 214 2be a50 b28 a1a bec 25a 2aa 558 4a0 91e
+U+7256 牖 000 afc a80 afe f82 8fe e94 afe a92 afe a92 b16
 U+7372 獲 000 844 5ee 254 6fe b90 2fc 690 afe 248 a30 5ce
 U+745B 瑛 000 044 fee 244 210 77c 254 254 3fe c28 044 082
 U+74E2 瓢 000 fe6 2ba fea aaa fea 02a 7aa 02a fea 5ae 94a
@@ -106,14 +125,19 @@ U+796D 祭 000 23e 3e4 4a8 a90 508 2f4 402 bfc 150 248 c46
 U+7981 禁 000 208 fbe 208 71c aaa 208 7fc 000 ffe 248 c46
 U+79A6 禦 000 5ee a4a 5fa c4a 57e 548 3f8 000 ffe 248 c46
 U+7A6B 穫 000 128 eee 228 ffe 248 37e 2c8 67e a24 218 2e6
+U+7BC7 篇 000 420 7be 908 3fc 204 3fc 200 3fe 352 5fe 956
 U+7BF7 篷 000 7be 948 538 028 5d6 210 e7c 210 5fc 210 dfe
 U+7CBD 粽 000 210 afe 742 23c f80 27e 710 ad4 a52 292 210
 U+7CD9 糙 000 288 ae8 73e 248 ffe 240 75e a92 a5e 2a0 33e
 U+7CE2 糢 000 228 aee 728 27c fc4 27c 344 6fe a10 228 2c6
 U+7D9C 綜 000 210 27e 542 f3c 200 57e e88 02c 54a a8a a88
+U+7DE8 編 000 2fc 280 5fe f82 2fe 580 efe 0aa 5fe aaa aa6
 U+7E2B 縫 000 290 25e 514 e28 2d4 57e fc8 0be 548 ac8 abe
 U+7E39 縹 000 2fe 228 4fe faa 2fe 400 f7c 000 5fe a54 a92
 U+7F50 罐 000 428 4ee 7a8 aee 2aa fee 27e ac8 afe fc8 87e
+U+7FE9 翩 000 f80 87e f92 8da fb6 812 fb6 ada f92 a92 ab6
+U+8087 肇 000 720 43e 794 49c ba2 7fe 048 3f8 040 ffe 040
+U+80A9 肩 000 3f8 200 3fc 204 3fc 284 2fc 284 4fc 484 90c
 U+817F 腿 000 71e 592 55e 712 5de 550 75a 594 552 958 bbe
 U+8198 膘 000 efe a28 afe eaa afe a00 e7c a00 afe a54 b92
 U+819C 膜 000 728 5ee 528 77c 544 57c 744 5fe 510 928 bc6
@@ -321,9 +345,11 @@ U+861A 蘚 000 110 fbe 114 708 ffe 548 7fc 548 7fe 548 aa8
 U+862D 蘭 000 110 fbe 110 fbe 8a2 fbe ffe aaa bfa 952 a4e
 U+8638 蘸 000 fbe 110 fde 294 fde af4 ede 854 fde 524 892
 U+863F 蘿 000 fbe 110 7fe 492 7fe 2a8 57e fa8 43e fa8 abe
+U+8759 蝙 000 2fc 280 ffe a82 afe a80 ffe aaa 2fe 3aa e86
 U+87C6 蟆 000 228 2ee 228 fbc aa4 abc fa4 27e 298 3a4 cc2
 U+87D2 蟒 000 228 2ee 228 f94 afe aa4 fca 228 2fe 3a8 cc8
 U+8823 蠣 000 2fe 294 ff6 a94 afc a94 ffe 2d2 3da d76 242
+U+890A 褊 000 8fc 480 ffe 282 4fe 580 efe 5aa 4fe 5aa 686
 U+8921 褡 000 428 2ee f28 110 2a8 744 aba 200 27c 244 27c
 U+892A 褪 000 93c 4a4 e3c 3a4 4bc d28 6aa 5a4 4b2 540 63e
 U+893D 褽 000 7c4 444 7fe 424 bd4 54c ffe 0a2 194 ea8 0c6
@@ -399,7 +425,7 @@ U+9042 遂 000 444 228 3fe 062 e94 228 4dc 22a 2ca 510 8fe
 U+9047 遇 000 8fc 4a4 0fc ca4 4fc 420 9fe 52a 57a b04 9fe
 U+904A 遊 000 488 24e 3f0 08e ee4 2be 4a4 2a4 36c 500 8fe
 U+904B 運 000 4fe 292 2fe 054 e7c 254 47c 210 2fe 510 8fe
-U+904D 遍 000 410 2fe 282 0fe e80 2fe 5aa 2fe 2aa 582 8fe
+U+904D 遍 000 4fc 280 2fe 082 efe 2aa 5fe 2aa 2aa 500 8fe
 U+904E 過 000 47c 244 274 054 efe 282 4ba 2aa 2ba 586 8fe
 U+904F 遏 000 47c 244 27c 044 e7e 292 5aa 282 2fa 504 8fe
 U+9050 遐 000 4ee 2a2 2ee 080 eee 28a 4f4 28a 292 500 8fe
@@ -448,10 +474,13 @@ U+969B 際 000 f7e 95a aac c44 aba 900 9fe d10 a54 892 912
 U+96A7 隧 000 f24 9fe a50 c2a adc 96c 99a f6a a58 8a0 91e
 U+96A8 隨 000 f10 9be a48 c7e a14 9dc 954 f9c a54 8a4 91e
 U+96B8 隸 000 210 ffc 214 77e a94 77c 012 fdc 2b4 a52 a32
+U+96C7 雇 000 7f8 400 7fc 404 7fc 490 5fe 690 4fc 490 8fe
 U+97C3 韃 000 508 fdc 528 71e 274 fbe aa8 fde 228 fa8 25e
 U+97C6 韆 000 57e fa8 57e 7ea 27e f94 afe f94 252 fde 2be
 U+97C9 韉 000 576 fa4 5fe 7aa 2fe fa0 abe fa0 2be faa 2d6
+U+9867 顧 000 fbe 808 ffe 862 ffe aa2 ffe aa2 bfe a94 be2
 U+98C4 飄 000 ffe 2a6 ffa aaa ffe 02a 7be 02a fea 57e 942
+U+9A19 騙 000 ffc a40 f7e a42 f7e a40 fbe 5aa abe aaa 126
 U+9A40 驀 000 110 fbe 110 3f8 208 ffe 248 7fc a42 3fe 4aa
 U+9A43 驃 000 ffe a28 ffe aaa ffe a00 f7c 500 bfe 954 292
 U+9A5A 驚 000 dd0 53e fd4 56a 7fe 240 3fc 240 3fe 4a2 954
