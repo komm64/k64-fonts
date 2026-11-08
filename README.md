@@ -51,13 +51,14 @@ be rendered at `font-size: 12px` while keeping the visual 8x16 K64F size.
 
 ## Godot font stacks
 
-Each target with game files has two ready-made stacks, generated from
+Each target with game files has three ready-made stacks, generated from
 `k64-locale.json` by `tools/godot_fonts.py stacks`:
 
 | File | Stack |
 |------|-------|
 | `game/<target>/k64-<target>-default.tres` | `default` (CK before J) |
 | `game/<target>/k64-<target>-ja.tres` | `ja` (J before CK) |
+| `game/<target>/k64-<target>-zh-Hant.tres` | `zh-Hant` (Traditional Chinese: TC in place of ZH) |
 
 A stack is a `FontVariation`: K64F is its base font and the other roles are its
 `fallbacks`, in stack order. Use it as the font, at the target's game size:
@@ -73,7 +74,7 @@ theme.default_font_size = 16
 python tools/godot_fonts.py sync 640x240 <game>/assets/fonts/k64
 ```
 
-This copies the target's fonts (with BMFont page images), both stack `.tres`,
+This copies the target's fonts (with BMFont page images), the stack `.tres`,
 the license texts the fonts need and a `NOTICE.txt` into the folder, and writes
 `.import` files that keep the fonts dot-sharp (no antialiasing, hinting,
 subpixel positioning, system fallback or BMFont scaling). The `.tres` refer to
@@ -87,17 +88,25 @@ chain at runtime with `load_bitmap_font` / `load_dynamic_font`.
 ## Locale font stacks
 
 `k64-locale.json` is the source-of-truth stack manifest.  The normal stack and
-the Japanese stack use the same role set, but swap the Chinese/J priority:
+the Japanese stack use the same role set, but swap the Chinese/J priority; the
+Traditional Chinese stack uses TC in place of ZH:
 
 | Stack | Order |
 |-------|-------|
 | Default | K64F -> Arabic -> Thai -> ZH (WenQuanYi) -> CK (Unifont) -> J (Shinonome) |
 | Japanese text | K64F -> Arabic -> Thai -> J (Shinonome) -> ZH (WenQuanYi) -> CK (Unifont) |
+| Traditional Chinese text (`zh-Hant`) | K64F -> Arabic -> Thai -> TC (WenQuanYi, Taiwan forms) -> CK (Unifont) -> J (Shinonome) |
 
-ZH (WenQuanYi Bitmap Song, a Song/Mincho-style face) exists only in the 320x240
-set; the other targets have no ZH face, and their stacks skip it, so Chinese
-falls to CK there. Where ZH is present, CK still covers Hangul and anything ZH
-lacks.
+ZH (WenQuanYi Bitmap Song, a Song/Mincho-style face) and TC (the same face with
+Taiwan glyph forms) exist only in the 320x240 set; the other targets have no
+ZH/TC face, and their stacks skip it, so Chinese falls to CK there. Where ZH/TC
+is present, CK still covers Hangul and anything they lack.
+
+WenQuanYi's Traditional hanzi follow mainland glyph conventions (for example 艹
+drawn as one crossbar, 辶 with one bend). TC redraws those to the Taiwan (MOE)
+standard forms, the forms a "Traditional Chinese" game localisation normally
+means; use the `zh-Hant` stack for Traditional Chinese text and the default
+stack for Simplified Chinese.
 
 ### Fallback rules
 
@@ -159,7 +168,8 @@ from the existing 640x240 Reecho `y1`/`y2x` fonts.
 |------|--------|-------|
 | `k64-320-k64f-visual16-12px.fnt` + `_0.png` / `.woff2` | komm64Fantasy | 16px K64F outlines and advances scaled into the 12px target UPM, then baked to a folder-local BMFont page for the Godot sample. It keeps the visual 8x16 K64F size in the 12px target. |
 | `k64-320-j-shinonome-mincho-12px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 12px | The game TTF retains the canonical 12px 1bpp strike. For Web, that strike is converted pixel-for-pixel into square outlines so rasterizers cannot fall back to the smooth source outlines; minimal native hints suppress shape-changing auto-hinting. Both outputs use shared `ascent=12px / descent=4px` line metrics with the ideographic cell raised to 11px above / 1px below the roman baseline. |
-| `k64-320-zh-wqy-song-12px.ttf` / `.woff2` | WenQuanYi Bitmap Song 12px | The Chinese face (Simplified and Traditional; Traditional hanzi follow mainland glyph conventions, not Taiwan's). The source's dots (100 units on a 1500 em) become whole pixels at 12px by setting a 1200 em; no outline is changed. Hanzi are 11x11 with a 1px gap, 10px above / 1px below the roman baseline, which centres them on the K64F cap height. Covers GB2312, Big5 (both levels), the CJK Unified Ideographs block and Extension A. **GPL v2 with the font embedding exception** (`LICENSE/GPL-2.0-font-exception.txt`), kept in its own file. |
+| `k64-320-zh-wqy-song-12px.ttf` / `.woff2` | WenQuanYi Bitmap Song 12px | The Chinese face (Simplified, and Traditional with mainland glyph conventions; for Taiwan forms use TC). The source's dots (100 units on a 1500 em) become whole pixels at 12px by setting a 1200 em; no outline is changed. Hanzi are 11x11 with a 1px gap, 10px above / 1px below the roman baseline, which centres them on the K64F cap height. Covers GB2312, Big5 (both levels), the CJK Unified Ideographs block and Extension A. **GPL v2 with the font embedding exception** (`LICENSE/GPL-2.0-font-exception.txt`), kept in its own file. |
+| `k64-320-tc-wqy-song-tw-12px.ttf` / `.woff2` | WenQuanYi Bitmap Song 12px + `src/wqy-tw-12px.txt` | The Traditional Chinese face: ZH with 977 hanzi redrawn to the Taiwan (MOE) standard forms (艹 as two 十, 辶 with two bends, 示 and 戶 as components, and the other Big5 common hanzi whose forms differ). Each line of `src/wqy-tw-12px.txt` replaces one glyph on the same 12px grid; every other glyph is the ZH glyph unchanged. **GPL v2 with the font embedding exception**, like ZH. |
 | `k64-320-ck-unifont-12px.ttf` / `.woff2` | GNU Unifont 16px | 16px -> 12px conversion for the CK role (Hangul, and Chinese where ZH has no glyph), placed 11px above / 1px below the roman baseline inside the shared 12/4 line box. Hanzi and other full-width glyphs use `drop-bridge` on their 15 inked columns and keep Unifont's blank 16th column as a 1px gap, so running text does not touch; Hangul uses the counter-preserving `tools/ck12_joint.py` reduction. |
 | `k64-320-thai-light-12px-mark16-max2.ttf` / `.woff2` | Noto Sans Thai Light | 12px base glyphs; Thai marks are rendered at 16px, aligned to the 12px mark position, then only colliding upper marks are raised by up to 2px. Mark offsets are snapped to the integer pixel grid; tone marks keep their 3-row shape and are biased 1px upward so stacked marks keep a visible gap inside the 12px ascent. |
 | `k64-320-arabic-light-12px.ttf` / `.woff2` | Noto Sans Arabic Light | Direct 12px mono pixel render with Arabic shaping tables preserved. |
@@ -260,6 +270,10 @@ Pin a specific release tag for stability: `cdn.jsdelivr.net/gh/komm64/k64-fonts@
   src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/320x240/k64-320-zh-wqy-song-12px.woff2') format('woff2');
 }
 @font-face {
+  font-family: 'K64 320 TC';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/320x240/k64-320-tc-wqy-song-tw-12px.woff2') format('woff2');
+}
+@font-face {
   font-family: 'K64 320 CK';
   src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/320x240/k64-320-ck-unifont-12px.woff2') format('woff2');
 }
@@ -280,8 +294,11 @@ body {
   font-family: 'K64 320 K64F', 'K64 320 Arabic', 'K64 320 Thai', 'K64 320 ZH', 'K64 320 CK', 'K64 320 J', monospace;
 }
 :lang(ja) { font-family: 'K64 320 K64F', 'K64 320 Arabic', 'K64 320 Thai', 'K64 320 J', 'K64 320 ZH', 'K64 320 CK', monospace; }
-:lang(zh), :lang(zh-Hans), :lang(zh-Hant), :lang(ko) {
+:lang(zh), :lang(zh-Hans), :lang(ko) {
   font-family: 'K64 320 K64F', 'K64 320 Arabic', 'K64 320 Thai', 'K64 320 ZH', 'K64 320 CK', 'K64 320 J', monospace;
+}
+:lang(zh-Hant), :lang(zh-TW) {
+  font-family: 'K64 320 K64F', 'K64 320 Arabic', 'K64 320 Thai', 'K64 320 TC', 'K64 320 CK', 'K64 320 J', monospace;
 }
 :lang(th) { font-family: 'K64 320 K64F', 'K64 320 Arabic', 'K64 320 Thai', 'K64 320 ZH', 'K64 320 CK', 'K64 320 J', monospace; }
 :lang(ar) {
@@ -414,6 +431,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `320x240/k64-320-k64f-visual16-12px.ttf` | Compatibility TTF wrapper: use at font size 12 to keep the visual 8x16 K64F size in a 12px fallback stack. |
 | `320x240/k64-320-j-shinonome-mincho-12px.ttf` | 320x240 Japanese game face: Shinonome Mincho's original 12px 1bpp strike with a 12/4 line box. |
 | `320x240/k64-320-zh-wqy-song-12px.ttf` | 320x240 Chinese face: WenQuanYi Bitmap Song 12px with whole-pixel dots at 12px (GPL v2 with font embedding exception). |
+| `320x240/k64-320-tc-wqy-song-tw-12px.ttf` | 320x240 Traditional Chinese face: the ZH face with Taiwan (MOE) glyph forms from `src/wqy-tw-12px.txt` (GPL v2 with font embedding exception). |
 | `320x240/k64-320-ck-unifont-12px.ttf` | 320x240 CK face: Unifont-derived 12px Chinese/Korean face (drop-bridge with a 1px gap; Hangul via `ck12_joint`). |
 | `320x240/k64-320-thai-light-12px-mark16-max2.ttf` | 320x240 Thai face: Noto Sans Thai Light pixelized at 12px with 16px marks, integer-grid mark offsets, 3-row upward-biased tone marks, and collision-aware mark lift clamped inside the 12px ascent. |
 | `320x240/k64-320-arabic-light-12px.ttf` | 320x240 Arabic face: Noto Sans Arabic Light pixelized at 12px with shaping tables preserved. |
@@ -439,7 +457,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 - **JF-Dot family**: by 自由工房 (Jiyukoubou). Public Domain. See `LICENSE/PDS-JF-Dot.txt`.
 - **komm64Fantasy**: Copyright (c) 2026 komm64. Licensed under CC-BY-NC 4.0. See `LICENSE/CC-BY-NC-4.0.txt`.
 
-Modifications to WenQuanYi Bitmap Song are released under GPL v2 with the same font embedding exception: a game or document that embeds the font is not itself covered by the GPL. Its source is `src/WenQuanYi-Bitmap-Song-12px.ttf` and `tools/bake_320x240_fonts.py`. Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= derivative versions must remain under OFL). Modifications to komm64Fantasy are bound by CC-BY-NC 4.0.
+Modifications to WenQuanYi Bitmap Song are released under GPL v2 with the same font embedding exception: a game or document that embeds the font is not itself covered by the GPL. Its source is `src/WenQuanYi-Bitmap-Song-12px.ttf`, `src/wqy-tw-12px.txt` (the Taiwan-form glyphs of TC) and `tools/bake_320x240_fonts.py`. Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= derivative versions must remain under OFL). Modifications to komm64Fantasy are bound by CC-BY-NC 4.0.
 
 ## Tools (tools/) — bake + QA scripts
 
@@ -565,7 +583,7 @@ python tools/bake_thai_pixel.py --target-width 12 --height-mode or12 --advance-m
 ```
 k64-fonts/
 ├── README.md                this file
-├── k64-locale.json          role order for default and Japanese locale stacks
+├── k64-locale.json          role order for the default, Japanese and Traditional Chinese stacks
 ├── LICENSE/
 │   ├── CC-BY-NC-4.0.txt     komm64Fantasy
 │   ├── OFL-1.1.txt           Unifont + Noto derivatives

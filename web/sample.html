@@ -140,6 +140,12 @@
     }
 
     @font-face {
+      font-family: "K64 320 TC";
+      src: url("./320x240/k64-320-tc-wqy-song-tw-12px.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
       font-family: "K64 320 CK";
       src: url("./320x240/k64-320-ck-unifont-12px.woff2?v=cjk-up-1") format("woff2");
       font-display: swap;
@@ -630,6 +636,7 @@
     .social-320 {
       --stack-default: "K64 320 K64F", "K64 320 Arabic", "K64 320 Thai", "K64 320 ZH", "K64 320 CK", "K64 320 J", monospace;
       --stack-ja: "K64 320 K64F", "K64 320 Arabic", "K64 320 Thai", "K64 320 J", "K64 320 ZH", "K64 320 CK", monospace;
+      --stack-zh-hant: "K64 320 K64F", "K64 320 Arabic", "K64 320 Thai", "K64 320 TC", "K64 320 CK", "K64 320 J", monospace;
       width: 320px;
       height: 512px;
       font-family: var(--stack-default);
@@ -667,6 +674,10 @@
 
     .social-320 .role-j {
       font-family: var(--stack-ja);
+    }
+
+    .social-320 .role-ck:lang(zh-Hant) {
+      font-family: var(--stack-zh-hant);
     }
 
     .social-320 .role-arabic,

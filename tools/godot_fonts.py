@@ -62,6 +62,7 @@ _LICENSE = {
     "k64f": "CC-BY-NC-4.0.txt",
     "j": "PDS-JF-Dot.txt",
     "zh": "GPL-2.0-font-exception.txt",
+    "tc": "GPL-2.0-font-exception.txt",
     "ck": "OFL-1.1.txt",
     "thai": "OFL-1.1.txt",
     "arabic": "OFL-1.1.txt",
