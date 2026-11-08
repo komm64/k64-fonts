@@ -11,6 +11,7 @@ script writes the 320x240-specific square-dot fonts under:
 Final choices:
   - Japanese: Shinonome Mincho 12px 1bpp strike -> pixel-square outlines
   - ZH: WenQuanYi Bitmap Song 12px (Song/Mincho-style hanzi), dots made whole pixels
+  - TC: ZH with Taiwan (MOE) glyph forms from src/wqy-tw-12px.txt, for Traditional Chinese
   - CK: Unifont 16px -> 12px drop-bridge repair for Korean and what ZH lacks
   - Thai: Noto Sans Thai Light, 12px base glyphs with 16px upper/lower marks;
           upper marks use collision-aware max-up 2px per mark glyph
@@ -56,6 +57,7 @@ OUT = {
     ),
     "j": ("k64-320-j-shinonome-mincho-12px", "K64 320 J Shinonome Mincho 12px"),
     "zh": ("k64-320-zh-wqy-song-12px", "K64 320 ZH WQY Song 12px"),
+    "tc": ("k64-320-tc-wqy-song-tw-12px", "K64 320 TC WQY Song TW 12px"),
     "ck": ("k64-320-ck-unifont-12px", "K64 320 CK Unifont 12px"),
     "thai": (
         "k64-320-thai-light-12px-mark16-max2",
@@ -308,6 +310,17 @@ def make_ck_font() -> tuple[Path, Path]:
     return save_ttf_and_woff2(tt, stem, transform_tables=False)
 
 
+def wqy_12px_font() -> TTFont:
+    """WenQuanYi Bitmap Song 12px with a 1200 em, so its 100-unit dots are whole pixels at 12px."""
+    tt = TTFont(SRC / "WenQuanYi-Bitmap-Song-12px.ttf")
+    tt["head"].unitsPerEm = UPM
+    set_line_metrics(tt, UPM, -4 * PX)
+    tt["name"].setName(
+        "Copyright (c) 2004-2010 The WenQuanYi Project Board of Trustees and Qianqian Fang", 0, 3, 1, 0x409
+    )
+    return tt
+
+
 def make_zh_font() -> tuple[Path, Path]:
     """WenQuanYi Bitmap Song 12px as the Chinese face (komm64's pick, 2026-11-07).
 
@@ -320,19 +333,76 @@ def make_zh_font() -> tuple[Path, Path]:
     with it (LICENSE/GPL-2.0-font-exception.txt).
     """
     stem, family = OUT["zh"]
-    tt = TTFont(SRC / "WenQuanYi-Bitmap-Song-12px.ttf")
-    tt["head"].unitsPerEm = UPM
-    set_line_metrics(tt, UPM, -4 * PX)
+    tt = wqy_12px_font()
     set_names(tt, family, "K64320ZHWQYSong12px-Regular")
-    tt["name"].setName(
-        "Copyright (c) 2004-2010 The WenQuanYi Project Board of Trustees and Qianqian Fang", 0, 3, 1, 0x409
-    )
     tt["name"].setName(
         "GPL v2 with font embedding exception; modified by k64-fonts "
         "(em resized so dots are whole pixels at 12px). See LICENSE/GPL-2.0-font-exception.txt.",
         13, 3, 1, 0x409,
     )
     return save_ttf_and_woff2(tt, stem, transform_tables=False)
+
+
+def wqy_tw_glyphs() -> dict[int, list[str]]:
+    """src/wqy-tw-12px.txt: code point -> 12 rows of 3 hex digits (bit 11 = leftmost column)."""
+    out = {}
+    for line in (SRC / "wqy-tw-12px.txt").read_text(encoding="utf-8").splitlines():
+        if line and not line.startswith("#"):
+            cp, _char, *rows = line.split()
+            assert len(rows) == 12, cp
+            out[int(cp[2:], 16)] = rows
+    return out
+
+
+def make_tc_font() -> tuple[Path, Path]:
+    """ZH with Taiwan (MOE standard) glyph forms: the Traditional Chinese face (2026-11-08).
+
+    Each line of src/wqy-tw-12px.txt replaces one WQY glyph. Its grid is the WQY 12px cell:
+    column c covers x = c..c+1 dots, row r covers y = 10-r..11-r dots above the baseline
+    (row 11 is the row just below it). The advance width is the WQY one. Every other glyph
+    is the ZH glyph unchanged, so the face covers what ZH covers.
+
+    A modified WenQuanYi Bitmap Song: GPL v2 with the font embedding exception, like ZH.
+    The replacement glyphs' source is src/wqy-tw-12px.txt and this function.
+    """
+    stem, family = OUT["tc"]
+    tt = wqy_12px_font()
+    cmap, glyf, hmtx = tt.getBestCmap(), tt["glyf"], tt["hmtx"]
+    for cp, rows in wqy_tw_glyphs().items():
+        name = cmap[cp]
+        glyph = make_run_glyph(rows)
+        glyph.recalcBounds(glyf)
+        glyf[name] = glyph
+        hmtx[name] = (hmtx[name][0], getattr(glyph, "xMin", 0))
+    set_names(tt, family, "K64320TCWQYSongTW12px-Regular")
+    tt["name"].setName(
+        "GPL v2 with font embedding exception; modified by k64-fonts (em resized so dots are "
+        "whole pixels at 12px; Taiwan glyph forms from src/wqy-tw-12px.txt). "
+        "See LICENSE/GPL-2.0-font-exception.txt.",
+        13, 3, 1, 0x409,
+    )
+    return save_ttf_and_woff2(tt, stem, transform_tables=False)
+
+
+def make_run_glyph(rows: list[str]) -> TtGlyph:
+    """One rectangle per horizontal run of dots in a 12x12 grid (see make_tc_font)."""
+    pen = TTGlyphPen(None)
+    for r, h in enumerate(rows):
+        bits, y0 = int(h, 16), (10 - r) * PX
+        c = 0
+        while c < 12:
+            if not (bits >> (11 - c)) & 1:
+                c += 1
+                continue
+            s = c
+            while c < 12 and (bits >> (11 - c)) & 1:
+                c += 1
+            pen.moveTo((s * PX, y0))
+            pen.lineTo((s * PX, y0 + PX))
+            pen.lineTo((c * PX, y0 + PX))
+            pen.lineTo((c * PX, y0))
+            pen.closePath()
+    return pen.glyph() if any(int(h, 16) for h in rows) else empty_glyph()
 
 
 def make_cell_glyph(cells: set[tuple[int, int]]) -> TtGlyph:
@@ -835,6 +905,7 @@ def main() -> int:
         "k64f": bake_k64f_visual16_at_12px()[0],
         "j": bake_shinonome_12px()[0],
         "zh": make_zh_font()[0],
+        "tc": make_tc_font()[0],
         "ck": make_ck_font()[0],
         "thai": bake_thai()[0],
         "arabic": bake_arabic()[0],

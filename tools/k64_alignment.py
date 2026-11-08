@@ -7,7 +7,7 @@ per-target offsets:
 
 - metrics: every role exposes the K64F line box (ascent/descent) at its role size,
   so a fallback glyph never changes the line height.
-- cjk (J, ZH, CK): ideographs and kana are centred on the middle of the cap height,
+- cjk (J, ZH, TC, CK): ideographs and kana are centred on the middle of the cap height,
   and their ink is centred in the advance. The whole cell moves, so punctuation
   keeps its designed position inside the cell.
 - thai: low consonants (ก) reach x-height..cap height, tall ones (ป) cap height.
@@ -34,7 +34,7 @@ from fontTools.ttLib import TTFont
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "k64-locale.json"
 
-CJK_ROLES = ("j", "zh", "ck")
+CJK_ROLES = ("j", "zh", "tc", "ck")
 CJK_VERTICAL = "日中国漢字あいアカ한국"
 CJK_HORIZONTAL = "国漢字あアカ한"  # wide glyphs only: narrow ones (日) say nothing about the cell
 THAI_LOW, THAI_TALL = "ก", "ป"
