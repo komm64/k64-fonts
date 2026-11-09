@@ -1,11 +1,12 @@
-[gd_resource type="FontVariation" load_steps=6 format=3]
+[gd_resource type="FontVariation" load_steps=7 format=3]
 
 [ext_resource type="FontFile" path="k64-640x480-k64f-tall-16px.fnt" id="1_k64f"]
 [ext_resource type="FontFile" path="k64-640x480-arabic-light-16px.ttf" id="2_arabic"]
 [ext_resource type="FontFile" path="k64-640x480-thai-light-16px.ttf" id="3_thai"]
-[ext_resource type="FontFile" path="k64-640x480-ck-unifont-16px.ttf" id="4_ck"]
-[ext_resource type="FontFile" path="k64-640x480-j-shinonome-mincho-16px.ttf" id="5_j"]
+[ext_resource type="FontFile" path="k64-640x480-tc-unifont-tw-16px.ttf" id="4_tc"]
+[ext_resource type="FontFile" path="k64-640x480-ck-unifont-16px.ttf" id="5_ck"]
+[ext_resource type="FontFile" path="k64-640x480-j-shinonome-mincho-16px.ttf" id="6_j"]
 
 [resource]
 base_font = ExtResource("1_k64f")
-fallbacks = Array[Font]([ExtResource("2_arabic"), ExtResource("3_thai"), ExtResource("4_ck"), ExtResource("5_j")])
+fallbacks = Array[Font]([ExtResource("2_arabic"), ExtResource("3_thai"), ExtResource("4_tc"), ExtResource("5_ck"), ExtResource("6_j")])

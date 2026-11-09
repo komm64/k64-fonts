@@ -36,6 +36,12 @@
     }
 
     @font-face {
+      font-family: "K64 TC";
+      src: url("./k64-unifont-tw-16px-or12-y2x.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
       font-family: "K64 CK";
       src: url("./k64-unifont-16px-or12-y2x.woff2?v=cjk-baseline-3") format("woff2");
       font-display: swap;
@@ -174,6 +180,12 @@
     @font-face {
       font-family: "K64 640x480 J";
       src: url("./640x480/k64-640x480-j-shinonome-mincho-16px.woff2?v=cjk-baseline-2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "K64 640x480 TC";
+      src: url("./640x480/k64-640x480-tc-unifont-tw-16px.woff2") format("woff2");
       font-display: swap;
     }
 
@@ -647,6 +659,7 @@
     .social-240 {
       --stack-default: "K64 Fantasy 2X", "K64 Arabic Sans Medium Pixel", "K64 Thai 12W Prop", "K64 CK", "K64 J", monospace;
       --stack-ja: "K64 Fantasy 2X", "K64 Arabic Sans Medium Pixel", "K64 Thai 12W Prop", "K64 J", "K64 CK", monospace;
+      --stack-zh-hant: "K64 Fantasy 2X", "K64 Arabic Sans Medium Pixel", "K64 Thai 12W Prop", "K64 TC", "K64 CK", "K64 J", monospace;
       width: 640px;
       height: 1104px;
       font-family: var(--stack-default);
@@ -657,6 +670,7 @@
     .social-640 {
       --stack-default: "K64 640x480 K64F", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 CK", "K64 640x480 J", monospace;
       --stack-ja: "K64 640x480 K64F", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 J", "K64 640x480 CK", monospace;
+      --stack-zh-hant: "K64 640x480 K64F", "K64 640x480 Arabic", "K64 640x480 Thai", "K64 640x480 TC", "K64 640x480 CK", "K64 640x480 J", monospace;
       width: 640px;
       height: 568px;
       font-family: var(--stack-default);
@@ -674,10 +688,6 @@
 
     .social-320 .role-j {
       font-family: var(--stack-ja);
-    }
-
-    .social-320 .role-ck:lang(zh-Hant) {
-      font-family: var(--stack-zh-hant);
     }
 
     .social-320 .role-arabic,
@@ -722,6 +732,12 @@
     .social-640 .role-arabic,
     .social-640 .role-thai {
       font-family: var(--stack-default);
+    }
+
+    .social-320 .role-ck:lang(zh-Hant),
+    .social-240 .role-ck:lang(zh-Hant),
+    .social-640 .role-ck:lang(zh-Hant) {
+      font-family: var(--stack-zh-hant);
     }
 
     .specimen-heading,

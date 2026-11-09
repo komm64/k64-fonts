@@ -95,14 +95,20 @@ Traditional Chinese stack uses TC in place of ZH:
 |-------|-------|
 | Default | K64F -> Arabic -> Thai -> ZH (WenQuanYi) -> CK (Unifont) -> J (Shinonome) |
 | Japanese text | K64F -> Arabic -> Thai -> J (Shinonome) -> ZH (WenQuanYi) -> CK (Unifont) |
-| Traditional Chinese text (`zh-Hant`) | K64F -> Arabic -> Thai -> TC (WenQuanYi, Taiwan forms) -> CK (Unifont) -> J (Shinonome) |
+| Traditional Chinese text (`zh-Hant`) | K64F -> Arabic -> Thai -> TC (Taiwan forms) -> CK (Unifont) -> J (Shinonome) |
 
-ZH (WenQuanYi Bitmap Song, a Song/Mincho-style face) and TC (the same face with
-Taiwan glyph forms) exist only in the 320x240 set; the other targets have no
-ZH/TC face, and their stacks skip it, so Chinese falls to CK there. Where ZH/TC
-is present, CK still covers Hangul and anything they lack.
+ZH (WenQuanYi Bitmap Song, a Song/Mincho-style face) exists only in the 320x240
+set; the other targets have no ZH face, and their stacks skip it, so Chinese
+falls to CK there. Where ZH is present, CK still covers Hangul and anything it
+lacks.
 
-WenQuanYi's Traditional hanzi follow mainland glyph conventions (for example 艹
+TC exists in every target. At 320x240 it is ZH with Taiwan glyph forms. At
+640x480 and 640x240 it is CK's CJK Unified Ideographs block (U+4E00-9FFF) with 964
+hanzi redrawn from Unifont; kana, Hangul, punctuation and the rest of the `zh-Hant`
+stack come from CK, so use it with CK, not on its own.
+
+WenQuanYi's Traditional hanzi, and Unifont's hanzi (WenQuanYi's 16px glyphs), follow
+mainland glyph conventions (for example 艹
 drawn as one crossbar, 辶 with one bend). TC redraws those to the Taiwan (MOE)
 standard forms, the forms a "Traditional Chinese" game localisation normally
 means; use the `zh-Hant` stack for Traditional Chinese text and the default
@@ -196,6 +202,7 @@ The 640x480 monitor target uses a separate 16px square-dot set under
 |------|--------|-------|
 | `k64-640x480-j-shinonome-mincho-16px.ttf` / `.woff2` | JF-Dot Shinonome Mincho 16px | Native 16px 1bpp strike, placed 14px above / 2px below the roman baseline. The web face rebuilds the same strike as square outlines. Use a 16px row for the target layout. |
 | `k64-640x480-ck-unifont-16px.ttf` / `.woff2` | GNU Unifont 16px | Native 16px square-dot outlines, placed 14px above / 2px below the same roman baseline as the Japanese face. Use a 16px row for the target layout. |
+| `k64-640x480-tc-unifont-tw-16px.ttf` / `.woff2` | GNU Unifont 16px + `src/unifont-tw-16px.txt` | Traditional Chinese face: CK's CJK Unified Ideographs block with 964 hanzi redrawn to the Taiwan (MOE) standard forms, on CK's metrics and dot grid. Put it right before CK. **GPL v2 or later with the font embedding exception**, like its source. |
 | `k64-640x480-k64f-tall-16px.fnt` + `_0.png` / `.ttf` / `.woff2` | komm64Fantasy (16px) | Full-height K64F in PC-98-style 8x16 ANK cells: capitals 12 rows, x-height 9, descenders 2, on the same 14/2 line box as the CJK cells. Built by `tools/bake_k64f_tall.py` from the 16px K64F (per-zone row stretching plus hand-tuned K, g, y; g/y bodies sit 1px high so their hooks keep 3 rows). Preview: `docs/640x480/k64f-tall-preview.png`. This is the 640x480 K64F. |
 | `k64-640x480-k64f-16px.fnt` + `_0.png` | komm64Fantasy | K64F at its native 16px size (capitals 9 rows); the source of the tall face. |
 | `k64-640x480-thai-light-16px.ttf` / `.woff2` | Noto Sans Thai Light | Direct 16px mono pixel render with Thai shaping and mark positioning tables preserved. |
@@ -221,6 +228,10 @@ Reference fonts from this repo via jsDelivr CDN. Example CSS:
   src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2') format('woff2');
 }
 @font-face {
+  font-family: 'K64 TC';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-unifont-tw-16px-or12-y2x.woff2') format('woff2');
+}
+@font-face {
   font-family: 'K64 CK';
   src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-unifont-16px-or12-y2x.woff2') format('woff2');
 }
@@ -240,8 +251,11 @@ body {
   font-family: 'K64 Fantasy', 'K64 Arabic', 'K64 Thai', 'K64 CK', 'K64 J', monospace;
 }
 :lang(ja) { font-family: 'K64 Fantasy', 'K64 Arabic', 'K64 Thai', 'K64 J', 'K64 CK', monospace; }
-:lang(zh), :lang(zh-Hans), :lang(zh-Hant), :lang(ko) {
+:lang(zh), :lang(zh-Hans), :lang(ko) {
   font-family: 'K64 Fantasy', 'K64 Arabic', 'K64 Thai', 'K64 CK', 'K64 J', monospace;
+}
+:lang(zh-Hant), :lang(zh-TW) {
+  font-family: 'K64 Fantasy', 'K64 Arabic', 'K64 Thai', 'K64 TC', 'K64 CK', 'K64 J', monospace;
 }
 :lang(th) { font-family: 'K64 Fantasy', 'K64 Arabic', 'K64 Thai', 'K64 CK', 'K64 J', monospace; }
 :lang(ar) {
@@ -325,6 +339,10 @@ body {
   src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/640x480/k64-640x480-j-shinonome-mincho-16px.woff2') format('woff2');
 }
 @font-face {
+  font-family: 'K64 640x480 TC';
+  src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/640x480/k64-640x480-tc-unifont-tw-16px.woff2') format('woff2');
+}
+@font-face {
   font-family: 'K64 640x480 CK';
   src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/640x480/k64-640x480-ck-unifont-16px.woff2') format('woff2');
 }
@@ -346,6 +364,9 @@ body {
 }
 :lang(ja) {
   font-family: 'K64 640x480 K64F', 'K64 640x480 Arabic', 'K64 640x480 Thai', 'K64 640x480 J', 'K64 640x480 CK', monospace;
+}
+:lang(zh-Hant), :lang(zh-TW) {
+  font-family: 'K64 640x480 K64F', 'K64 640x480 Arabic', 'K64 640x480 Thai', 'K64 640x480 TC', 'K64 640x480 CK', 'K64 640x480 J', monospace;
 }
 :lang(ar) {
   font-family: 'K64 640x480 K64F', 'K64 640x480 Arabic', 'K64 640x480 Thai', 'K64 640x480 CK', 'K64 640x480 J', monospace;
@@ -404,6 +425,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `k64-fantasy-2x.woff2` | `komm64Fantasy.ttf` | all glyph contours + metrics scaled 2× both axes, then pixel-grid hints | `font-size: 32px` → 16px advance on a 32px line, 2×2 square dots |
 | `k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2` | `JF-Dot-ShinonomeMin16.ttf` | OR-merge to 12 rows + Y axis 2× + Name table rewrite (RFN compliance) | `font-size: 32px` → 16×24 px, glyph cell 24/0 and K64F-compatible 24/8 line metrics |
 | `k64-unifont-16px-or12-y2x.woff2` | `unifont-16px.ttf` | Same geometry and metrics as the Japanese face. Reserved Font Name "Unifont" removed from Name table per OFL §3. | same |
+| `k64-unifont-tw-16px-or12-y2x.woff2` | `unifont-16px.ttf` + `src/unifont-tw-16px.txt` | TC face: CK's CJK Unified Ideographs block with 964 Taiwan-form hanzi, or-merged to 12 rows with CK's geometry. GPL v2 or later with the font embedding exception. | same; list it right before `K64 CK` |
 | `k64-thai-pixel-16w-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Rasterized at 16px, fitted so `ก` advances 16px, emitted as 1×2 tall pixel rectangles, preserving GSUB/GPOS mark positioning. RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → pixel-art Thai with stacked tone marks |
 | `k64-thai-pixel-12w-16h-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Same pipeline as 16w, fitted so `ก` advances 12px while keeping the full 16px source height. Intended as the tall source for later OR-merge compression. | `font-size: 32px` → narrow, tall pixel-art Thai |
 | `k64-thai-pixel-12w-or12-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Starts from the 12w/16h raster and compresses rows with 4→3 OR merge, preserving horizontal strokes better than nearest-neighbor scaling. | `font-size: 32px` → compact 12w Thai |
@@ -415,6 +437,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `k64-arabic-sans-medium-pixel-24px-y2x.woff2` | `NotoSansArabic-Medium.ttf` | 24-row Arabic size trial, normal threshold. | `font-size: 32px` → same line height as x2 web fonts; `font-size: 48px` → natural 24px source scale |
 | `640x480/k64-640x480-j-shinonome-mincho-16px.woff2` | `JF-Dot-ShinonomeMin16.ttf` | Rebuilds the native 16px 1bpp strike as square outlines without changing its 14px-above / 2px-below placement. | `font-size: 16px; line-height: 16px` → native Japanese at target row spacing |
 | `640x480/k64-640x480-ck-unifont-16px.woff2` | `unifont-16px.ttf` | Keeps the native 16px Unifont outlines and matches Shinonome's 14px-above / 2px-below placement. | `font-size: 16px; line-height: 16px` → native Chinese/Korean fallback at target row spacing |
+| `640x480/k64-640x480-tc-unifont-tw-16px.woff2` | `unifont-16px.ttf` + `src/unifont-tw-16px.txt` | TC face: CK's CJK Unified Ideographs block with 964 Taiwan-form hanzi. GPL v2 or later with the font embedding exception. | same; list it right before `K64 640x480 CK` |
 | `640x480/k64-640x480-thai-light-16px.woff2` | `NotoSansThai-Light.ttf` | Direct 16px mono pixel rectangles with Thai GSUB/GPOS preserved. | `font-size: 16px` → square-dot Thai |
 | `640x480/k64-640x480-arabic-light-16px.woff2` | `NotoSansArabic-Light.ttf` | Direct 16px mono pixel rectangles with Arabic GSUB/GPOS preserved. | `font-size: 16px` → square-dot Arabic |
 
@@ -425,6 +448,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `640x240/k64-640x240-k64f-16px-x2w.fnt` + `_0.png` | Reecho-compatible K64F primary face. Generated as BMFont to avoid FreeType outline rasterization drift at 16ppem; horizontally 2x-wide for the 640x240 CRT signal path. |
 | `640x240/k64-640x240-j-shinonome-mincho-16px-or12.ttf` | 640x240 Japanese face: Shinonome Mincho 16px OR-merged to a 12px-above / 0px-below cell in the shared 12/4 line box. |
 | `640x240/k64-640x240-ck-unifont-16px-or12.ttf` | 640x240 CK face: Unifont 16px OR-merged to the same 12px-above / 0px-below cell and 12/4 line metrics. |
+| `640x240/k64-640x240-tc-unifont-tw-16px-or12.ttf` | 640x240 Traditional Chinese face: CK's CJK Unified Ideographs block with the 964 Taiwan-form hanzi of `src/unifont-tw-16px.txt`, OR-merged the same way (GPL v2 or later with font embedding exception). |
 | `640x240/k64-640x240-thai-pixel-12w-or12-y2x-prop-x2w.ttf` | 640x240 Thai game face used by the Godot sample and locale manifest. |
 | `640x240/k64-640x240-arabic-sans-medium-pixel-20px-thin-y1.ttf` | 640x240 Arabic game face: 20px thinner Arabic trial for Reecho game rendering. |
 | `320x240/k64-320-k64f-visual16-12px.fnt` + `_0.png` | 320x240 K64F BMFont page baked from the visual16-at-12px wrapper. |
@@ -437,6 +461,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `320x240/k64-320-arabic-light-12px.ttf` | 320x240 Arabic face: Noto Sans Arabic Light pixelized at 12px with shaping tables preserved. |
 | `640x480/k64-640x480-j-shinonome-mincho-16px.ttf` | 640x480 Japanese face: native Shinonome 16px pixels at the shared CJK 14px-above / 2px-below placement. |
 | `640x480/k64-640x480-ck-unifont-16px.ttf` | 640x480 CK face: native Unifont 16px pixels at the shared CJK 14px-above / 2px-below placement. |
+| `640x480/k64-640x480-tc-unifont-tw-16px.ttf` | 640x480 Traditional Chinese face: CK's CJK Unified Ideographs block with the 964 Taiwan-form hanzi of `src/unifont-tw-16px.txt` (GPL v2 or later with font embedding exception). |
 | `640x480/k64-640x480-thai-light-16px.ttf` | 640x480 Thai face: Noto Sans Thai Light pixelized at 16px with shaping tables preserved. |
 | `640x480/k64-640x480-arabic-light-16px.ttf` | 640x480 Arabic face: Noto Sans Arabic Light pixelized at 16px with shaping tables preserved. |
 | `640x480/k64-640x480-k64f-tall-16px.fnt` + `_0.png` / `.ttf` | 640x480 K64F: full-height 8x16 ANK cells (capitals 12 rows) on the 14/2 line box. |
@@ -457,7 +482,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 - **JF-Dot family**: by 自由工房 (Jiyukoubou). Public Domain. See `LICENSE/PDS-JF-Dot.txt`.
 - **komm64Fantasy**: Copyright (c) 2026 komm64. Licensed under CC-BY-NC 4.0. See `LICENSE/CC-BY-NC-4.0.txt`.
 
-Modifications to WenQuanYi Bitmap Song are released under GPL v2 with the same font embedding exception: a game or document that embeds the font is not itself covered by the GPL. Its source is `src/WenQuanYi-Bitmap-Song-12px.ttf`, `src/wqy-tw-12px.txt` (the Taiwan-form glyphs of TC) and `tools/bake_320x240_fonts.py`. Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= derivative versions must remain under OFL). Modifications to komm64Fantasy are bound by CC-BY-NC 4.0.
+Modifications to WenQuanYi Bitmap Song are released under GPL v2 with the same font embedding exception: a game or document that embeds the font is not itself covered by the GPL. Its source is `src/WenQuanYi-Bitmap-Song-12px.ttf`, `src/wqy-tw-12px.txt` (the Taiwan-form glyphs of TC) and `tools/bake_320x240_fonts.py`. The 16px TC faces modify `src/unifont-16px.ttf` (Unifont 9.0.06, which states GPL v2 or later with the GNU font embedding exception) and are released under those terms; their source is `src/unifont-tw-16px.txt` and `tools/bake_tc_16px.py`. Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= derivative versions must remain under OFL). Modifications to komm64Fantasy are bound by CC-BY-NC 4.0.
 
 ## Tools (tools/) — bake + QA scripts
 
@@ -466,6 +491,7 @@ Modifications to WenQuanYi Bitmap Song are released under GPL v2 with the same f
 | `bake_web_fonts.py` | Main bake: source TTFs → web/*.woff2. Uses Reecho's `gen_font.py`-produced or12 intermediates as input |
 | `bake_320x240_fonts.py` | Final 320x240 / 12px square-dot set bake |
 | `bake_640x480_fonts.py` | Final 640x480 / 16px square-dot set bake |
+| `bake_tc_16px.py` | 16px Taiwan-form TC faces (640x480 and 640x240) from `src/unifont-tw-16px.txt` |
 | `bake_k64f_tall.py` | Full-height 640x480 K64F (8x16 ANK cells) from the native 16px BMFont |
 | `bake_unifont_12px_drop.py` | Unifont 16px → 12px CK converter used by the 320x240 bake (`--keep-right-gap`, `--hangul-joint`) |
 | `ck12_joint.py` | Counter-preserving 16 → 12 reduction and its quality score, used for Hangul |
