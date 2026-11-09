@@ -329,8 +329,7 @@ def make_zh_font() -> tuple[Path, Path]:
     ink then sits 10px above / 1px below the roman baseline with a 1px gap after each
     glyph; its centre is the K64F cap-height centre, so the cell is not moved.
 
-    GPL v2 with the font embedding exception, kept in its own file so no OFL face mixes
-    with it (LICENSE/GPL-2.0-font-exception.txt).
+    GPL v2 with the font embedding exception (LICENSE/GPL-2.0-font-exception.txt).
     """
     stem, family = OUT["zh"]
     tt = wqy_12px_font()

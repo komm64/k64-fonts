@@ -401,7 +401,7 @@ Reecho game target: text is rendered into the internal 640x240 surface at `font-
 | `komm64Fantasy.ttf` | komm64 (this repo) | CC-BY-NC 4.0 | latest version, history via git tags. Metrics are 8px advance on a 16px em at `font-size: 16px`. |
 | `JF-Dot-ShinonomeMin12.ttf` | 自由工房 (Jiyukoubou) | Public Domain | unmodified 12px Shinonome Mincho source |
 | `JF-Dot-ShinonomeMin16.ttf` | 自由工房 (Jiyukoubou) | Public Domain | unmodified |
-| `unifont-16px.ttf` | Roman Czyborra, Paul Hardy et al. (unifoundry.com) | SIL OFL 1.1 | unmodified |
+| `unifont-16px.ttf` | Roman Czyborra, Paul Hardy et al. (unifoundry.com) | GPL v2 or later with font embedding exception | unmodified Unifont 9.0.06 |
 | `WenQuanYi-Bitmap-Song-12px.ttf` | The WenQuanYi Project, Qianqian Fang (wenq.org); TTF conversion by AmusementClub | GPL v2 with font embedding exception | unmodified TTF conversion of `wenquanyi_9pt.pcf` 1.0.0-RC1 (12x12 cells) |
 | `NotoSansThai-Regular.ttf` | Google LLC | SIL OFL 1.1 | unmodified |
 | `NotoSansThai-Light.ttf` | Google LLC | SIL OFL 1.1 | unmodified Light source for 320x240 and 640x480 Thai |
@@ -424,7 +424,7 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 | `320x240/k64-320-k64f-visual16-12px.woff2` | `komm64Fantasy.ttf` | 16px K64F outlines and advances scaled 4/3 into the 12px target UPM, then pixel-grid hints | `font-size: 12px` → same visual 8x16 K64F size as `k64-fantasy.woff2` at 16px |
 | `k64-fantasy-2x.woff2` | `komm64Fantasy.ttf` | all glyph contours + metrics scaled 2× both axes, then pixel-grid hints | `font-size: 32px` → 16px advance on a 32px line, 2×2 square dots |
 | `k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2` | `JF-Dot-ShinonomeMin16.ttf` | OR-merge to 12 rows + Y axis 2× + Name table rewrite (RFN compliance) | `font-size: 32px` → 16×24 px, glyph cell 24/0 and K64F-compatible 24/8 line metrics |
-| `k64-unifont-16px-or12-y2x.woff2` | `unifont-16px.ttf` | Same geometry and metrics as the Japanese face. Reserved Font Name "Unifont" removed from Name table per OFL §3. | same |
+| `k64-unifont-16px-or12-y2x.woff2` | `unifont-16px.ttf` | Same geometry and metrics as the Japanese face. | same |
 | `k64-unifont-tw-16px-or12-y2x.woff2` | `unifont-16px.ttf` + `src/unifont-tw-16px.txt` | TC face: CK's CJK Unified Ideographs block with 964 Taiwan-form hanzi, or-merged to 12 rows with CK's geometry. GPL v2 or later with the font embedding exception. | same; list it right before `K64 CK` |
 | `k64-thai-pixel-16w-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Rasterized at 16px, fitted so `ก` advances 16px, emitted as 1×2 tall pixel rectangles, preserving GSUB/GPOS mark positioning. RFN "Noto" removed from Name table per OFL §3. | `font-size: 32px` → pixel-art Thai with stacked tone marks |
 | `k64-thai-pixel-12w-16h-y2x.woff2` | `NotoSansThai-Regular_x2w.ttf` | Same pipeline as 16w, fitted so `ก` advances 12px while keeping the full 16px source height. Intended as the tall source for later OR-merge compression. | `font-size: 32px` → narrow, tall pixel-art Thai |
@@ -476,13 +476,13 @@ Intermediate-stage TTFs (= Reecho's `gen_font.py` output, input to web bake step
 ## Attribution / Copyright
 
 - **WenQuanYi Bitmap Song**: Copyright (c) 2004-2010 The WenQuanYi Project Board of Trustees and Qianqian Fang. Licensed under GPL v2 with the font embedding exception. See `LICENSE/GPL-2.0-font-exception.txt`.
-- **GNU Unifont**: Copyright (c) 1998-2024 Roman Czyborra, Paul Hardy, Andrew Miller, et al. Licensed under SIL OFL 1.1. See `LICENSE/OFL-1.1.txt`.
+- **GNU Unifont** (9.0.06): Copyright (c) 2016 Roman Czyborra, Paul Hardy, Qianqian Fang, Andrew Miller, et al. Licensed under GPL v2 or later with the GNU font embedding exception. See `LICENSE/GPL-2.0-font-exception.txt`.
 - **Noto Sans Thai**: Copyright (c) 2018 Google LLC. Licensed under SIL OFL 1.1. See `LICENSE/OFL-1.1.txt`.
 - **Noto Sans Arabic**: Copyright (c) Google LLC. Licensed under SIL OFL 1.1. See `LICENSE/OFL-1.1.txt`.
 - **JF-Dot family**: by 自由工房 (Jiyukoubou). Public Domain. See `LICENSE/PDS-JF-Dot.txt`.
 - **komm64Fantasy**: Copyright (c) 2026 komm64. Licensed under CC-BY-NC 4.0. See `LICENSE/CC-BY-NC-4.0.txt`.
 
-Modifications to WenQuanYi Bitmap Song are released under GPL v2 with the same font embedding exception: a game or document that embeds the font is not itself covered by the GPL. Its source is `src/WenQuanYi-Bitmap-Song-12px.ttf`, `src/wqy-tw-12px.txt` (the Taiwan-form glyphs of TC) and `tools/bake_320x240_fonts.py`. The 16px TC faces modify `src/unifont-16px.ttf` (Unifont 9.0.06, which states GPL v2 or later with the GNU font embedding exception) and are released under those terms; their source is `src/unifont-tw-16px.txt` and `tools/bake_tc_16px.py`. Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= derivative versions must remain under OFL). Modifications to komm64Fantasy are bound by CC-BY-NC 4.0.
+Modifications to WenQuanYi Bitmap Song are released under GPL v2 with the same font embedding exception: a game or document that embeds the font is not itself covered by the GPL. Its source is `src/WenQuanYi-Bitmap-Song-12px.ttf`, `src/wqy-tw-12px.txt` (the Taiwan-form glyphs of TC) and `tools/bake_320x240_fonts.py`. The CK faces and the 16px TC faces modify `src/unifont-16px.ttf` (Unifont 9.0.06, which states GPL v2 or later with the GNU font embedding exception) and are released under those terms; their source is that font, `src/unifont-tw-16px.txt` and the bake scripts in `tools/`. Modifications to OFL-licensed fonts are released under OFL 1.1 per §3 (= derivative versions must remain under OFL). Modifications to komm64Fantasy are bound by CC-BY-NC 4.0.
 
 ## Tools (tools/) — bake + QA scripts
 
@@ -612,7 +612,8 @@ k64-fonts/
 ├── k64-locale.json          role order for the default, Japanese and Traditional Chinese stacks
 ├── LICENSE/
 │   ├── CC-BY-NC-4.0.txt     komm64Fantasy
-│   ├── OFL-1.1.txt           Unifont + Noto derivatives
+│   ├── GPL-2.0-font-exception.txt  WenQuanYi + Unifont derivatives
+│   ├── OFL-1.1.txt           Noto derivatives
 │   └── PDS-JF-Dot.txt       JF-Dot attribution
 ├── src/                     unmodified source TTFs + or-merge intermediates
 ├── web/                     baked woff2 for CDN

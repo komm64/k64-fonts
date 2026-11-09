@@ -15,12 +15,27 @@ the font, but you are not obligated to do so. If you do not wish to
 do so, delete this exception statement from your version.
 
 k64-fonts extends this exception to its modified versions of the font
-(game/320x240/k64-320-zh-wqy-song-12px.ttf and web/320x240/k64-320-zh-wqy-song-12px.woff2).
-Their source is src/WenQuanYi-Bitmap-Song-12px.ttf and the bake script
-tools/bake_320x240_fonts.py in this repository.
+(game/320x240/k64-320-zh-wqy-song-12px.ttf, game/320x240/k64-320-tc-wqy-song-tw-12px.ttf
+and their .woff2 counterparts in web/320x240/).
+Their source is src/WenQuanYi-Bitmap-Song-12px.ttf, src/wqy-tw-12px.txt and the bake
+script tools/bake_320x240_fonts.py in this repository.
 
 Upstream: http://wenq.org/ (PCF wenquanyi_9pt.pcf, 1.0.0-RC1)
 TTF conversion used as src/: https://github.com/AmusementClub/WenQuanYi-Bitmap-Song-TTF
+
+--------------------------------------------------------------------------
+
+GNU Unifont 9.0.06
+Copyright (C) 2016 Roman Czyborra, Paul Hardy, Qianqian Fang, Andrew Miller, et al.
+License: GNU General Public License version 2, or (at your option) a later version,
+with the GNU font embedding exception (the exception text above).
+
+k64-fonts extends this exception to its modified versions of the font: the CK faces
+(*-ck-unifont-*, k64-unifont-16px-*) and the 16px TC faces (*-tc-unifont-tw-*,
+k64-unifont-tw-*) in game/ and web/. Their source is src/unifont-16px.ttf,
+src/unifont-tw-16px.txt and the bake scripts in tools/ in this repository.
+
+Upstream: https://unifoundry.com/unifont/
 
 ==========================================================================
 
