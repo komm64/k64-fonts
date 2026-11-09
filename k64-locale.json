@@ -18,7 +18,7 @@
       "script": "Chinese"
     },
     "tc": {
-      "label": "TC (WenQuanYi Bitmap Song, Taiwan forms)",
+      "label": "TC (Taiwan forms: WenQuanYi Bitmap Song at 12px, Unifont at 16px)",
       "script": "Traditional Chinese"
     },
     "ck": {
@@ -50,6 +50,7 @@
         "thai": "web/k64-thai-pixel-12w-or12-y2x-prop.woff2",
         "arabic": "web/k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2",
         "k64f": "web/k64-fantasy-2x.woff2",
+        "tc": "web/k64-unifont-tw-16px-or12-y2x.woff2",
         "ck": "web/k64-unifont-16px-or12-y2x.woff2",
         "j": "web/k64-JF-Dot-ShinonomeMin16-or12-y2x.woff2"
       },
@@ -57,6 +58,7 @@
         "thai": "game/640x240/k64-640x240-thai-pixel-12w-or12-y2x-prop-x2w.ttf",
         "arabic": "game/640x240/k64-640x240-arabic-sans-medium-pixel-20px-thin-y1.ttf",
         "k64f": "game/640x240/k64-640x240-k64f-16px-x2w.fnt",
+        "tc": "game/640x240/k64-640x240-tc-unifont-tw-16px-or12.ttf",
         "ck": "game/640x240/k64-640x240-ck-unifont-16px-or12.ttf",
         "j": "game/640x240/k64-640x240-j-shinonome-mincho-16px-or12.ttf"
       }
@@ -99,6 +101,7 @@
         "thai": 16,
         "arabic": 16,
         "k64f": 16,
+        "tc": 16,
         "ck": 16,
         "j": 16
       },
@@ -106,6 +109,7 @@
         "thai": "web/640x480/k64-640x480-thai-light-16px.woff2",
         "arabic": "web/640x480/k64-640x480-arabic-light-16px.woff2",
         "k64f": "web/640x480/k64-640x480-k64f-tall-16px.woff2",
+        "tc": "web/640x480/k64-640x480-tc-unifont-tw-16px.woff2",
         "ck": "web/640x480/k64-640x480-ck-unifont-16px.woff2",
         "j": "web/640x480/k64-640x480-j-shinonome-mincho-16px.woff2"
       },
@@ -113,6 +117,7 @@
         "thai": "game/640x480/k64-640x480-thai-light-16px.ttf",
         "arabic": "game/640x480/k64-640x480-arabic-light-16px.ttf",
         "k64f": "game/640x480/k64-640x480-k64f-tall-16px.fnt",
+        "tc": "game/640x480/k64-640x480-tc-unifont-tw-16px.ttf",
         "ck": "game/640x480/k64-640x480-ck-unifont-16px.ttf",
         "j": "game/640x480/k64-640x480-j-shinonome-mincho-16px.ttf"
       }
