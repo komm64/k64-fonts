@@ -39,6 +39,7 @@ from fontTools.ttLib.tables.ttProgram import Program
 from PIL import Image, ImageDraw, ImageFont
 
 from k64f_web_hint import save_hinted_woff2
+from thai_narrow import clear_narrow_marks
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
@@ -519,6 +520,8 @@ THAI_MARK_CPS = set([0x0E31] + list(range(0x0E34, 0x0E3B)) + list(range(0x0E47, 
 THAI_MARK_HEX = {f"{cp:04X}" for cp in THAI_MARK_CPS}
 THAI_BELOW_HEX = {f"{cp:04X}" for cp in (0x0E38, 0x0E39, 0x0E3A)}
 THAI_TONE_HEX = {f"{cp:04X}" for cp in range(0x0E48, 0x0E4C)}
+# Rows a stacked upper mark may rise above the 12px ascent (into the 16px line).
+THAI_STACK_OVER_ASCENT_PX = 2
 
 
 def glyph_name_marks(gname: str) -> tuple[bool, bool]:
@@ -773,6 +776,10 @@ def bake_pixel_outline_font(
                     # Tone marks are the second upper mark in stacked clusters;
                     # bias their integer placement upward to keep a 1px gap.
                     y_shift += 1
+                if is_thai_tone_mark(gname) or gname.endswith(".small"):
+                    # A mark stacked on a vowel has no room under the 12px
+                    # ascent: capping it there pushed it into the vowel (กี้ ก้ำ).
+                    ascent_px += THAI_STACK_OVER_ASCENT_PX
                 top_px = rendered.top + y_shift
                 if top_px > ascent_px:
                     y_shift -= top_px - ascent_px
@@ -798,6 +805,8 @@ def bake_pixel_outline_font(
     if "maxp" in tt:
         tt["maxp"].maxZones = 1
     scale_gpos(tt, upm / 1000.0, upm / 1000.0)
+    if thai_mark16:
+        clear_narrow_marks(tt, PX, PX)
     set_names(tt, family, ps_name)
     return save_ttf_and_woff2(tt, stem, game_dir=game_dir, web_dir=web_dir)
 

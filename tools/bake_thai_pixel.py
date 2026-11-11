@@ -26,6 +26,8 @@ from fontTools.ttLib.tables._g_l_y_f import Glyph as TtGlyph
 from fontTools.varLib.instancer import instantiateVariableFont
 from PIL import Image, ImageDraw, ImageFont
 
+from thai_narrow import clear_narrow_marks
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "NotoSansThai-Regular_x2w.ttf"
 SRC_SQUARE = ROOT / "src" / "NotoSansThai-Regular.ttf"
@@ -775,7 +777,10 @@ def main(argv=None):
         location = {"wght": args.weight} if args.weight is not None else {}
         loc_note = ", ".join(f"{k}={v:g}" for k, v in location.items()) or "default master"
         print(f"  variable font detected → instantiating at {loc_note}")
-        tt = instantiateVariableFont(tt, location)
+        # Pin every axis: an empty location keeps the font variable, and the
+        # old gvar/HVAR deltas would then ship beside the pixel outlines.
+        pinned = {a.axisTag: a.defaultValue for a in tt['fvar'].axes}
+        tt = instantiateVariableFont(tt, {**pinned, **location})
         if location:
             pil_buf = io.BytesIO()
             tt.save(pil_buf)
@@ -1184,10 +1189,20 @@ def main(argv=None):
         dx = dy = 0
         sx = sy = 1.0
         narrow_above_mark = False
+        # Base-letter variants (ญ/ฐ *.less, ฬ/ฎ/ฏ/ฤ/ฦ *.short) are the same
+        # letter with the descender or the tall stem cut off, not a moved copy:
+        # keep the base pixels in place and clip them to the variant's height.
+        clip_lo = clip_hi = None
         if base_box and variant_box:
             dx = int(round((variant_box[0] - base_box[0]) * source_to_out_x))
             y_scale = source_to_out_mark_y if is_mark_variant else source_to_out_y
             dy = int(round((variant_box[1] - base_box[1]) * y_scale))
+            if not is_mark_variant:
+                dy = 0
+                if variant_box[1] > base_box[1]:
+                    clip_lo = snap_to_grid(variant_box[1] * y_scale, PX_Y)
+                if variant_box[3] < base_box[3]:
+                    clip_hi = snap_to_grid(variant_box[3] * y_scale, PX_Y)
             if is_mark_variant:
                 base_cp = cmap_gname_to_cp.get(base_gname)
                 base_w = max(1, base_box[2] - base_box[0])
@@ -1197,8 +1212,11 @@ def main(argv=None):
                 if args.target_width < MARK_WIDTH_FOR_SMALL_FONTS:
                     sx = min(1.0, sx * (MARK_WIDTH_FOR_SMALL_FONTS / args.target_width))
                 dx = int(round((variant_box[0] - base_box[0]) * source_to_out_mark_x))
+                # Square trials only: the shipped y2x faces keep the plain
+                # copied *.narrow mark shape.
                 narrow_above_mark = (
-                    gname.endswith(".narrow")
+                    (args.square12 or args.square16)
+                    and gname.endswith(".narrow")
                     and base_cp is not None
                     and is_above_mark(base_cp)
                 )
@@ -1220,6 +1238,14 @@ def main(argv=None):
         y_snap_grid = PX_X if args.scanline != "none" else PX_Y
         for end in ends:
             pts = coords[start:end+1]
+            if clip_lo is not None or clip_hi is not None:
+                # Contours are axis-aligned pixel runs; clamp them vertically.
+                lo = clip_lo if clip_lo is not None else -10**9
+                hi = clip_hi if clip_hi is not None else 10**9
+                pts = [(x, min(max(y, lo), hi)) for x, y in pts]
+                if max(y for _, y in pts) <= min(y for _, y in pts):
+                    start = end + 1
+                    continue
             if len(pts) >= 3:
                 def transform(p):
                     if is_mark_variant and base_out_box:
@@ -1346,6 +1372,9 @@ def main(argv=None):
                 visit_subtable(sub)
         snap_note = "unsnapped" if args.fit_mode == "native" else f"snapped to grid {PX_X}/{PX_Y}"
         print(f"  GPOS: scaled {anchor_count[0]} anchors x*{anchor_scale_x:.3f} y*{anchor_scale_y:.3f} ({snap_note})")
+        if not (args.square12 or args.square16):
+            moved = clear_narrow_marks(tt, PX_X, PX_Y)
+            print(f"  narrow marks moved left off ascender stems: {' '.join(moved) or 'none'}")
 
     # Rewrite name
     name = tt['name']
