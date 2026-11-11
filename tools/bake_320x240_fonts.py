@@ -100,22 +100,6 @@ def set_line_metrics(tt: TTFont, ascent: int, descent: int) -> None:
         os2.usWinDescent = max(-descent, 0)
 
 
-def shift_embedded_bitmap_y(tt: TTFont, pixels: int) -> None:
-    """Move embedded horizontal bitmap strikes without changing their pixels."""
-    if "EBLC" not in tt or pixels == 0:
-        return
-    for strike in tt["EBLC"].strikes:
-        hori = strike.bitmapSizeTable.hori
-        hori.ascender += pixels
-        hori.descender += pixels
-        hori.maxBeforeBL += pixels
-        hori.minAfterBL += pixels
-        for subtable in strike.indexSubTables:
-            metrics = getattr(subtable, "metrics", None)
-            if metrics is not None and hasattr(metrics, "horiBearingY"):
-                metrics.horiBearingY += pixels
-
-
 def save_ttf_and_woff2(
     tt: TTFont,
     stem: str,
@@ -148,22 +132,13 @@ def bake_shinonome_12px() -> tuple[Path, Path]:
 
     stem, family = OUT["j"]
 
-    # FreeType/Godot can use the source's 1bpp strike directly.  Raise its
-    # native 10/-2 cell by one pixel to 11/-1 while keeping K64F's shared
-    # 12/4 line box.
-    game_tt = TTFont(source)
-    game_upm = game_tt["head"].unitsPerEm
-    set_line_metrics(game_tt, game_upm, -round(game_upm * 4 / 12))
-    shift_embedded_bitmap_y(game_tt, 1)
-    set_names(game_tt, family, "K64320JShinonomeMincho12px-Regular")
-    game_tt["head"].modified = game_tt["head"].created
-    game_tt.recalcTimestamp = False
-    game_path = GAME / f"{stem}.ttf"
-    game_tt.save(game_path)
-
-    # Chromium's web-font path does not reliably expose Shinonome's 1bpp
-    # EBDT format-5 strike.  Rebuild glyf from that canonical 12px strike so
+    # Neither Godot nor Chromium draws Shinonome's 1bpp EBDT strike: Godot's
+    # FontFile disables embedded bitmaps by default (and k64_locale builds a
+    # fresh FontFile from the raw data), so it rasterizes the source outlines,
+    # whose dot grid sits 0.312px off the baseline in the native 10/-2 cell.
+    # Rebuild glyf from the canonical 12px strike instead, raised to 11/-1, so
     # every ON bitmap pixel becomes one 1px square outline at font-size 12px.
+    # The game TTF and the web woff2 share these outlines.
     face = freetype.Face(str(source))
     tt = TTFont(source)
     scale_upem(tt, UPM)
@@ -216,9 +191,12 @@ def bake_shinonome_12px() -> tuple[Path, Path]:
         maxp.maxInstructionDefs = 0
         maxp.maxStackElements = 1
         maxp.maxSizeOfInstructions = len(pixel_hint_program)
-    set_names(tt, family, "K64320JShinonomeMincho12pxPixel-Regular")
     tt["head"].modified = tt["head"].created
     tt.recalcTimestamp = False
+    set_names(tt, family, "K64320JShinonomeMincho12px-Regular")
+    game_path = GAME / f"{stem}.ttf"
+    tt.save(game_path)
+    set_names(tt, family, "K64320JShinonomeMincho12pxPixel-Regular")
     tt.flavor = "woff2"
     web_path = WEB / f"{stem}.woff2"
     tt.save(web_path)
