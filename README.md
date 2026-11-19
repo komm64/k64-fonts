@@ -189,6 +189,7 @@ Distribution paths:
 
 Use the 320x240 K64F/J/CK/Thai/Arabic fonts at `font-size: 12px` on a square-dot 320x240 surface. All five roles expose `ascent=12px / descent=4px` line metrics. The K64F wrapper keeps the same visual 8x16 glyph size that normal K64F has at `font-size: 16px`.
 The root `k64-fantasy.woff2` still targets `font-size: 16px`; use the 320x240 wrapper for mixed 12px fallback stacks.
+The 320x240 font assets stay binary (no intermediate colors). k64-fonts ships upright faces only: synthetic italics are the game's job, and a game that slants rendered text may antialias the result. For CJK emphasis, use emphasis dots set explicitly in the game's markup rather than italics.
 The 640x240 game runtime fonts live under `game/640x240/`, including the K64F
 BMFont page image. Legacy root copies remain for compatibility, and the
 640x240 web `y2x` files remain in `web/`.
