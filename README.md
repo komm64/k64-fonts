@@ -245,6 +245,7 @@ Reference fonts from this repo via jsDelivr CDN. Example CSS:
   font-family: 'K64 Arabic';
   src: url('https://cdn.jsdelivr.net/gh/komm64/k64-fonts/web/k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2') format('woff2');
   unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+  size-adjust: 125%;   /* 20px source on the 16px/x2 rhythm; Latin and digits stay at 32px */
 }
 
 body {
@@ -262,8 +263,7 @@ body {
 :lang(ar) {
   font-family: 'K64 Fantasy', 'K64 Arabic', 'K64 Thai', 'K64 CK', 'K64 J', monospace;
   direction: rtl;
-  font-size: 1.25em;   /* 20px source on a 16px/x2 rhythm */
-  line-height: 0.8;    /* keep the line box on the original 32px rhythm */
+  line-height: 1;      /* keep the line box on the 32px rhythm */
 }
 ```
 
@@ -568,6 +568,8 @@ python tools/bake_320x240_fonts.py
 # 640x480 / 16px square-dot set.
 # Note: CK WOFF2 compression is slow because the font has many glyphs.
 python tools/bake_640x480_fonts.py
+# (also re-cuts the 16px TC faces from the CK faces; on its own:)
+python tools/bake_tc_16px.py
 
 # Put every role on the K64F line (after any bake), then verify.
 python tools/align_targets.py

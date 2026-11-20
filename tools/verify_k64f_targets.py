@@ -14,16 +14,19 @@ from PIL import Image, ImageDraw, ImageFont, features
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_FNT = ROOT / "game/640x480/k64-640x480-k64f-16px.fnt"
+# The 640x480 target's K64F: its own glyphs (stretched by bake_k64f_tall.py)
+# on the 14/2 line box, checked against its hinted WOFF2. (Its game TTF is
+# unhinted for Godot, which imports it with hinting off; FreeType's default
+# auto-hinter here would move detached marks, so it is not rendered.)
+TALL_FNT = ROOT / "game/640x480/k64-640x480-k64f-tall-16px.fnt"
+TALL_OUTLINES = (
+    ("640x480 web", ROOT / "web/640x480/k64-640x480-k64f-tall-16px.woff2"),
+)
 
 GAME_TARGETS = (
     (
         "320x240 game",
         ROOT / "game/320x240/k64-320-k64f-visual16-12px.fnt",
-        1,
-    ),
-    (
-        "640x480 game",
-        BASE_FNT,
         1,
     ),
     (
@@ -45,7 +48,7 @@ WEB_TARGETS = (
         1,
     ),
     (
-        "640x480 web",
+        "16px web (k64-fantasy)",
         ROOT / "web/k64-fantasy.woff2",
         16,
         8,
@@ -138,7 +141,10 @@ def render_web_font(
 ) -> tuple[tuple[int, int], dict[int, np.ndarray]]:
     with tempfile.TemporaryDirectory(prefix="verify-k64f-") as temp_dir:
         ttf_path = Path(temp_dir) / "font.ttf"
-        woff2.decompress(str(path), str(ttf_path))
+        if path.suffix == ".woff2":
+            woff2.decompress(str(path), str(ttf_path))
+        else:
+            ttf_path = path
         font = ImageFont.truetype(str(ttf_path), size)
         rendered = {}
         for codepoint in codepoints:
@@ -178,6 +184,21 @@ def main() -> None:
         }
         assert_cells(label, cells, expected)
         print(f"PASS {label}: 606 glyphs, ascent/descent={metrics}")
+
+    tall_common, tall_cells = read_bmfont(TALL_FNT)
+    if tall_common != {"lineHeight": 16, "base": 14} or tall_cells.keys() != base_cells.keys():
+        raise AssertionError(f"640x480 game: unexpected tall atlas: {tall_common}, {len(tall_cells)} glyphs")
+    print(f"PASS 640x480 game: {len(tall_cells)} glyphs, lineHeight=16, base=14")
+    for label, path in TALL_OUTLINES:
+        metrics, cells = render_web_font(path, 16, 8, 16, 14, set(tall_cells))
+        if metrics != (14, 2):
+            raise AssertionError(f"{label}: expected metrics (14, 2), got {metrics}")
+        expected = {
+            codepoint: cell[:, :8] if cell.shape[1] >= 8 else np.pad(cell, ((0, 0), (0, 8 - cell.shape[1])))
+            for codepoint, cell in tall_cells.items()
+        }
+        assert_cells(label, cells, expected)
+        print(f"PASS {label}: {len(cells)} glyphs, ascent/descent={metrics}")
 
     for label, path, kept_display_row in WEB_SCAN_TARGETS:
         metrics, cells = render_web_font(path, 32, 16, 32, 24, set(base_cells))

@@ -125,6 +125,8 @@
       src: url("./k64-arabic-sans-medium-pixel-20px-thin-y2x.woff2") format("woff2");
       font-display: swap;
       unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+      /* 20px source on the 16px/x2 rhythm; K64F Latin and digits stay at 32px. */
+      size-adjust: 125%;
     }
 
     @font-face {
@@ -462,7 +464,6 @@
     .sample.arabic,
     .card-sample.arabic,
     .editable.arabic {
-      font-size: calc(var(--sample-size, 32px) * 1.25);
       line-height: var(--sample-size, 32px);
     }
 
@@ -572,7 +573,6 @@
 
     .target-reecho .arabic-run {
       font-family: "K64 Arabic Sans Medium Pixel", monospace;
-      font-size: 40px;
       line-height: 32px;
     }
 
@@ -713,7 +713,6 @@
     }
 
     .social-240 .role-arabic {
-      font-size: 40px;
       line-height: 32px;
     }
 

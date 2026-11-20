@@ -27,6 +27,8 @@ GAME = ROOT / "game" / "640x480"
 WEB = ROOT / "web" / "640x480"
 DOCS = ROOT / "docs" / "640x480"
 sys.path.insert(0, str(ROOT / "tools"))
+from preview_label_font import label_font  # noqa: E402
+import bake_tc_16px  # noqa: E402
 from bake_320x240_fonts import (  # noqa: E402
     bake_pixel_outline_font,
     draw_shaped_run,
@@ -205,8 +207,8 @@ def make_preview(paths: dict[str, Path]) -> Path:
     out = DOCS / "preview.png"
     img = Image.new("RGB", (640, 480), "white")
     draw = ImageDraw.Draw(img)
-    label = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 8)
-    title = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 12)
+    label = label_font(8)
+    title = label_font(12)
     draw.text((16, 10), "K64 640x480 square-dot target", fill=(0, 0, 0), font=title)
     draw.text((16, 42), "K64F 16px / native 16px CJK / 20px rows", fill=(70, 70, 70), font=label)
     for y in (104, 168, 232):
@@ -253,6 +255,8 @@ def main() -> int:
         "thai": bake_thai_16px()[0],
         "arabic": bake_arabic_16px()[0],
     }
+    # TC is cut from the CK faces, so it follows every CK bake.
+    bake_tc_16px.main()
     preview = make_preview(outputs)
     print("wrote 640x480 fonts:")
     for path in outputs.values():

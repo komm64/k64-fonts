@@ -12,6 +12,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from preview_label_font import label_font  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -484,8 +487,8 @@ def make_preview(font_path, out_path, font_size=16):
         ("K64 Arabic Sans Medium Pixel", font_path, sample_ar, "rtl", "ar"),
         ("source Noto Sans Arabic Medium", SRC, sample_ar, "rtl", "ar"),
     ]
-    label = ImageFont.truetype("arial.ttf", 14)
-    title = ImageFont.truetype("arial.ttf", 20)
+    label = label_font(14)
+    title = label_font(20)
     fonts = [ImageFont.truetype(str(path), font_size, layout_engine=ImageFont.Layout.RAQM)
              for _name, path, _text, _dir, _lang in lines]
     width, row_h = 1220, 84

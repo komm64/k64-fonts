@@ -27,10 +27,13 @@ import unicodedata
 from pathlib import Path
 
 from fontTools.fontBuilder import FontBuilder
+from fontTools.ttLib import TTFont
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from k64f_web_hint import save_hinted_woff2  # noqa: E402
 SOURCE = ROOT / "game" / "640x480" / "k64-640x480-k64f-16px.fnt"
 STEM = "k64-640x480-k64f-tall-16px"
 GAME = ROOT / "game" / "640x480"
@@ -198,16 +201,24 @@ def write_outline_fonts(cells: dict[int, Cell]) -> tuple[Path, Path]:
     builder.setupHorizontalMetrics(metrics)
     ascent, descent = BASE * UNITS_PER_PX, (ROWS - BASE) * UNITS_PER_PX
     builder.setupHorizontalHeader(ascent=ascent, descent=-descent)
-    builder.setupNameTable({"familyName": "K64 640x480 K64F Tall 16px", "styleName": "Regular", "psName": "K64640x480K64FTall16px-Regular"})
+    builder.setupNameTable({
+        "copyright": "Copyright (c) 2026 komm64",
+        "familyName": "K64 640x480 K64F Tall 16px",
+        "styleName": "Regular",
+        "psName": "K64640x480K64FTall16px-Regular",
+        "licenseDescription": "Licensed under CC-BY-NC 4.0. See LICENSE/CC-BY-NC-4.0.txt.",
+        "licenseInfoURL": "https://creativecommons.org/licenses/by-nc/4.0/",
+    })
     builder.setupOS2(
         sTypoAscender=ascent, sTypoDescender=-descent, sTypoLineGap=0, usWinAscent=ascent, usWinDescent=descent
     )
     builder.setupPost()
     ttf = GAME / f"{STEM}.ttf"
     builder.save(ttf)
-    builder.font.flavor = "woff2"
+    # Native TrueType hints keep detached pixel marks on the grid in browsers,
+    # as for the other K64F web faces.
     woff2 = WEB / f"{STEM}.woff2"
-    builder.font.save(woff2)
+    save_hinted_woff2(TTFont(ttf), woff2)
     return ttf, woff2
 
 

@@ -12,6 +12,7 @@ const FONTS_640X240 := {
 	"k64f": "res://game/640x240/k64-640x240-k64f-16px-x2w.fnt",
 	"j": "res://game/640x240/k64-640x240-j-shinonome-mincho-16px-or12.ttf",
 	"ck": "res://game/640x240/k64-640x240-ck-unifont-16px-or12.ttf",
+	"tc": "res://game/640x240/k64-640x240-tc-unifont-tw-16px-or12.ttf",
 	"thai": "res://game/640x240/k64-640x240-thai-pixel-12w-or12-y2x-prop-x2w.ttf",
 	"arabic": "res://game/640x240/k64-640x240-arabic-sans-medium-pixel-20px-thin-y1.ttf",
 }
@@ -21,14 +22,16 @@ const FONTS_320X240 := {
 	"j": "res://game/320x240/k64-320-j-shinonome-mincho-12px.ttf",
 	"zh": "res://game/320x240/k64-320-zh-wqy-song-12px.ttf",
 	"ck": "res://game/320x240/k64-320-ck-unifont-12px.ttf",
+	"tc": "res://game/320x240/k64-320-tc-wqy-song-tw-12px.ttf",
 	"thai": "res://game/320x240/k64-320-thai-light-12px-mark16-max2.ttf",
 	"arabic": "res://game/320x240/k64-320-arabic-light-12px.ttf",
 }
 
 const FONTS_640X480 := {
-	"k64f": "res://game/640x480/k64-640x480-k64f-16px.fnt",
+	"k64f": "res://game/640x480/k64-640x480-k64f-tall-16px.fnt",
 	"j": "res://game/640x480/k64-640x480-j-shinonome-mincho-16px.ttf",
 	"ck": "res://game/640x480/k64-640x480-ck-unifont-16px.ttf",
+	"tc": "res://game/640x480/k64-640x480-tc-unifont-tw-16px.ttf",
 	"thai": "res://game/640x480/k64-640x480-thai-light-16px.ttf",
 	"arabic": "res://game/640x480/k64-640x480-arabic-light-16px.ttf",
 }
@@ -39,7 +42,7 @@ const MODES := [
 		"title": "640x240 surface -> 640x480 display",
 		"surface_size": Vector2i(640, 240),
 		"fonts": FONTS_640X240,
-		"sizes": {"k64f": 16, "j": 16, "ck": 16, "thai": 16, "arabic": 20},
+		"sizes": {"k64f": 16, "j": 16, "ck": 16, "tc": 16, "thai": 16, "arabic": 20},
 		"layout": "wide240",
 	},
 	{
@@ -47,7 +50,7 @@ const MODES := [
 		"title": "320x240 surface -> 640x480 display",
 		"surface_size": Vector2i(320, 240),
 		"fonts": FONTS_320X240,
-		"sizes": {"k64f": 12, "j": 12, "zh": 12, "ck": 12, "thai": 12, "arabic": 12},
+		"sizes": {"k64f": 12, "j": 12, "zh": 12, "tc": 12, "ck": 12, "thai": 12, "arabic": 12},
 		"layout": "small240",
 	},
 	{
@@ -55,7 +58,7 @@ const MODES := [
 		"title": "640x480 surface -> 640x480 display",
 		"surface_size": Vector2i(640, 480),
 		"fonts": FONTS_640X480,
-		"sizes": {"k64f": 16, "j": 16, "ck": 16, "thai": 16, "arabic": 16},
+		"sizes": {"k64f": 16, "j": 16, "ck": 16, "tc": 16, "thai": 16, "arabic": 16},
 		"layout": "wide480",
 	},
 ]
@@ -180,29 +183,31 @@ func draw_mode(mode: Dictionary) -> void:
 func draw_wide_240(mode: Dictionary) -> void:
 	var fonts: Dictionary = mode["fonts"]
 	var sizes: Dictionary = mode["sizes"]
-	add_rule(18, 42, 604)
-	add_rule(18, 116, 604)
+	add_rule(18, 40, 604)
+	add_rule(18, 138, 604)
 	add_label(mode["title"], fonts["k64f"], sizes["k64f"], Vector2(18, 10), Vector2(604, 18), INK)
-	add_label("K64F   HP 0123 / MENU / SCORE", fonts["k64f"], sizes["k64f"], Vector2(18, 52), Vector2(604, 20), INK)
-	add_label("J      こんにちは世界 0123", fonts["j"], sizes["j"], Vector2(18, 78), Vector2(604, 20), INK)
-	add_label("CK     ! ！ 漢字 龍龜 你好 안녕", fonts["ck"], sizes["ck"], Vector2(18, 104), Vector2(604, 20), INK)
-	add_label("TH     กี้ กํ่า เก้า น้ำ", fonts["thai"], sizes["thai"], Vector2(18, 132), Vector2(300, 22), INK)
-	add_label("السلام عليكم ١٢٣٤", fonts["arabic"], sizes["arabic"], Vector2(326, 128), Vector2(296, 26), INK, true)
-	add_label("ا أ إ آ ٠١٢٣٤٥٦٧٨٩", fonts["arabic"], sizes["arabic"], Vector2(326, 164), Vector2(296, 26), INK, true)
-	add_label("SEGMENTED GAME-FONT RUN", fonts["k64f"], sizes["k64f"], Vector2(18, 194), Vector2(604, 18), MUTED)
+	add_label("K64F   HP 0123 / MENU / SCORE", fonts["k64f"], sizes["k64f"], Vector2(18, 44), Vector2(604, 20), INK)
+	add_label("J      こんにちは世界 0123", fonts["j"], sizes["j"], Vector2(18, 66), Vector2(604, 20), INK)
+	add_label("CK     ! ！ 漢字 龍龜 你好 안녕", fonts["ck"], sizes["ck"], Vector2(18, 88), Vector2(604, 20), INK)
+	add_label("TC     臺灣 說話 龍龜 你好", _with_fallback(fonts, "tc", "ck"), sizes["tc"], Vector2(18, 110), Vector2(604, 20), INK)
+	add_label("TH     กี้ กํ่า เก้า น้ำ", fonts["thai"], sizes["thai"], Vector2(18, 146), Vector2(300, 22), INK)
+	add_label("السلام عليكم ١٢٣٤", fonts["arabic"], sizes["arabic"], Vector2(326, 142), Vector2(296, 26), INK, true)
+	add_label("ا أ إ آ ٠١٢٣٤٥٦٧٨٩", fonts["arabic"], sizes["arabic"], Vector2(326, 174), Vector2(296, 26), INK, true)
+	add_label("SEGMENTED GAME-FONT RUN", fonts["k64f"], sizes["k64f"], Vector2(18, 208), Vector2(604, 18), MUTED)
 
 
 func draw_small_240(mode: Dictionary) -> void:
 	var fonts: Dictionary = mode["fonts"]
 	var sizes: Dictionary = mode["sizes"]
 	add_rule(10, 32, 300)
-	add_rule(10, 146, 300)
+	add_rule(10, 148, 300)
 	add_label("320x240 -> 640x480", fonts["k64f"], sizes["k64f"], Vector2(10, 8), Vector2(300, 16), INK)
-	add_label("K64F HP 0123 / MENU", fonts["k64f"], sizes["k64f"], Vector2(10, 44), Vector2(300, 16), INK)
-	add_label("J    こんにちは世界 0123", fonts["j"], sizes["j"], Vector2(10, 64), Vector2(300, 16), INK)
-	add_label("ZH   ! ！ 漢字 龍龜 你好", fonts["zh"], sizes["zh"], Vector2(10, 84), Vector2(300, 16), INK)
-	add_label("CK   한국어 안녕", fonts["ck"], sizes["ck"], Vector2(10, 104), Vector2(300, 16), INK)
-	add_label("TH   กี้ กํ่า เก้า น้ำ", fonts["thai"], sizes["thai"], Vector2(10, 124), Vector2(300, 16), INK)
+	add_label("K64F HP 0123 / MENU", fonts["k64f"], sizes["k64f"], Vector2(10, 40), Vector2(300, 16), INK)
+	add_label("J    こんにちは世界 0123", fonts["j"], sizes["j"], Vector2(10, 58), Vector2(300, 16), INK)
+	add_label("ZH   ! ！ 漢字 龍龜 你好", fonts["zh"], sizes["zh"], Vector2(10, 76), Vector2(300, 16), INK)
+	add_label("TC   臺灣 說話 龍龜 你好", _with_fallback(fonts, "tc", "zh"), sizes["tc"], Vector2(10, 94), Vector2(300, 16), INK)
+	add_label("CK   한국어 안녕", fonts["ck"], sizes["ck"], Vector2(10, 112), Vector2(300, 16), INK)
+	add_label("TH   กี้ กํ่า เก้า น้ำ", fonts["thai"], sizes["thai"], Vector2(10, 130), Vector2(300, 16), INK)
 	add_label("السلام عليكم ١٢٣٤", fonts["arabic"], sizes["arabic"], Vector2(10, 154), Vector2(300, 18), INK, true)
 	add_label("ا أ إ آ ٠١٢٣٤٥٦٧٨٩", fonts["arabic"], sizes["arabic"], Vector2(10, 184), Vector2(300, 18), INK, true)
 
@@ -215,11 +220,17 @@ func draw_wide_480(mode: Dictionary) -> void:
 	add_label(mode["title"], fonts["k64f"], sizes["k64f"], Vector2(24, 24), Vector2(592, 22), INK)
 	add_label("K64F   HP 0123 / MENU / SCORE", fonts["k64f"], sizes["k64f"], Vector2(24, 92), Vector2(592, 24), INK)
 	add_label("J      こんにちは世界 0123", fonts["j"], sizes["j"], Vector2(24, 132), Vector2(592, 24), INK)
-	add_label("CK     ! ！ 漢字 龍龜 你好 안녕", fonts["ck"], sizes["ck"], Vector2(24, 172), Vector2(592, 24), INK)
-	add_label("TH     กี้ กํ่า เก้า น้ำ", fonts["thai"], sizes["thai"], Vector2(24, 212), Vector2(592, 24), INK)
+	add_label("CK     ! ！ 漢字 龍龜 你好 안녕", fonts["ck"], sizes["ck"], Vector2(24, 164), Vector2(592, 24), INK)
+	add_label("TC     臺灣 說話 龍龜 你好", _with_fallback(fonts, "tc", "ck"), sizes["tc"], Vector2(24, 192), Vector2(592, 24), INK)
+	add_label("TH     กี้ กํ่า เก้า น้ำ", fonts["thai"], sizes["thai"], Vector2(24, 218), Vector2(592, 24), INK)
 	add_label("السلام عليكم ١٢٣٤", fonts["arabic"], sizes["arabic"], Vector2(24, 282), Vector2(592, 26), INK, true)
 	add_label("ا أ إ آ ٠١٢٣٤٥٦٧٨٩", fonts["arabic"], sizes["arabic"], Vector2(24, 334), Vector2(592, 26), INK, true)
 	add_label("SQUARE-DOT GAME FONT RENDERING", fonts["k64f"], sizes["k64f"], Vector2(24, 404), Vector2(592, 24), MUTED)
+
+
+# The TC face carries only the Han block; its stack puts CK (or ZH) behind it.
+func _with_fallback(fonts: Dictionary, role: String, fallback: String) -> Array:
+	return [fonts[role], fonts[fallback]]
 
 
 func add_rule(x: int, y: int, width: int) -> void:
@@ -230,7 +241,7 @@ func add_rule(x: int, y: int, width: int) -> void:
 	_surface_root.add_child(rule)
 
 
-func add_label(text: String, font_path: String, font_size: int, pos: Vector2, size: Vector2, color: Color, rtl := false) -> void:
+func add_label(text: String, font_path: Variant, font_size: int, pos: Vector2, size: Vector2, color: Color, rtl := false) -> void:
 	var label := Label.new()
 	label.text = text
 	label.position = pos
@@ -247,9 +258,16 @@ func add_label(text: String, font_path: String, font_size: int, pos: Vector2, si
 	_surface_root.add_child(label)
 
 
-func make_label_settings(font_path: String, font_size: int, color: Color) -> LabelSettings:
+# font_path is a path, or [path, fallback path].
+func make_label_settings(font_path: Variant, font_size: int, color: Color) -> LabelSettings:
 	var settings := LabelSettings.new()
-	settings.font = load_font(font_path)
+	if font_path is Array:
+		var stack := FontVariation.new()
+		stack.base_font = load_font(font_path[0])
+		stack.fallbacks = [load_font(font_path[1])]
+		settings.font = stack
+	else:
+		settings.font = load_font(font_path)
 	settings.font_size = font_size
 	settings.font_color = color
 	return settings

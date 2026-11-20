@@ -47,7 +47,8 @@ LINE_SAMPLES_640 = dict(LINE_SAMPLES, thai="กี้ กํ่า เก้า 
 
 
 def label_font(size: int) -> ImageFont.FreeTypeFont:
-    return ImageFont.truetype(str(WIN_FONTS / "arial.ttf"), size)
+    from preview_label_font import label_font as _label_font
+    return _label_font(size)
 
 
 def shaped_width(font_path: Path, text: str, size: int, x_scale=1, lang=None, direction=None) -> int:
